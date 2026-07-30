@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}My Profile | CRM{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-user-circle me-2"></i>My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        {% if user.profile_picture %}
+                            <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #f8f9fa;">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 100px; height: 100px; font-size: 2.5rem; border: 3px solid #f8f9fa;">
+                                {% if user.initials %}
+                                    {{ user.initials }}
+                                {% else %}
+                                    {{ user.username|make_list|first|upper }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        <h5>{{ user.get_full_name }}</h5>
+                        <p class="text-muted">{{ user.get_role_display }}</p>
+                    </div>
+
+                    {% crispy form %}
+                </div>
+            </div>
+
+            {# MFA Security Card #}
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Security</h4>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-1">Two-Factor Authentication</h6>
+                            <p class="text-muted mb-0 small">
+                                {% if has_totp %}
+                                    <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Enabled</span>
+                                    Your account is protected with an authenticator app.
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="fas fa-times-circle me-1"></i>Not Enabled</span>
+                                    Add an extra layer of security with an authenticator app.
+                                {% endif %}
+                            </p>
+                        </div>
+                        <a href="{% url 'mfa_index' %}" class="btn btn-sm {% if has_totp %}btn-outline-light{% else %}btn-success{% endif %}">
+                            {% if has_totp %}
+                                <i class="fas fa-cog me-1"></i>Manage
+                            {% else %}
+                                <i class="fas fa-plus me-1"></i>Enable
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

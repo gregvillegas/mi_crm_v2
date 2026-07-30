@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customers | MiCRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#7b2d28",
+                        "surface-bright": "#f4faff",
+                        "inverse-on-surface": "#e0f4ff",
+                        "background": "#f4faff",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#d9f2ff",
+                        "on-surface": "#001f2a",
+                        "inverse-primary": "#ffb4ac",
+                        "surface-container-low": "#e6f6ff",
+                        "outline": "#8e706d",
+                        "surface-dim": "#c0dfee",
+                        "surface-variant": "#c9e7f7",
+                        "on-primary-container": "#ffc8c2",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "secondary": "#99443d",
+                        "surface-tint": "#b52424",
+                        "on-background": "#001f2a",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb4ac",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#b1daff",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f4faff",
+                        "on-secondary-fixed": "#400203",
+                        "tertiary-fixed-dim": "#8fcdff",
+                        "inverse-surface": "#163440",
+                        "secondary-container": "#fe9389",
+                        "tertiary-fixed": "#cbe6ff",
+                        "on-surface-variant": "#5a403e",
+                        "tertiary-container": "#006292",
+                        "on-tertiary-fixed": "#001e30",
+                        "on-error": "#ffffff",
+                        "tertiary": "#00496e",
+                        "primary-container": "#b22222",
+                        "primary-fixed-dim": "#ffb4ac",
+                        "outline-variant": "#e2beba",
+                        "primary": "#8f000d",
+                        "surface-container-high": "#ceedfd",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#772a25",
+                        "surface-container-highest": "#c9e7f7",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#410003",
+                        "on-primary-fixed-variant": "#92030f",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .data-grid-row:nth-child(even) { background-color: #ffffff; }
+        .data-grid-row:nth-child(odd) { background-color: #f4faff; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-bright text-on-surface antialiased">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 bg-[#f4faff] dark:bg-slate-950">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#b22222] dark:text-[#ff4d4d] p-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full cursor-pointer transition-colors duration-200">menu</span>
+<h1 class="font-['Manrope'] font-black italic text-xl text-[#b22222]">MiCRM</h1>
+</div>
+<div class="flex-1 max-w-md mx-6 hidden md:block">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant">search</span>
+<input class="w-full bg-surface-container-high border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:ring-offset-0 placeholder:text-on-surface-variant/60" placeholder="Search customers..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#b22222] dark:text-[#ff4d4d] p-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full cursor-pointer transition-colors duration-200">filter_list</span>
+<span class="material-symbols-outlined text-[#b22222] dark:text-[#ff4d4d] p-2 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 rounded-full cursor-pointer transition-colors duration-200 md:hidden">search</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant ml-2">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="close-up portrait of a professional businessman in a sharp navy suit with neutral background and soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuu-uryQZaoLZQbum_kKLgATXYQf1bEYMZ6c7HFV3jVx5hcI9u0LOvopYUA5jXduI0I0tjCGOu8hlfkU3dtPRPHz1m2e0sccvuLa4JwIKPzIFg1IOM0x5VLjlcJAyrWzea_I23MPuUfdROMUSFTZGua-8ZI8eaqRxH07j9dZz6t2vdUYIDIUZ6XZzipbhXEjCQoU_50hLPNgWhuocdIz9mdFXVSD_aQN-y0ucqqf8oaqtz70RrqmfquDl459o7V2C7OL4olriFFE1Q"/>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-24 px-4 max-w-5xl mx-auto">
+<!-- Content Header -->
+<div class="mb-8 flex flex-col gap-1">
+<h2 class="font-headline font-extrabold text-3xl tracking-tight text-on-surface">Customers</h2>
+<p class="text-on-surface-variant text-sm font-medium">Managing 1,248 active relationships</p>
+</div>
+<!-- Precision Data Grid -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_2px_12px_0_rgba(0,31,42,0.04)]">
+<!-- Grid Header (Editorial Style) -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 bg-surface-container-low border-b border-outline-variant/10">
+<div class="col-span-6 md:col-span-5 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Company &amp; Status</div>
+<div class="col-span-4 md:col-span-4 text-xs font-bold uppercase tracking-widest text-on-surface-variant">Last Activity</div>
+<div class="col-span-2 md:col-span-3 text-right text-xs font-bold uppercase tracking-widest text-on-surface-variant">Value</div>
+</div>
+<!-- List Content -->
+<div class="flex flex-col">
+<!-- Row 1: Delinquent -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row border-b border-outline-variant/5 hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">Global Logistics Partners</span>
+<div class="flex items-center gap-2">
+<span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Delinquent</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">phone_callback</span>
+<span class="font-medium">Last call: Oct 12</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$42,900</span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row border-b border-outline-variant/5 hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">Horizon Digital Group</span>
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Active</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">mail</span>
+<span class="font-medium">Email sent: Oct 28</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$128,500</span>
+</div>
+</div>
+<!-- Row 3: Delinquent -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row border-b border-outline-variant/5 hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">Apex Manufacturing Co.</span>
+<div class="flex items-center gap-2">
+<span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Delinquent</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">handshake</span>
+<span class="font-medium">Meeting: Nov 02</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$12,400</span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row border-b border-outline-variant/5 hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">Blue River Ventures</span>
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">VIP</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="font-medium">Last visit: Oct 15</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$356,000</span>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row border-b border-outline-variant/5 hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">Stellar Systems Inc</span>
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Active</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">chat_bubble</span>
+<span class="font-medium">Msg: Yesterday</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$67,200</span>
+</div>
+</div>
+<!-- Row 6 -->
+<div class="grid grid-cols-12 gap-4 px-6 py-4 items-center data-grid-row hover:bg-surface-container-high/30 transition-colors">
+<div class="col-span-6 md:col-span-5 flex flex-col gap-1">
+<span class="font-headline font-bold text-base text-on-surface">OmniRetail Global</span>
+<div class="flex items-center gap-2">
+<span class="bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Onboarding</span>
+</div>
+</div>
+<div class="col-span-4 md:col-span-4 flex items-center gap-2 text-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">description</span>
+<span class="font-medium">Doc signed: Oct 30</span>
+</div>
+<div class="col-span-2 md:col-span-3 text-right">
+<span class="font-headline font-bold text-sm text-on-surface">$21,000</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB -->
+<button class="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#8f000d] to-[#b22222] text-on-primary shadow-xl flex items-center justify-center active:scale-95 transition-transform duration-150 z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- BottomNavBar Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe h-20 bg-[#f4faff] dark:bg-slate-950 shadow-[0_-4px_20px_0_rgba(0,31,42,0.06)] border-t border-slate-100 dark:border-slate-900">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest mt-1">Dashboard</span>
+</a>
+<!-- Customers (Active) -->
+<a class="flex flex-col items-center justify-center bg-[#c9e7f7] dark:bg-slate-800 text-[#8f000d] dark:text-[#ff4d4d] rounded-xl px-3 py-1 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-['Inter'] text-[10px] font-bold uppercase tracking-widest mt-1">Customers</span>
+</a>
+<!-- Proposals -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest mt-1">Proposals</span>
+</a>
+<!-- Missions -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] transition-colors" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest mt-1">Missions</span>
+</a>
+<!-- Approvals -->
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] transition-colors" href="#">
+<span class="material-symbols-outlined">how_to_reg</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest mt-1">Approvals</span>
+</a>
+</nav>
+</body></html>

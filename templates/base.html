@@ -1,0 +1,490 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CRM{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock %}
+    <style>
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 1rem;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+        }
+        .logo-img {
+            height: 40px;
+            margin-right: 10px;
+        }
+        .nav-link {
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+            border-radius: 4px;
+            margin: 0 2px;
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+            color: #0056b3 !important;
+        }
+        .navbar-toggler {
+            border: none;
+            padding: 0.25rem 0.5rem;
+        }
+        .btn-primary {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .btn-primary:hover {
+            background-color: #004494;
+            border-color: #004494;
+        }
+        .hero-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 5rem 0;
+            border-radius: 0 0 10px 10px;
+            margin-bottom: 2rem;
+        }
+        .content-section {
+            padding: 2rem 0;
+        }
+        .code-container {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            font-family: 'Courier New', monospace;
+        }
+        h2 {
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        .newly-quoted-card {
+            background-color: #e91e63 !important;
+            background: linear-gradient(135deg, #e91e63 0%, #d81b60 100%) !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2) !important;
+        }
+        .newly-quoted-card .card-body {
+            position: relative;
+        }
+        .newly-quoted-card .card-body::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, #e91e63, #d81b60);
+            border-radius: inherit;
+            z-index: -1;
+        }
+        /* Custom badge styles for funnel stages */
+        .bg-pink {
+            background-color: #e91e63 !important;
+            color: white !important;
+        }
+        .badge.bg-pink {
+            background-color: #e91e63 !important;
+            color: white !important;
+        }
+        
+        /* Responsive logo display */
+        .mobile-logo {
+            display: none;
+        }
+        
+        .desktop-logo {
+            display: inline-block;
+        }
+        
+        /* Show mobile logo and hide desktop logo on mobile devices */
+        @media (max-width: 991.98px) {
+            .mobile-logo {
+                display: inline-block;
+            }
+            
+            .desktop-logo {
+                display: none;
+            }
+        }
+        .navbar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 0.8rem !important;
+        }
+        .navbar-nav .nav-link i {
+            font-size: 1.2rem;
+        }
+        .navbar-nav .nav-link span {
+            display: none;
+            margin-left: 0.5rem;
+            white-space: nowrap;
+        }
+        .notification-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.65rem;
+            min-width: 18px;
+            height: 18px;
+            line-height: 18px;
+            padding: 0;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0 !important;
+            white-space: nowrap;
+        }
+        .notification-menu {
+            width: 360px;
+            max-width: 90vw;
+        }
+        .notification-item {
+            white-space: normal;
+        }
+        .navbar-nav .nav-link:hover span {
+            display: inline-block;
+        }
+        @media (max-width: 991.98px) {
+            .navbar-nav .nav-link span {
+                display: inline-block;
+            }
+        }
+        
+        /* MFA (Two-Factor Authentication) Styles */
+        .letter-spacing {
+            letter-spacing: 0.3em;
+        }
+        
+        .mfa-icon {
+            font-size: 3rem;
+            color: #198754;
+        }
+        
+        .mfa-setup-container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .mfa-qr-code {
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+        
+        .mfa-secret-code {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand me-4" href="{% url 'home' %}">
+		    <img src="{% static 'core/images/mi-logo-wht.png' %}" alt="Micro Image" class="logo-img desktop-logo">
+		    <img src="{% static 'core/images/logo.png' %}" alt="Micro Image" class="logo-img mobile-logo">
+		    CRM</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center">
+                    {% if user.is_authenticated %}
+                      {% if user.role in 'avp,admin,president,gm,vp,salesperson,supervisor,teamlead,asm,marketing' %}
+                       <li class="nav-item">
+                           <a class="nav-link" href="{% url 'customer_list' %}" title="Customers">
+                               <i class="fas fa-users"></i><span>Customers</span>
+                           </a>
+                       </li>
+                      {% endif %} 
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'delinquent_list' %}" title="Delinquent Accounts">
+                                <i class="fas fa-user-times text-danger"></i><span>Delinquent</span>
+                            </a>
+                        </li>
+                        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="leadsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Lead Management">
+                                    <i class="fas fa-user-plus"></i><span>Leads</span>
+                                </a>
+                                <ul class="dropdown-menu shadow" aria-labelledby="leadsDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'lead_generation:dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                                    {% if user.role == 'salesperson' %}
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:my_leads' %}"><i class="fas fa-user-tag me-2"></i>My Leads</a></li>
+                                    {% else %}
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:lead_list' %}"><i class="fas fa-list me-2"></i>All Leads</a></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{% url 'lead_generation:hot_leads' %}"><i class="fas fa-fire text-danger me-2"></i>Hot Leads</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    {% if user.role == 'salesperson' %}
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:lead_create' %}"><i class="fas fa-plus me-2"></i>Add New Lead</a></li>
+                                    {% endif %}
+                                    {% if user.role in 'supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:analytics' %}"><i class="fas fa-chart-pie me-2"></i>Analytics</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:lead_sources' %}"><i class="fas fa-bullhorn me-2"></i>Lead Sources</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="salesFunnelDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Sales Funnel">
+                                    <i class="fas fa-filter"></i><span>Funnel</span>
+                                </a>
+                                <ul class="dropdown-menu shadow" aria-labelledby="salesFunnelDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'sales_funnel:dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'sales_funnel:deals_history' %}"><i class="fas fa-history me-2"></i>Deals History</a></li>
+                                    {% if user.role in 'salesperson,supervisor,asm,avp' %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="{% url 'sales_funnel:add_entry' %}"><i class="fas fa-plus me-2"></i>Add New Entry</a></li>
+                                    {% endif %}
+                                    {% if user.role in 'admin,president,gm,vp' %}
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="{% url 'sales_funnel:clear_stage' %}"><i class="fas fa-broom me-2"></i>Clear Stage...</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'proposal_list' %}" title="Proposals">
+                                    <i class="fas fa-file-invoice-dollar"></i><span>Proposals</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if user.role in 'salesperson,avp,supervisor,teamlead,asm,admin,president,gm,vp' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="salesMonitoringDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Monitoring">
+                                    <i class="fas fa-desktop"></i><span>Monitoring</span>
+                                </a>
+                                <ul class="dropdown-menu shadow" aria-labelledby="salesMonitoringDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'sales_monitoring:dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                                    {% if user.role in 'admin,president,gm,vp' %}
+                                        <li><a class="dropdown-item" href="{% url 'sales_monitoring:executive_dashboard' %}"><i class="fas fa-crown me-2"></i>Executive Dashboard</a></li>
+                                    {% endif %}
+                                    {% if user.role in 'avp,admin,president,gm,vp' %}
+                                        <li><a class="dropdown-item" href="{% url 'sales_monitoring:team_performance' %}"><i class="fas fa-users me-2"></i>Team Performance</a></li>
+                                    {% endif %}
+                                    {% if user.role in 'supervisor,asm,teamlead' %}
+                                        <li><a class="dropdown-item" href="{% url 'sales_monitoring:group_performance' %}"><i class="fas fa-user-friends me-2"></i>Group Performance</a></li>
+                                    {% endif %}
+				    {% if user.role in 'supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                                    <li><a class="dropdown-item" href="{% url 'sales_monitoring:activity_reports' %}"><i class="fas fa-clipboard-list me-2"></i>Reports</a></li>
+				    {% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'mass_mailing:campaign_list' %}" title="Mass Mailing">
+                                <i class="fas fa-paper-plane"></i><span>Mass Mailing</span>
+                            </a>
+                        </li>
+                        {% if user.role in 'admin,president,gm,vp,avp' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'missions_list' %}" title="Missions">
+                                <i class="fas fa-list-check"></i><span>Missions</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if user.role in 'admin,president,gm,vp,avp,asm' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="teamsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Teams">
+                                    <i class="fas fa-sitemap"></i><span>Teams</span>
+                                </a>
+                                <ul class="dropdown-menu shadow" aria-labelledby="teamsDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'team_list' %}"><i class="fas fa-network-wired me-2"></i>All Teams</a></li>
+                                    {% if user.role in 'admin,president,gm,vp' %}
+                                        <li><a class="dropdown-item" href="{% url 'create_team' %}"><i class="fas fa-plus-square me-2"></i>Create Team</a></li>
+                                    {% endif %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'group_list' %}"><i class="fas fa-layer-group me-2"></i>All Groups</a></li>
+                                    {% if user.role in 'admin,avp,asm,supervisor' %}
+                                        <li><a class="dropdown-item" href="{% url 'create_group' %}"><i class="fas fa-plus-circle me-2"></i>Create Group</a></li>
+                                    {% endif %}
+                                </ul>
+                            </li>
+                        {% endif %}
+                        {% if user.role == 'avp' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'quota_management' %}" title="Quota Management">
+                                    <i class="fas fa-chart-pie text-warning"></i><span>Quotas</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="filesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Files">
+                                <i class="fas fa-folder"></i><span>Files</span>
+                            </a>
+                            <ul class="dropdown-menu shadow" aria-labelledby="filesDropdown">
+                                <li><a class="dropdown-item" href="{% url 'all_files' %}"><i class="fas fa-folder-open me-2"></i>All Group Files</a></li>
+                                <li><a class="dropdown-item" href="{% url 'my_files' %}"><i class="fas fa-user me-2"></i>My Uploaded Files</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'quick_upload' %}"><i class="fas fa-upload me-2"></i>Quick Upload</a></li>
+                                <li><a class="dropdown-item" href="{% url 'upload_selector' %}"><i class="fas fa-plus-circle me-2"></i>Upload to Group...</a></li>
+                            </ul>
+                        </li>
+                        {% if user.role == 'admin' %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="usersDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="User Management">
+                                    <i class="fas fa-users-cog"></i><span>Users</span>
+                                </a>
+                                <ul class="dropdown-menu shadow" aria-labelledby="usersDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'user_management' %}"><i class="fas fa-users me-2"></i>Manage Users</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'create_user' %}"><i class="fas fa-user-plus me-2"></i>Create User</a></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                        {% if user.role in 'asm,avp' %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'create_salesperson' %}" title="Create Account Manager">
+                                    <i class="fas fa-user-tie"></i><span>Add AM</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav ms-auto align-items-center">
+                    {% if user.is_authenticated %}
+                        {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm' or customer_request_notification_count or proposal_approval_notification_count %}
+                        <li class="nav-item dropdown me-2">
+                            <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                                <i class="fas fa-bell"></i>
+                                {% with total_notification_count=customer_request_notification_count|add:proposal_approval_notification_count %}
+                                {% if total_notification_count %}
+                                <span class="badge rounded-pill bg-danger notification-badge">{{ total_notification_count }}</span>
+                                {% endif %}
+                                {% endwith %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow notification-menu" aria-labelledby="notificationsDropdown">
+                                {% if customer_request_notifications %}
+                                <li><h6 class="dropdown-header">Customer Request Notifications</h6></li>
+                                {% for item in customer_request_notifications %}
+                                <li>
+                                    <a class="dropdown-item notification-item" href="{% url item.url_name %}">
+                                        <div class="fw-bold">{{ item.title }}</div>
+                                        <div class="small text-muted">{{ item.message }}</div>
+                                        <div class="small {% if item.status == 'rejected' %}text-danger{% elif item.status == 'approved' %}text-success{% else %}text-warning{% endif %}">
+                                            {{ item.timestamp|date:"M d, Y H:i" }}
+                                        </div>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                {% if proposal_approval_notifications %}
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                {% endif %}
+
+                                {% if proposal_approval_notifications %}
+                                <li><h6 class="dropdown-header">Proposal Approval Notifications</h6></li>
+                                {% for item in proposal_approval_notifications %}
+                                <li>
+                                    <a class="dropdown-item notification-item" href="{{ item.url }}">
+                                        <div class="fw-bold">{{ item.title }}</div>
+                                        <div class="small text-muted">{{ item.message }}</div>
+                                        <div class="small text-warning">
+                                            {{ item.timestamp|date:"M d, Y H:i" }}
+                                        </div>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                {% endif %}
+
+                                {% if not customer_request_notifications and not proposal_approval_notifications %}
+                                <li><span class="dropdown-item-text text-muted">No notifications.</span></li>
+                                {% endif %}
+
+                                {% if customer_request_notifications or proposal_approval_notifications %}
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                {% if customer_request_notifications %}
+                                <li>
+                                    {% if user.role == 'salesperson' %}
+                                    <a class="dropdown-item" href="{% url 'customer_create_request_history' %}">
+                                        <i class="fas fa-history me-2"></i>View My Request History
+                                    </a>
+                                    {% else %}
+                                    <a class="dropdown-item" href="{% url 'customer_create_requests' %}">
+                                        <i class="fas fa-inbox me-2"></i>View Pending Requests
+                                    </a>
+                                    {% endif %}
+                                </li>
+                                {% endif %}
+                                {% if proposal_approval_notifications %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'approvals_inbox' %}">
+                                        <i class="fas fa-check-circle me-2"></i>View Proposal Approvals
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        {% endif %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                        {{ user.initials|default:user.username|make_list|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <div class="d-flex flex-column align-items-start">
+                                    <span class="fw-bold">{{ user.username }}</span>
+                                    <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Lvl {{ user_level }} • {{ user_points }} pts</span>
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
+                                <li><h6 class="dropdown-header">
+                                    {% if user.job_title %}{{ user.get_job_title_display }}{% elif user.role in 'president,gm,vp' %}Executive{% else %}{{ user.get_role_display }}{% endif %}
+                                </h6></li>
+                                <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2"></i>My Profile</a></li>
+                                <li><a class="dropdown-item" href="{% url 'leaderboard' %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
+                                <li><a class="dropdown-item" href="{% url 'badges' %}"><i class="fas fa-medal me-2"></i>My Badges</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'account_change_password' %}"><i class="fas fa-key me-2"></i>Change Password</a></li>
+                                <li><a class="dropdown-item" href="{% url 'mfa_index' %}"><i class="fas fa-shield-alt me-2"></i>MFA Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}"><i class="fas fa-sign-in-alt me-2"></i><span>Login</span></a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

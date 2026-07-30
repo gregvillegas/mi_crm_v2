@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - MiCRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#8f000d",
+                        "primary-container": "#b22222",
+                        "on-primary": "#ffffff",
+                        "secondary": "#99443d",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#00496e",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f4faff",
+                        "on-surface": "#001f2a",
+                        "surface-container": "#d9f2ff",
+                        "surface-container-high": "#ceedfd",
+                        "surface-container-highest": "#c9e7f7",
+                        "outline": "#8e706d",
+                        "outline-variant": "#e2beba",
+                        "error": "#ba1a1a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "sans": ["Manrope", "Inter", "sans-serif"],
+                        "headline": ["Manrope"],
+                        "body": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 bg-surface/80 backdrop-blur-md border-b border-outline-variant/10">
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 active:bg-black/10">
+<span class="material-symbols-outlined text-primary">menu</span>
+</button>
+<h1 class="text-primary font-extrabold italic text-xl tracking-tight">MiCRM</h1>
+</div>
+<div class="flex items-center gap-1">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-black/5 active:bg-black/10">
+<span class="material-symbols-outlined text-slate-500">search</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden ml-1 border border-outline-variant/20">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZ435DvFlDuW9HbkyWlPBo-NwynxFEDQo0BZIZqq_fIa9QT9BiYRWuKaZsHwnY94AjrlvAd_CMRl3l2xmLqrAwQep6eYJzcybYFFBThmGooWyEQBFuOrksBQTSClzvN3TFSPpcGqn2XRpD76n_wOoQ0DNA3x8W1J42FQTsxLeI1QHoiNQJ-NV5sX6ZgR2jkQVUiQF0Z2iC-Elv_Fg2IEJOnDB92JHZqfkGP_RVH3t3_9De9VkCpyPFbkgwsYPRsCF7pw9qt_VYDQKe"/>
+</div>
+</div>
+</header>
+<main class="mt-16 px-4 pt-2 max-w-2xl mx-auto space-y-6">
+<!-- Pull to Refresh Affordance -->
+<div class="flex justify-center py-2">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest shadow-sm flex items-center justify-center border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-sm animate-spin">refresh</span>
+</div>
+</div>
+<!-- Section 1: Sales Funnel -->
+<section>
+<div class="flex justify-between items-center mb-2 px-1">
+<h2 class="text-lg font-bold tracking-tight text-on-surface">Sales Funnel</h2>
+<span class="text-[10px] font-bold uppercase tracking-widest text-primary/70">Monthly</span>
+</div>
+<div class="flex gap-2 overflow-x-auto pb-2 snap-x no-scrollbar">
+<!-- Funnel Card 1 -->
+<div class="snap-start min-w-[160px] flex-shrink-0 bg-white border border-outline-variant/20 rounded-xl p-4 shadow-sm">
+<span class="text-[10px] font-bold uppercase tracking-wider text-secondary mb-1 block">Prospecting</span>
+<div class="text-lg font-extrabold text-on-surface mb-3">₱1.2M</div>
+<div class="space-y-1.5">
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[65%]"></div>
+</div>
+<div class="flex justify-between text-[9px] font-bold text-on-surface-variant">
+<span>42 Leads</span>
+<span>65%</span>
+</div>
+</div>
+</div>
+<!-- Funnel Card 2 -->
+<div class="snap-start min-w-[160px] flex-shrink-0 bg-white border border-outline-variant/20 rounded-xl p-4 shadow-sm">
+<span class="text-[10px] font-bold uppercase tracking-wider text-secondary mb-1 block">Negotiation</span>
+<div class="text-lg font-extrabold text-on-surface mb-3">₱850K</div>
+<div class="space-y-1.5">
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[40%]"></div>
+</div>
+<div class="flex justify-between text-[9px] font-bold text-on-surface-variant">
+<span>18 Ops</span>
+<span>40%</span>
+</div>
+</div>
+</div>
+<!-- Funnel Card 3 -->
+<div class="snap-start min-w-[160px] flex-shrink-0 bg-white border border-outline-variant/20 rounded-xl p-4 shadow-sm">
+<span class="text-[10px] font-bold uppercase tracking-wider text-secondary mb-1 block">Closed</span>
+<div class="text-lg font-extrabold text-on-surface mb-3">₱2.4M</div>
+<div class="space-y-1.5">
+<div class="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[92%]"></div>
+</div>
+<div class="flex justify-between text-[9px] font-bold text-on-surface-variant">
+<span>12 Won</span>
+<span>92%</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Recent Proposals -->
+<section class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<h2 class="text-lg font-bold tracking-tight text-on-surface">Recent Proposals</h2>
+<button class="text-[11px] font-bold text-primary flex items-center gap-0.5 px-2 py-1 hover:bg-primary/5 rounded-lg">
+                    VIEW ALL <span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+<div class="space-y-2">
+<!-- Proposal Item 1 (Accepted) -->
+<div class="bg-white p-3 rounded-xl border border-outline-variant/20 shadow-sm flex items-center justify-between active:bg-surface-container-low transition-colors">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="text-[9px] font-bold px-1.5 py-0.5 bg-surface-container text-primary rounded border border-outline-variant/10 uppercase">#8821</span>
+<span class="text-sm font-bold text-on-surface">Enterprise Software Suite</span>
+</div>
+<span class="text-[11px] text-on-surface-variant">Global Logistics Inc.</span>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="text-xs font-bold text-on-surface">₱45,000</span>
+<span class="text-[8px] font-black uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-sm">Accepted</span>
+</div>
+</div>
+<!-- Proposal Item 2 (Sent) -->
+<div class="bg-white p-3 rounded-xl border border-outline-variant/20 shadow-sm flex items-center justify-between active:bg-surface-container-low transition-colors">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="text-[9px] font-bold px-1.5 py-0.5 bg-surface-container text-primary rounded border border-outline-variant/10 uppercase">#8825</span>
+<span class="text-sm font-bold text-on-surface">Annual Maintenance</span>
+</div>
+<span class="text-[11px] text-on-surface-variant">SME Solutions Manila</span>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="text-xs font-bold text-on-surface">₱12,500</span>
+<span class="text-[8px] font-black uppercase px-2 py-0.5 bg-blue-100 text-blue-800 rounded-sm">Sent</span>
+</div>
+</div>
+<!-- Proposal Item 3 (Draft) -->
+<div class="bg-white p-3 rounded-xl border border-outline-variant/20 shadow-sm flex items-center justify-between active:bg-surface-container-low transition-colors">
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-2">
+<span class="text-[9px] font-bold px-1.5 py-0.5 bg-surface-container text-primary rounded border border-outline-variant/10 uppercase">#8828</span>
+<span class="text-sm font-bold text-on-surface">Cloud Integration</span>
+</div>
+<span class="text-[11px] text-on-surface-variant">TechNexus Hub</span>
+</div>
+<div class="flex flex-col items-end gap-1.5">
+<span class="text-xs font-bold text-on-surface">₱210,000</span>
+<span class="text-[8px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-600 rounded-sm">Draft</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Upcoming Activities -->
+<section class="space-y-2">
+<h2 class="text-lg font-bold tracking-tight text-on-surface px-1">Upcoming Activities</h2>
+<div class="space-y-2">
+<!-- Activity Card 1 -->
+<div class="bg-white rounded-xl border border-outline-variant/20 shadow-sm p-3 flex gap-3 active:bg-surface-container-low transition-colors">
+<div class="flex-shrink-0 w-11 h-11 bg-surface-container-lowest rounded-lg flex flex-col items-center justify-center border border-outline-variant/10">
+<span class="text-[9px] font-bold text-secondary uppercase leading-none">Oct</span>
+<span class="text-lg font-extrabold text-on-surface leading-none">24</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-0.5">
+<h3 class="text-sm font-bold text-on-surface">Product Demonstration</h3>
+<div class="flex items-center gap-0.5 text-[10px] font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-[10px]">schedule</span> 14:00
+                            </div>
+</div>
+<p class="text-[11px] text-on-surface-variant mb-2">Greenfield Residences Group</p>
+<div class="flex items-center justify-between">
+<div class="flex -space-x-1.5">
+<img alt="Team" class="w-5 h-5 rounded-full border border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNbM1d7yEl0rZ50-YUJDKrFWJWavOV2el_LZxXsb0b2sDBuhLRagOzeocPHjVjgW1hjG36jozslpQe87n_MsvSW0eK-xeIXpwRqDc6VaEMXUmNhrmTrgLTkzG71zrlB_aOSgZ6ESy20VU6tw72SQ5Bbv2fH9S36FbnvR6GKbM1kCBVCbHUaxXnXgETevqk3S1ECv67WsYG8TIOMvg0Qs7iHKRcwAaQUlw8FF5olJCvsMTXHJzOke4OPI5cVHC_5mYXEuytc100DHLw"/>
+<img alt="Team" class="w-5 h-5 rounded-full border border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMk3h5h_No2dvaq2xDMV2MX7VkUJO07rEozAKkWe8f13nEJPhaF95zGcwFqQrgQkWqcw8v8M_TSnFRsT6zWcvIXObt_duKMUNeYqyfAFgZ2f-lD5Wke5td53yI1idSx3j9AuP5vDBkYVjufsZq11FkWRPk3s0PLb4GZg-x2Xz0on_zQyefiqQIRQGJujc2seRVhyW0xeTZGCZ4Lue_5_mt-NN4SgwuegdFzioQfJNQGXcUMKAhWUp6-03oTwqfety4Le9h1zZxyhez"/>
+</div>
+<span class="text-[8px] font-bold text-error bg-error/5 border border-error/20 px-1.5 py-0.5 rounded-sm uppercase">Priority</span>
+</div>
+</div>
+</div>
+<!-- Activity Card 2 -->
+<div class="bg-white rounded-xl border border-outline-variant/20 shadow-sm p-3 flex gap-3 active:bg-surface-container-low transition-colors">
+<div class="flex-shrink-0 w-11 h-11 bg-surface-container-lowest rounded-lg flex flex-col items-center justify-center border border-outline-variant/10 opacity-70">
+<span class="text-[9px] font-bold text-secondary uppercase leading-none">Oct</span>
+<span class="text-lg font-extrabold text-on-surface leading-none">25</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-0.5">
+<h3 class="text-sm font-bold text-on-surface">Follow-up Call</h3>
+<div class="flex items-center gap-0.5 text-[10px] font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-[10px]">schedule</span> 10:30
+                            </div>
+</div>
+<p class="text-[11px] text-on-surface-variant mb-2">Marco Polo Hotel Chain</p>
+<div class="flex items-center">
+<span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-tighter flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">phone</span> Call Scheduled
+                            </span>
+</div>
+</div>
+</div>
+<!-- Activity Card 3 -->
+<div class="bg-white rounded-xl border border-outline-variant/20 shadow-sm p-3 flex gap-3 active:bg-surface-container-low transition-colors">
+<div class="flex-shrink-0 w-11 h-11 bg-surface-container-lowest rounded-lg flex flex-col items-center justify-center border border-outline-variant/10">
+<span class="text-[9px] font-bold text-secondary uppercase leading-none">Oct</span>
+<span class="text-lg font-extrabold text-on-surface leading-none">27</span>
+</div>
+<div class="flex-grow">
+<div class="flex justify-between items-start mb-0.5">
+<h3 class="text-sm font-bold text-on-surface">Contract Signing</h3>
+<div class="flex items-center gap-0.5 text-[10px] font-medium text-on-surface-variant">
+<span class="material-symbols-outlined text-[10px]">schedule</span> 16:15
+                            </div>
+</div>
+<p class="text-[11px] text-on-surface-variant mb-2">Apex Trading Corp</p>
+<div class="flex items-center">
+<span class="text-[9px] font-bold text-tertiary bg-tertiary/5 border border-tertiary/20 px-1.5 py-0.5 rounded-sm uppercase tracking-tighter flex items-center gap-1">
+<span class="material-symbols-outlined text-xs">location_on</span> BGC Office
+                            </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- FAB -->
+<button class="fixed right-4 bottom-24 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-1 pb-safe h-20 bg-white border-t border-outline-variant/20">
+<!-- Dashboard (Active) -->
+<a class="flex flex-col items-center justify-center text-primary w-16" href="#">
+<div class="bg-primary/10 rounded-full px-4 py-1 mb-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+</div>
+<span class="text-[9px] font-bold uppercase tracking-widest">Dash</span>
+</a>
+<!-- Customers -->
+<a class="flex flex-col items-center justify-center text-slate-500 w-16" href="#">
+<span class="material-symbols-outlined mb-1">group</span>
+<span class="text-[9px] font-medium uppercase tracking-widest">Client</span>
+</a>
+<!-- Proposals -->
+<a class="flex flex-col items-center justify-center text-slate-500 w-16" href="#">
+<span class="material-symbols-outlined mb-1">description</span>
+<span class="text-[9px] font-medium uppercase tracking-widest">Prop</span>
+</a>
+<!-- Missions -->
+<a class="flex flex-col items-center justify-center text-slate-500 w-16" href="#">
+<span class="material-symbols-outlined mb-1">assignment</span>
+<span class="text-[9px] font-medium uppercase tracking-widest">Work</span>
+</a>
+<!-- Approvals -->
+<a class="flex flex-col items-center justify-center text-slate-500 w-16" href="#">
+<span class="material-symbols-outlined mb-1">how_to_reg</span>
+<span class="text-[9px] font-medium uppercase tracking-widest">Okays</span>
+</a>
+</nav>
+</body></html>

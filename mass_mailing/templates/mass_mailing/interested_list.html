@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Interested Recipients - {{ campaign.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas fa-hand-pointer text-warning"></i> Interested Recipients
+            </h2>
+            <div class="text-muted mt-1">
+                Campaign: <strong>{{ campaign.name }}</strong>
+            </div>
+        </div>
+        <div>
+            <a href="{% url 'mass_mailing:campaign_detail' campaign.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Campaign
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <span class="badge bg-warning text-dark fs-6">{{ interested_recipients.count }}</span>
+                recipient(s) clicked "Interested"
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            {% if interested_recipients %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Company / Contact</th>
+                                <th>Email</th>
+                                <th>Source</th>
+                                <th>Clicked At</th>
+                                <th class="pe-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for recipient in interested_recipients %}
+                            <tr>
+                                <td class="ps-4">
+                                    <strong>{{ recipient.display_company_name|default:"—" }}</strong><br>
+                                    <small class="text-muted">{{ recipient.display_contact_name|default:"No contact name" }}</small>
+                                </td>
+                                <td>
+                                    <a href="mailto:{{ recipient.email }}" class="text-decoration-none">
+                                        {{ recipient.email }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if recipient.source_type == 'customer' %}
+                                        <span class="badge bg-primary">CRM Customer</span>
+                                    {% elif recipient.source_type == 'lead' %}
+                                        <span class="badge bg-success">CRM Lead</span>
+                                    {% elif recipient.source_type == 'csv' %}
+                                        <span class="badge bg-info text-dark">CSV</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Manual</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <i class="fas fa-clock text-muted"></i>
+                                    {{ recipient.interested_at|date:"M d, Y H:i" }}
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ recipient.interested_at|timesince }} ago
+                                    </small>
+                                </td>
+                                <td class="pe-4">
+                                    {% if recipient.status == 'sent' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Delivered
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ recipient.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No recipients have clicked "Interested" yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if interested_recipients %}
+    <div class="alert alert-info mt-4">
+        <i class="fas fa-info-circle"></i>
+        <strong>Note:</strong> Recipients who click "Interested" are tracked automatically. 
+        They are also prompted to fill out an inquiry form, which will be sent directly to your email.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

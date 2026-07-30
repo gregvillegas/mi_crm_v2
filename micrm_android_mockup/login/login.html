@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MiCRM - Secure Login</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#7b2d28",
+                        "surface-bright": "#f4faff",
+                        "inverse-on-surface": "#e0f4ff",
+                        "background": "#f4faff",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#d9f2ff",
+                        "on-surface": "#001f2a",
+                        "inverse-primary": "#ffb4ac",
+                        "surface-container-low": "#e6f6ff",
+                        "outline": "#8e706d",
+                        "surface-dim": "#c0dfee",
+                        "surface-variant": "#c9e7f7",
+                        "on-primary-container": "#ffc8c2",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "secondary": "#99443d",
+                        "surface-tint": "#b52424",
+                        "on-background": "#001f2a",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#ffdad6",
+                        "secondary-fixed-dim": "#ffb4ac",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-container": "#b1daff",
+                        "on-tertiary": "#ffffff",
+                        "surface": "#f4faff",
+                        "on-secondary-fixed": "#400203",
+                        "tertiary-fixed-dim": "#8fcdff",
+                        "inverse-surface": "#163440",
+                        "secondary-container": "#fe9389",
+                        "tertiary-fixed": "#cbe6ff",
+                        "on-surface-variant": "#5a403e",
+                        "tertiary-container": "#006292",
+                        "on-tertiary-fixed": "#001e30",
+                        "on-error": "#ffffff",
+                        "tertiary": "#00496e",
+                        "primary-container": "#b22222",
+                        "primary-fixed-dim": "#ffb4ac",
+                        "outline-variant": "#e2beba",
+                        "primary": "#8f000d",
+                        "surface-container-high": "#ceedfd",
+                        "error": "#ba1a1a",
+                        "on-secondary-container": "#772a25",
+                        "surface-container-highest": "#c9e7f7",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#410003",
+                        "on-primary-fixed-variant": "#92030f",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#ffdad6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .active-input-border {
+            position: relative;
+        }
+        .active-input-border::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #8f000d;
+            transition: width 0.3s ease;
+        }
+        .active-input-border:focus-within::after {
+            width: 100%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col">
+<!-- Hero Background Section (Asymmetric Layout) -->
+<div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+<div class="absolute -top-24 -right-24 w-96 h-96 bg-surface-container-high rounded-full opacity-50 blur-3xl"></div>
+<div class="absolute top-1/2 -left-48 w-80 h-80 bg-surface-container rounded-full opacity-30 blur-3xl"></div>
+</div>
+<!-- Main Content Canvas -->
+<main class="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12 md:py-24">
+<!-- Logo Header -->
+<div class="mb-12 text-center">
+<div class="flex items-center justify-center gap-2 mb-4">
+<div class="w-12 h-12 bg-primary flex items-center justify-center rounded-xl shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-on-primary" style="font-variation-settings: 'FILL' 1;">dataset</span>
+</div>
+<h1 class="font-headline font-black italic text-4xl tracking-tighter text-primary-container">MiCRM</h1>
+</div>
+<p class="font-headline font-bold text-headline-md text-on-surface tracking-tight">Precision Enterprise Architecture</p>
+<p class="text-on-surface-variant text-sm mt-1">Authorized personnel only</p>
+</div>
+<!-- Login Card -->
+<div class="w-full max-w-md">
+<div class="bg-surface-container-lowest p-8 md:p-10 rounded-xl shadow-[0_16px_32px_-12px_rgba(0,31,42,0.08)]">
+<form class="space-y-6">
+<!-- Username Field -->
+<div class="space-y-2">
+<label class="font-label font-semibold text-xs uppercase tracking-widest text-on-surface-variant ml-1" for="username">Username</label>
+<div class="relative active-input-border bg-surface-container-high rounded-t-lg transition-all duration-200">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant text-xl">person</span>
+</div>
+<input class="block w-full pl-12 pr-4 py-4 bg-transparent border-none focus:ring-0 text-on-surface font-medium placeholder:text-slate-400" id="username" name="username" placeholder="Enter your ID" type="text"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="space-y-2">
+<div class="flex justify-between items-center px-1">
+<label class="font-label font-semibold text-xs uppercase tracking-widest text-on-surface-variant" for="password">Password</label>
+</div>
+<div class="relative active-input-border bg-surface-container-high rounded-t-lg transition-all duration-200">
+<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant text-xl">lock</span>
+</div>
+<input class="block w-full pl-12 pr-12 py-4 bg-transparent border-none focus:ring-0 text-on-surface font-medium placeholder:text-slate-400" id="password" name="password" placeholder="••••••••" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-4 flex items-center text-on-surface-variant hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+<!-- Remember & Action -->
+<div class="flex items-center justify-between pt-2">
+<label class="flex items-center space-x-2 cursor-pointer group">
+<input class="w-5 h-5 rounded-md border-outline-variant text-primary focus:ring-primary focus:ring-offset-surface" type="checkbox"/>
+<span class="text-sm font-medium text-on-surface-variant group-hover:text-on-surface transition-colors">Keep me signed in</span>
+</label>
+</div>
+<!-- Primary Login Button -->
+<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary font-headline font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2" type="submit">
+<span>Secure Login</span>
+<span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</form>
+<!-- Tertiary Action -->
+<div class="mt-8 text-center">
+<a class="inline-flex items-center gap-1 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-lg">help_outline</span>
+<span>Having trouble? Contact support</span>
+</a>
+</div>
+</div>
+<!-- SSO/Alternate Options (Bento Style Suggestion) -->
+<div class="mt-6 grid grid-cols-2 gap-4">
+<button class="bg-surface-container-low p-4 rounded-xl flex flex-col items-center justify-center gap-2 group hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">passkey</span>
+<span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">Passkey</span>
+</button>
+<button class="bg-surface-container-low p-4 rounded-xl flex flex-col items-center justify-center gap-2 group hover:bg-surface-container-highest transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary">domain</span>
+<span class="text-[10px] uppercase font-bold tracking-widest text-on-surface-variant">SSO Login</span>
+</button>
+</div>
+</div>
+<!-- System Status Footer -->
+<div class="mt-16 flex flex-col md:flex-row items-center gap-6 text-on-surface-variant/60">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></div>
+<span class="text-xs font-medium uppercase tracking-widest">Global Servers Online</span>
+</div>
+<div class="hidden md:block w-px h-4 bg-outline-variant/30"></div>
+<div class="text-xs font-medium uppercase tracking-widest">v2.4.0-Stable Build</div>
+</div>
+</main>
+<!-- Decorative Image Block -->
+<div class="hidden lg:block fixed top-1/2 right-12 -translate-y-1/2 w-72 h-[480px] rounded-2xl overflow-hidden shadow-2xl rotate-2">
+<img class="w-full h-full object-cover grayscale opacity-40 hover:grayscale-0 hover:opacity-100 transition-all duration-700" data-alt="clean modern corporate office lobby with glass walls architectural precision lighting and professional minimalist aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCjijshfg8az0vn0JsGDrhNCNWpOARFDh86ci_dd6pwiruT_GmOfev0Fq8o5MxO6k7-WWv8yT3Qd1hBXlqMnIHrnxyE6-yQBY08lS7tHFg3o4qDtj_9nrSHf8xMoy5zi1V7x3Z9wf2S80U_xzEwztwWSeaCx6FwjJ5E2Ym3pAhafpctTIEkDc5uk3hUM1jLqJu-X4v7_2SHW4qPty5peVfzRbEHl9mkFfjI7KOclA04WQ3MnvivSkCWeiJbb_sopZu7bZ7nUg25p5In"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent"></div>
+</div>
+</body></html>

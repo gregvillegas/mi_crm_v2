@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Approvals Inbox - MiCRM</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-on-surface": "#e0f4ff",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#c9e7f7",
+                        "secondary-fixed-dim": "#ffb4ac",
+                        "tertiary-container": "#006292",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed-variant": "#7b2d28",
+                        "surface-dim": "#c0dfee",
+                        "on-surface-variant": "#5a403e",
+                        "outline-variant": "#e2beba",
+                        "error-container": "#ffdad6",
+                        "secondary": "#99443d",
+                        "surface": "#f4faff",
+                        "on-secondary-fixed": "#400203",
+                        "on-primary-container": "#ffc8c2",
+                        "primary-fixed": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "primary": "#8f000d",
+                        "surface-bright": "#f4faff",
+                        "error": "#ba1a1a",
+                        "surface-container": "#d9f2ff",
+                        "outline": "#8e706d",
+                        "surface-tint": "#b52424",
+                        "surface-container-low": "#e6f6ff",
+                        "surface-container-highest": "#c9e7f7",
+                        "secondary-container": "#fe9389",
+                        "inverse-surface": "#163440",
+                        "tertiary-fixed": "#cbe6ff",
+                        "on-primary-fixed-variant": "#92030f",
+                        "on-secondary-container": "#772a25",
+                        "on-tertiary-fixed": "#001e30",
+                        "primary-container": "#b22222",
+                        "background": "#f4faff",
+                        "primary-fixed-dim": "#ffb4ac",
+                        "on-error-container": "#93000a",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#410003",
+                        "surface-container-high": "#ceedfd",
+                        "secondary-fixed": "#ffdad6",
+                        "on-background": "#001f2a",
+                        "on-tertiary-container": "#b1daff",
+                        "on-primary": "#ffffff",
+                        "tertiary-fixed-dim": "#8fcdff",
+                        "inverse-primary": "#ffb4ac",
+                        "tertiary": "#00496e",
+                        "on-surface": "#001f2a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-background min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-50 bg-[#f4faff] dark:bg-slate-950 flex items-center justify-between px-6 py-4">
+<div class="flex items-center gap-4">
+<button class="text-[#b22222] active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-manrope font-bold text-xl text-[#b22222]">Approvals</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="User Avatar" data-alt="Close-up professional headshot of a corporate manager in business attire with a confident expression and neutral office background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxmuTMttaezZqwnrpLQ35IXQayQq3qFD2RxEsS9kpD4_Gn4F4rcxHU8Jafj_TdpgLPW5N6skAm24lHHygWjEND7ndcDL9K_YUAiXjJ0upO-GA4YZuXpyC3jhjSpQByC-By1nv1eVtLEraP5RadZ_BC61vCoeh-MPpUfGZM54XYoqkCyVgZCKCELJwHaflv0DE_81Y-D-DklSNUBtaE6x8LUi3uC7LqqcEnKHEifcZpYQyWKfyz3dGA2ItGtycFpALECtJEl1kl9PTM"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="px-6 py-4 max-w-4xl mx-auto space-y-6">
+<!-- Search & Filter Section -->
+<section class="space-y-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-on-surface-variant">search</span>
+<input class="w-full pl-12 pr-4 py-3 bg-surface-container-high border-none rounded-xl text-on-surface focus:ring-2 focus:ring-primary-container transition-all" placeholder="Search proposals..." type="text"/>
+</div>
+<!-- Tabs -->
+<div class="flex gap-2 p-1 bg-surface-container-low rounded-full w-fit">
+<button class="px-6 py-2 bg-primary-container text-on-primary rounded-full font-semibold shadow-sm active:scale-95 transition-all">Pending</button>
+<button class="px-6 py-2 text-on-surface-variant hover:bg-surface-container-highest rounded-full transition-all">History</button>
+</div>
+</section>
+<!-- Stats Overview (Asymmetric Highlight) -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-highest p-4 rounded-xl flex flex-col justify-between h-32">
+<span class="text-on-surface-variant font-label text-sm font-semibold">Priority Pending</span>
+<div>
+<span class="text-3xl font-headline font-extrabold text-primary">12</span>
+<p class="text-xs text-on-surface-variant mt-1">Requires immediate action</p>
+</div>
+</div>
+<div class="bg-primary/5 p-4 rounded-xl border-l-4 border-primary flex flex-col justify-between h-32">
+<span class="text-on-surface-variant font-label text-sm font-semibold">Avg. Cycle Time</span>
+<div>
+<span class="text-3xl font-headline font-extrabold text-on-background">1.8d</span>
+<p class="text-xs text-on-surface-variant mt-1">Faster than last month</p>
+</div>
+</div>
+</div>
+<!-- Approval List -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="text-sm font-bold uppercase tracking-wider text-on-surface-variant">Awaiting Your Action</h2>
+<span class="text-xs font-medium text-primary">View All</span>
+</div>
+<!-- Approval Card 1 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:shadow-lg group">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-mono font-bold text-primary-container bg-primary-fixed px-2 py-0.5 rounded">#PROP-8830</span>
+<span class="text-xs font-semibold text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+                                Pending for 2 days
+                            </span>
+</div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">Enterprise Software Suite</h3>
+<p class="text-sm font-medium text-on-surface-variant">Global Logistics Partners</p>
+</div>
+<div class="text-right">
+<span class="block text-xl font-headline font-extrabold text-primary">₱45,000.00</span>
+<span class="inline-block text-[10px] font-bold uppercase tracking-tighter bg-on-surface-variant/10 px-2 py-1 rounded mt-1">Level: GM Approval</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary-container font-bold text-xs">JD</div>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Sales Rep</p>
+<p class="text-xs font-semibold">Juan Dela Cruz</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-error hover:bg-error-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-primary-container transition-all active:scale-95">Approve</button>
+</div>
+</div>
+</div>
+<!-- Approval Card 2 -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:shadow-lg group">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-mono font-bold text-primary-container bg-primary-fixed px-2 py-0.5 rounded">#PROP-9122</span>
+<span class="text-xs font-semibold text-on-tertiary-fixed-variant bg-tertiary-fixed px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+                                Pending for 4 hours
+                            </span>
+</div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">Annual Maintenance Contract</h3>
+<p class="text-sm font-medium text-on-surface-variant">Metro Bank HQ</p>
+</div>
+<div class="text-right">
+<span class="block text-xl font-headline font-extrabold text-primary">₱122,800.00</span>
+<span class="inline-block text-[10px] font-bold uppercase tracking-tighter bg-on-surface-variant/10 px-2 py-1 rounded mt-1">Level: ASM Approval</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary-container font-bold text-xs">MC</div>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Sales Rep</p>
+<p class="text-xs font-semibold">Maria Clara</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-error hover:bg-error-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-primary-container transition-all active:scale-95">Approve</button>
+</div>
+</div>
+</div>
+<!-- Approval Card 3 (Editorial Bento Variant) -->
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:shadow-lg group">
+<div class="flex justify-between items-start mb-4">
+<div class="space-y-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-mono font-bold text-primary-container bg-primary-fixed px-2 py-0.5 rounded">#PROP-7741</span>
+<span class="text-xs font-semibold text-on-error-container bg-error-container px-2 py-0.5 rounded flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+                                Urgent: 5 days
+                            </span>
+</div>
+<h3 class="text-lg font-bold text-on-surface leading-tight">Fleet Management Expansion</h3>
+<p class="text-sm font-medium text-on-surface-variant">TechnoStream Systems</p>
+</div>
+<div class="text-right">
+<span class="block text-xl font-headline font-extrabold text-primary">₱315,500.00</span>
+<span class="inline-block text-[10px] font-bold uppercase tracking-tighter bg-on-surface-variant/10 px-2 py-1 rounded mt-1">Level: GM Approval</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-surface-container">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary-container font-bold text-xs">AS</div>
+<div>
+<p class="text-[10px] text-on-surface-variant uppercase font-bold">Sales Rep</p>
+<p class="text-xs font-semibold">Antonio Santos</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 text-error hover:bg-error-container rounded-lg transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-primary-container transition-all active:scale-95">Approve</button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-[#f4faff]/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-[0_-4px_24px_rgba(0,31,42,0.06)] border-t border-[#001f2a]/5">
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 hover:text-[#b22222] active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-inter text-[10px] font-medium">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 hover:text-[#b22222] active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-inter text-[10px] font-medium">Customers</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#c9e7f7] dark:bg-red-950/30 text-[#8f000d] dark:text-red-400 rounded-xl px-3 py-1.5 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<span class="font-inter text-[10px] font-medium">Approvals</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 hover:text-[#b22222] active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-inter text-[10px] font-medium">Settings</span>
+</a>
+</nav>
+<!-- Floating Action Button (FAB) - Contextual for adding manual approval Override/Task -->
+<button class="fixed right-6 bottom-24 w-14 h-14 bg-primary text-on-primary rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all z-40">
+<span class="material-symbols-outlined">add</span>
+</button>
+</body></html>

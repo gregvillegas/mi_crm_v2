@@ -1,0 +1,37 @@
+# MiCRM_Android Product Requirements Document
+
+## Project Overview
+A field-friendly CRM app for salespeople and managers to monitor pipeline, manage proposals, and track activities.
+
+## Brand & Visual Language
+- **Primary Color:** Micro Image Red (#B22222)
+- **Secondary:** Neutral Gray scale; cool gray/blue accents for status.
+- **Status Colors:**
+  - Success: #2E7D32
+  - Warning: #F9A825
+  - Info: #1976D2
+  - Error: #D32F2F
+- **Typography:** Material 3 defaults; weight emphasis on section titles and numbers.
+- **Components:** Material 3 (cards, top app bar, bottom nav, FAB, tabs, sheets, snackbars).
+- **Vibe:** Professional B2B, compact, high information density; large tap targets; consistent 8dp spacing.
+
+## Navigation Structure
+- **Bottom Navigation:** Dashboard, Customers, Proposals, Activities, Missions, Approvals.
+- **Top App Bar:** Screen title; search and overflow.
+- **FAB Actions:** Context-dependent (e.g., +Customer, +Proposal, +Activity).
+
+## Screen Inventory
+1. **Login:** Username, Password (toggle), Login action, Branding.
+2. **Dashboard:** Sales Funnel cards, Recent Proposals, Upcoming Activities, Missions horizontal scroll.
+3. **Customers:** List with search/filter, Detail view (Tabs: Profile, Contacts, Activities, Proposals).
+4. **Proposals:** List with filters, Detail view (Items, Totals, Terms, History), Create/Edit workflow.
+5. **Approvals:** Inbox for supervisors, Detail/Approve screen with steps visualization.
+6. **Activities:** List and Create/Edit forms.
+7. **Missions:** Daily/Weekly mission cards with progress bars.
+8. **Settings/Profile:** User info, notification toggles, logout.
+
+## Key Behaviors
+- Role-based visibility (Salesperson vs. Manager).
+- Loading/Empty/Error states.
+- Internationalization (PHP/USD currency).
+- Accessibility (min 44dp targets).

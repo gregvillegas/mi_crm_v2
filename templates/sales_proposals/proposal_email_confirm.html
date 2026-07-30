@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Email Proposal</h5>
+        </div>
+        <div class="card-body">
+            <p class="lead">You are about to send proposal <strong>{{ proposal.proposal_number }}</strong> to <strong>{{ proposal.contact_email|default:proposal.customer.email }}</strong>.</p>
+            <p>Subject: <strong>{{ proposal.subject }}</strong></p>
+            <p>Customer: {{ proposal.customer.company_name }} ({{ proposal.contact_name|default:proposal.customer.contact_person_name }})</p>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> This will also:
+                <ul>
+                    <li>Mark the proposal status as 'Sent'</li>
+                    <li>Log a completed 'Proposal' Sales Activity</li>
+                    <li>Update the Sales Funnel entry for this customer</li>
+                </ul>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="customer_emails" class="form-label fw-bold">Send To:</label>
+                    <input type="text" class="form-control" id="customer_emails" name="customer_emails" value="{{ proposal.contact_email|default:proposal.customer.email }}">
+                    <div class="form-text">Enter one or more email addresses separated by commas or semicolons.</div>
+                </div>
+
+                {% if cc_contacts %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">CC Recipients:</label>
+                    <div class="row">
+                        {% for c in cc_contacts %}
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="cc_contact_{{ forloop.counter }}" name="cc_contact" value="{{ c.email }}">
+                                <label class="form-check-label" for="cc_contact_{{ forloop.counter }}">{{ c.label }} &lt;{{ c.email }}&gt;</label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-text">Select any customer contacts to CC.</div>
+                </div>
+                {% endif %}
+
+                <div class="mb-3">
+                    <label for="cc_emails" class="form-label fw-bold">Additional CCs (comma-separated):</label>
+                    <input type="text" class="form-control" id="cc_emails" name="cc_emails" placeholder="e.g. approver@company.com, finance@company.com">
+                </div>
+
+                <div class="mb-3">
+                    <label for="cover_message" class="form-label fw-bold">Cover Letter (optional):</label>
+                    <textarea class="form-control" id="cover_message" name="cover_message" rows="6" placeholder="Write a brief cover letter to the customer. If left blank, a default message will be used."></textarea>
+                    <div class="form-text">A standard company email signature will be added automatically using your name, job title, email, and mobile number.</div>
+                </div>
+
+                {% if supervisor_email %}
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="cc_supervisor" name="cc_supervisor">
+                    <label class="form-check-label" for="cc_supervisor">CC Supervisor ({{ supervisor_email }})</label>
+                </div>
+                {% endif %}
+
+                {% if proposal.attachments.all %}
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Include Attachments:</label>
+                    <div class="row">
+                        {% for att in proposal.attachments.all %}
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="attach_{{ att.id }}" name="attach_id" value="{{ att.id }}" {% if att.include_in_email and att.can_include_in_email %}checked{% endif %} {% if not att.can_include_in_email %}disabled{% endif %}>
+                                <label class="form-check-label" for="attach_{{ att.id }}">{{ att.display_name|default:att.file.name|cut:'proposal_attachments/' }}</label>
+                                {% if not att.can_include_in_email %}
+                                <div><small class="text-danger">Confidential</small></div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="form-text">Selected files will be attached along with the proposal PDF.</div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-paper-plane"></i> Send Email
+                </button>
+                <a href="{% url 'proposal_detail' proposal.pk %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .customer-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+    .customer-icon-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    .customer-icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        position: relative;
+        min-width: 40px;
+        white-space: nowrap;
+    }
+    .customer-icon-btn i {
+        font-size: 0.95rem;
+    }
+    .customer-icon-btn .btn-label {
+        display: none;
+    }
+    .customer-icon-btn:hover .btn-label,
+    .customer-icon-btn:focus .btn-label,
+    .customer-icon-btn:focus-visible .btn-label {
+        display: inline;
+    }
+    .customer-icon-btn .pending-badge {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        min-height: 18px;
+        margin-left: 0.2rem;
+    }
+    @media (max-width: 991.98px) {
+        .customer-toolbar {
+            justify-content: flex-start;
+        }
+        .customer-icon-btn .btn-label {
+            display: inline;
+        }
+    }
+</style>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Customer Management</h2>
+    <div class="customer-toolbar">
+        {% if user.role == 'admin' or user.role == 'vp' or user.role == 'gm' or user.role == 'marketing' %}
+            <div class="customer-icon-actions" role="group" aria-label="Customer management tools">
+                {% if user.role != 'marketing' %}
+                <a href="{% url 'backup_overview' %}" class="btn btn-outline-info btn-sm customer-icon-btn" title="Backup System" aria-label="Backup System">
+                    <i class="fas fa-database"></i><span class="btn-label">Backup System</span>
+                </a>
+                {% endif %}
+                <a href="{% url 'export_customers' %}" class="btn btn-success btn-sm customer-icon-btn" title="Export CSV" aria-label="Export CSV">
+                    <i class="fas fa-download"></i><span class="btn-label">Export CSV</span>
+                </a>
+                <a href="{% url 'export_customers_with_contacts' %}" class="btn btn-outline-success btn-sm customer-icon-btn" title="Export Customers + Contacts" aria-label="Export Customers + Contacts">
+                    <i class="fas fa-file-export"></i><span class="btn-label">Export Customers + Contacts</span>
+                </a>
+                <a href="{% url 'import_customers' %}" class="btn btn-warning btn-sm customer-icon-btn" title="Import CSV" aria-label="Import CSV">
+                    <i class="fas fa-upload"></i><span class="btn-label">Import CSV</span>
+                </a>
+                <a href="{% url 'import_customer_contacts' %}" class="btn btn-outline-warning btn-sm customer-icon-btn" title="Import Contacts" aria-label="Import Contacts">
+                    <i class="fas fa-address-book"></i><span class="btn-label">Import Contacts</span>
+                </a>
+                <a href="{% url 'import_customers_with_contacts' %}" class="btn btn-outline-primary btn-sm customer-icon-btn" title="Import Customers + Contacts" aria-label="Import Customers + Contacts">
+                    <i class="fas fa-file-import"></i><span class="btn-label">Import Customers + Contacts</span>
+                </a>
+                <a href="{% url 'download_sample_csv' %}" class="btn btn-info btn-sm customer-icon-btn" title="Sample CSV" aria-label="Sample CSV">
+                    <i class="fas fa-file-csv"></i><span class="btn-label">Sample CSV</span>
+                </a>
+            </div>
+        {% endif %}
+        {% if user.role == 'admin' or user.role == 'vp' or user.role == 'gm' or user.role == 'avp' or user.role == 'marketing' %}
+            <a href="{% url 'customer_create_requests' %}" class="btn btn-outline-warning btn-sm customer-icon-btn" title="Pending Requests" aria-label="Pending Requests">
+                <i class="fas fa-user-check"></i><span class="btn-label">Pending Requests</span>
+                {% if pending_create_count and pending_create_count > 0 %}
+                    <span class="badge bg-danger pending-badge">{{ pending_create_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'customer_create_request_history' %}" class="btn btn-outline-secondary btn-sm customer-icon-btn" title="Requests History" aria-label="Requests History">
+                <i class="fas fa-history"></i><span class="btn-label">Requests History</span>
+            </a>
+        {% endif %}
+        {% if user.role == 'admin' or user.role == 'vp' or user.role == 'gm' or user.role == 'avp' or user.role == 'supervisor' or user.role == 'asm' or user.role == 'teamlead' or user.role == 'salesperson' %}
+            <a href="{% url 'create_customer' %}" class="btn btn-primary customer-icon-btn" title="Add Customer" aria-label="Add Customer">
+                <i class="fas fa-plus"></i><span class="btn-label">Add Customer</span>
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total Customers</h6>
+                        <h3 class="mb-0">{{ stats.total }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Inactive Customers</h6>
+                        <h3 class="mb-0">{{ stats.inactive_count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Millionaire Accounts</h6>
+                        <h3 class="mb-0">{{ stats.millionaire_count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-star fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Active Customers</h6>
+                        <h3 class="mb-0">{{ stats.active_count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Filters & Search</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       placeholder="Company name, contact person, or email..." value="{{ current_filters.search }}">
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="millionaire" class="form-label">Millionaire</label>
+                <select class="form-select" id="millionaire" name="millionaire">
+                    <option value="">All</option>
+                    <option value="yes" {% if current_filters.millionaire == 'yes' %}selected{% endif %}>Millionaire Only</option>
+                    <option value="no" {% if current_filters.millionaire == 'no' %}selected{% endif %}>Non-Millionaire Only</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="industry" class="form-label">Industry</label>
+                <select class="form-select" id="industry" name="industry">
+                    <option value="">All Industries</option>
+                    {% for industry_value, industry_name in industry_choices %}
+                        <option value="{{ industry_value }}" {% if current_filters.industry == industry_value %}selected{% endif %}>
+                            {{ industry_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="territory" class="form-label">Territory</label>
+                <select class="form-select" id="territory" name="territory">
+                    <option value="">All Territories</option>
+                    {% for territory_value, territory_name in territory_choices %}
+                        <option value="{{ territory_value }}" {% if current_filters.territory == territory_value %}selected{% endif %}>
+                            {{ territory_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="salesperson" class="form-label">Account Manager</label>
+                <select class="form-select" id="salesperson" name="salesperson">
+                    <option value="">All Salespeople</option>
+                    <option value="unassigned" {% if current_filters.salesperson == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                    {% for sp in available_salespeople %}
+                        <option value="{{ sp.id }}" {% if current_filters.salesperson|add:'0' == sp.id|add:'0' %}selected{% endif %}>
+                            {% if sp.initials %}{{ sp.initials }}{% else %}{{ sp.username|slice:":2"|upper }}{% endif %} — {{ sp.get_full_name|default:sp.username }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="view" class="form-label">View</label>
+                <select class="form-select" id="view" name="view">
+                    <option value="table" {% if current_filters.view == 'table' or not current_filters.view %}selected{% endif %}>Table</option>
+                    <option value="card" {% if current_filters.view == 'card' %}selected{% endif %}>Card</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-flex gap-1">
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                    <a href="{% url 'customer_list' %}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if view_mode == 'table' %}
+<!-- Customer Table -->
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Company</th>
+                <th>Contact</th>
+                <th>Status</th>
+                <th>AM</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+                <tr class="{% if customer.is_millionaire_account %}table-warning{% elif not customer.is_effectively_active %}table-secondary{% endif %}">
+                    <td>
+                        <a href="{% url 'customer_detail' customer.pk %}" class="text-decoration-none fw-bold text-dark">{{ customer.company_name }}</a>
+                        {% if customer.is_millionaire_account %}
+                            <span class="badge bg-warning text-dark ms-1">Millionaire</span>
+                        {% endif %}
+                        {% if not customer.is_effectively_active %}
+                            <span class="badge bg-secondary ms-1">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ customer.contact_person_name }}</strong>
+                        {% if customer.contact_person_position %}
+                            <small class="text-muted">({{ customer.contact_person_position }})</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-{% if customer.is_millionaire_account and customer.is_effectively_active %}warning text-dark{% elif customer.is_millionaire_account and not customer.is_effectively_active %}secondary{% elif customer.is_effectively_active %}success{% else %}danger{% endif %}">
+                            {{ customer.display_status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if customer.salesperson %}
+                            <div class="d-flex align-items-center">
+                                {% if customer.salesperson.initials %}
+                                    <span class="badge bg-primary me-2">{{ customer.salesperson.initials }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary me-2">{{ customer.salesperson.username|slice:":2"|upper }}</span>
+                                {% endif %}
+                                <small class="text-muted">@{{ customer.salesperson.username }}</small>
+                            </div>
+                        {% else %}
+                            <span class="text-muted">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <!-- Quick Action Buttons (Restricted to Admin/Exec) -->
+                            {% if user.role in 'admin,gm,vp' %}
+                            <button class="btn btn-sm {% if customer.is_active %}btn-success{% else %}btn-danger{% endif %} toggle-active-btn" 
+                                    data-customer-id="{{ customer.pk }}" 
+                                    data-customer-name="{{ customer.full_name }}"
+                                    title="{% if customer.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                <i class="fas {% if customer.is_active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
+                            </button>
+                            {% endif %}
+                            
+                            <!-- Management Buttons -->
+                            <a href="{% url 'customer_detail' customer.pk %}" 
+                               class="btn btn-sm btn-outline-info" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            {% if user.role in 'admin,gm,vp' %}
+                            <a href="{% url 'edit_customer' customer.pk %}" 
+                               class="btn btn-sm btn-outline-primary" title="Edit Customer Details">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'customer_history' customer.pk %}" 
+                               class="btn btn-sm btn-outline-success" title="View History">
+                                <i class="fas fa-timeline"></i>
+                            </a>
+                            <a href="{% url 'customer_backups' customer.pk %}" 
+                               class="btn btn-sm btn-outline-info" title="View Backups">
+                                <i class="fas fa-database"></i>
+                            </a>
+                            {% endif %}
+                            
+                            {% if user.role in 'admin,gm,vp,avp,asm,supervisor' %}
+                            <a href="{% url 'transfer_customer' customer.pk %}" 
+                               class="btn btn-sm btn-outline-secondary" title="Transfer Customer">
+                                <i class="fas fa-exchange-alt"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <div class="text-muted">
+                            <i class="fas fa-users fa-3x mb-3"></i>
+                            <h5>No customers found</h5>
+                            <p>Try adjusting your filters or add a new customer.</p>
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<!-- Customer Cards -->
+<div class="row">
+    {% for customer in customers %}
+    <div class="col-md-6 col-lg-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{% url 'customer_detail' customer.pk %}" class="text-decoration-none fw-bold text-dark">{{ customer.company_name }}</a>
+                    {% if customer.is_millionaire_account %}
+                        <span class="badge bg-warning text-dark ms-1">Millionaire</span>
+                    {% endif %}
+                    {% if not customer.is_effectively_active %}
+                        <span class="badge bg-secondary ms-1">Inactive</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'customer_history' customer.pk %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-history"></i>
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <small class="text-muted">Contact:</small><br>
+                    <strong>{{ customer.contact_person_name }}</strong>
+                    {% if customer.contact_person_position %}
+                        <br><small class="text-muted">{{ customer.contact_person_position }}</small>
+                    {% endif %}
+                </div>
+                <div class="mb-2">
+                    <small class="text-muted">Email:</small><br>
+                    <a href="mailto:{{ customer.email }}">{{ customer.email }}</a>
+                </div>
+                {% if customer.phone_number %}
+                <div class="mb-2">
+                    <small class="text-muted">Phone:</small><br>
+                    <a href="tel:{{ customer.phone_number }}">{{ customer.phone_number }}</a>
+                </div>
+                {% endif %}
+                {% if customer.industry %}
+                <div class="mb-2">
+                    <small class="text-muted">Industry:</small><br>
+                    {{ customer.get_industry_display }}
+                </div>
+                {% endif %}
+                {% if customer.territory %}
+                <div class="mb-2">
+                    <small class="text-muted">Territory:</small><br>
+                    {{ customer.get_territory_display }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span class="badge bg-{% if customer.is_millionaire_account and customer.is_effectively_active %}warning text-dark{% elif customer.is_millionaire_account and not customer.is_effectively_active %}secondary{% elif customer.is_effectively_active %}success{% else %}danger{% endif %}">
+                    {{ customer.display_status }}
+                </span>
+                <div class="btn-group" role="group">
+                    {% if user.role in 'admin,gm,vp' %}
+                    <button class="btn btn-sm {% if customer.is_active %}btn-success{% else %}btn-danger{% endif %} toggle-active-btn" 
+                            data-customer-id="{{ customer.pk }}" 
+                            data-customer-name="{{ customer.full_name }}"
+                            title="{% if customer.is_active %}Deactivate{% else %}Activate{% endif %}">
+                        <i class="fas {% if customer.is_active %}fa-toggle-on{% else %}fa-toggle-off{% endif %}"></i>
+                    </button>
+                    {% endif %}
+                    
+                    <a href="{% url 'customer_detail' customer.pk %}" 
+                       class="btn btn-sm btn-outline-info" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    
+                    {% if user.role in 'admin,gm,vp' %}
+                    <a href="{% url 'edit_customer' customer.pk %}" 
+                       class="btn btn-sm btn-outline-primary" title="Edit Customer">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-4 text-muted">
+        <i class="fas fa-users fa-3x mb-3"></i>
+        <h5>No customers found</h5>
+        <p>Try adjusting your filters or add a new customer.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Active Toggle Buttons
+    const activeToggleButtons = document.querySelectorAll('.toggle-active-btn');
+    activeToggleButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const customerId = this.dataset.customerId;
+            const customerName = this.dataset.customerName;
+            toggleCustomerActive(customerId, customerName, this);
+        });
+    });
+    
+    function toggleCustomerActive(customerId, customerName, buttonElement) {
+        buttonElement.disabled = true;
+        
+        fetch(`/customers/${customerId}/toggle-active/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.is_active) {
+                    buttonElement.className = 'btn btn-sm btn-success toggle-active-btn';
+                    buttonElement.innerHTML = '<i class="fas fa-toggle-on"></i>';
+                    buttonElement.title = 'Deactivate';
+                } else {
+                    buttonElement.className = 'btn btn-sm btn-danger toggle-active-btn';
+                    buttonElement.innerHTML = '<i class="fas fa-toggle-off"></i>';
+                    buttonElement.title = 'Activate';
+                }
+                showAlert('success', data.message);
+                // Optionally refresh page to update stats and row styling
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showAlert('danger', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'An error occurred while updating customer status.');
+        })
+        .finally(() => {
+            buttonElement.disabled = false;
+        });
+    }
+    
+    function showAlert(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert at the top of the content
+        const contentDiv = document.querySelector('.d-flex.justify-content-between');
+        contentDiv.parentNode.insertBefore(alertDiv, contentDiv);
+        
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 3000);
+    }
+});
+</script>
+
+<!-- Add CSRF token for AJAX requests -->
+{% csrf_token %}
+
+<script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+{% endblock %}

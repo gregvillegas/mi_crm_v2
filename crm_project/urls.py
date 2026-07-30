@@ -1,0 +1,56 @@
+# -----------------------------------------------------------------------------
+# 7. crm_project/urls.py
+# -----------------------------------------------------------------------------
+from django.contrib import admin
+from django.urls import path, include
+from core.views import home, logout_view
+from django.contrib.auth import views as auth_views
+from django.conf import settings
+from django.conf.urls.static import static
+from rest_framework import routers
+from users.api import UserViewSet, CustomAuthToken
+from crm_project.api_views import (
+    CampaignViewSet,
+    CustomerCreateRequestViewSet,
+    CustomerViewSet,
+    ProposalViewSet,
+    SalesActivityViewSet,
+    SalesFunnelViewSet,
+)
+
+# API Router
+router = routers.DefaultRouter()
+router.register(r'users', UserViewSet)
+router.register(r'customers', CustomerViewSet, basename='customers')
+router.register(r'customer-requests', CustomerCreateRequestViewSet, basename='customer-requests')
+router.register(r'funnel', SalesFunnelViewSet, basename='funnel')
+router.register(r'proposals', ProposalViewSet, basename='proposals')
+router.register(r'activities', SalesActivityViewSet, basename='activities')
+router.register(r'campaigns', CampaignViewSet, basename='campaigns')
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/v1/', include(router.urls)),
+    path('api/v1/api-token-auth/', CustomAuthToken.as_view()),
+    path('', home, name='home'),
+    path('customers/', include('customers.urls')),
+    path('users/', include('users.urls')), # <-- ADDED
+    path('teams/', include('teams.urls')), # <-- ADDED
+    path('funnel/', include('sales_funnel.urls')), # <-- ADDED
+    path('sales-monitoring/', include('sales_monitoring.urls')), # <-- ADDED
+    path('leads/', include('lead_generation.urls')), # <-- ADDED
+    path('files/', include('file_sharing.urls')), # <-- ADDED
+    path('proposals/', include('sales_proposals.urls')), # <-- ADDED
+    path('gamification/', include('gamification.urls')), # <-- ADDED
+    path('service/', include('customer_service.urls')),
+    # Keep existing login/logout (allauth handles its own URLs separately)
+    path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
+    path('logout/', logout_view, name='logout'),
+    path('accounts/', include('allauth.urls')),  # allauth + mfa URLs
+    path('accounts/2fa/', include('allauth.mfa.urls')),  # MFA URLs (TOTP setup, authenticator)
+    path('mass-mailing/', include('mass_mailing.urls')),
+]
+
+# Serve media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

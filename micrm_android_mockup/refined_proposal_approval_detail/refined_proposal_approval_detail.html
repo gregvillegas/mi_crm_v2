@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#ffb4ac",
+                    "primary": "#8f000d",
+                    "on-tertiary-fixed-variant": "#004b71",
+                    "inverse-primary": "#ffb4ac",
+                    "surface-container": "#d9f2ff",
+                    "surface": "#f4faff",
+                    "inverse-surface": "#163440",
+                    "on-tertiary-container": "#b1daff",
+                    "on-background": "#001f2a",
+                    "on-surface-variant": "#5a403e",
+                    "surface-container-low": "#e6f6ff",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed": "#001e30",
+                    "on-secondary-container": "#772a25",
+                    "tertiary-container": "#006292",
+                    "on-primary": "#ffffff",
+                    "primary-fixed": "#ffdad6",
+                    "on-primary-fixed": "#410003",
+                    "on-error-container": "#93000a",
+                    "outline": "#8e706d",
+                    "error-container": "#ffdad6",
+                    "background": "#f4faff",
+                    "surface-container-lowest": "#ffffff",
+                    "outline-variant": "#e2beba",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#ceedfd",
+                    "inverse-on-surface": "#e0f4ff",
+                    "secondary-container": "#fe9389",
+                    "secondary-fixed": "#ffdad6",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#cbe6ff",
+                    "surface-tint": "#b52424",
+                    "secondary": "#99443d",
+                    "tertiary": "#00496e",
+                    "on-secondary-fixed-variant": "#7b2d28",
+                    "tertiary-fixed-dim": "#8fcdff",
+                    "secondary-fixed-dim": "#ffb4ac",
+                    "primary-container": "#b22222",
+                    "on-primary-container": "#ffc8c2",
+                    "surface-bright": "#f4faff",
+                    "surface-variant": "#c9e7f7",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#001f2a",
+                    "on-secondary-fixed": "#400203",
+                    "on-primary-fixed-variant": "#92030f",
+                    "surface-dim": "#c0dfee",
+                    "surface-container-highest": "#c9e7f7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Manrope"],
+                    "body": ["Inter"],
+                    "label": ["Inter"]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Manrope', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 bg-[#f4faff] dark:bg-slate-950 transition-colors duration-200 ease-in-out">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-500 hover:bg-slate-200/50 rounded-full p-2">menu</span>
+<span class="text-[#b22222] font-black italic text-xl">MiCRM</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-slate-500 hover:bg-slate-200/50 rounded-full p-2">search</span>
+<span class="material-symbols-outlined text-[#b22222] font-bold p-2">notifications</span>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-20 px-4 space-y-6">
+<!-- Hero Proposal Header -->
+<section class="space-y-4">
+<div class="flex justify-between items-start">
+<div>
+<h1 class="text-2xl font-extrabold tracking-tight text-on-surface">Proposal #PROP-8821</h1>
+<p class="text-on-surface-variant font-medium text-sm">Created on Oct 24, 2023</p>
+</div>
+<span class="px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant text-[10px] font-bold uppercase tracking-widest rounded-full">ACCEPTED</span>
+</div>
+<!-- Primary Actions -->
+<div class="flex gap-2">
+<button class="flex-1 py-3 px-4 bg-gradient-to-r from-[#8f000d] to-[#b22222] text-on-primary font-bold text-sm rounded-xl flex justify-center items-center gap-2 shadow-lg shadow-primary/10">
+<span class="material-symbols-outlined text-sm">edit</span>
+                    Edit
+                </button>
+<button class="flex-1 py-3 px-4 bg-surface-container-highest text-primary font-bold text-sm rounded-xl flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    View PDF
+                </button>
+</div>
+</section>
+<!-- Proposal Info: Asymmetric Layout -->
+<section class="bg-surface-container-low rounded-xl p-5 space-y-4">
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">business_center</span>
+</div>
+<div class="flex-1">
+<p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Subject</p>
+<h2 class="text-lg font-bold text-on-surface leading-tight">Enterprise Software Suite</h2>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-12 h-12 bg-surface-container-highest rounded-full flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">corporate_fare</span>
+</div>
+<div class="flex-1">
+<p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Customer</p>
+<h2 class="text-lg font-bold text-on-surface leading-tight">Global Logistics Partners</h2>
+</div>
+</div>
+</section>
+<!-- Items List: Editorial High-Density -->
+<section class="space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Items (2)</h3>
+<span class="material-symbols-outlined text-slate-400">info</span>
+</div>
+<!-- Item Card 1 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl space-y-3">
+<div class="flex justify-between items-start">
+<div>
+<span class="text-[10px] font-medium text-primary bg-primary-fixed px-2 py-0.5 rounded">Part #9921-A</span>
+<h4 class="font-bold text-on-surface mt-1">Server License</h4>
+</div>
+<span class="text-on-surface font-bold">₱45,000.00</span>
+</div>
+<div class="flex justify-between text-xs text-on-surface-variant font-medium pt-2 border-t border-slate-50">
+<span>Qty: 2 units</span>
+<span>₱22,500.00 / ea</span>
+</div>
+</div>
+<!-- Item Card 2 -->
+<div class="bg-surface-container-lowest p-4 rounded-xl space-y-3">
+<div class="flex justify-between items-start">
+<div>
+<span class="text-[10px] font-medium text-primary bg-primary-fixed px-2 py-0.5 rounded">Part #2203-X</span>
+<h4 class="font-bold text-on-surface mt-1">Setup &amp; Integration</h4>
+</div>
+<span class="text-on-surface font-bold">₱0.00</span>
+</div>
+<div class="flex justify-between text-xs text-on-surface-variant font-medium pt-2 border-t border-slate-50">
+<span>Qty: 1 service</span>
+<span class="text-tertiary font-bold">Complimentary</span>
+</div>
+</div>
+</section>
+<!-- Totals Section -->
+<section class="bg-primary-container text-on-primary-container p-6 rounded-xl shadow-inner">
+<div class="space-y-2">
+<div class="flex justify-between text-sm opacity-80">
+<span>Subtotal</span>
+<span>₱45,000.00</span>
+</div>
+<div class="flex justify-between text-sm opacity-80">
+<span>Tax (0%)</span>
+<span>₱0.00</span>
+</div>
+<div class="flex justify-between items-center pt-3 border-t border-white/20">
+<span class="text-xs font-bold uppercase tracking-widest">Grand Total</span>
+<span class="text-2xl font-black italic">₱45,000.00</span>
+</div>
+</div>
+</section>
+<!-- Terms & Logistics -->
+<section class="grid grid-cols-2 gap-3">
+<div class="bg-surface-container-high p-4 rounded-xl">
+<p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Payment Terms</p>
+<p class="text-sm font-bold text-on-surface">Net 30</p>
+</div>
+<div class="bg-surface-container-high p-4 rounded-xl">
+<p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Delivery</p>
+<p class="text-sm font-bold text-on-surface">7 days</p>
+</div>
+</section>
+<!-- Approval Status: Vertical Timeline -->
+<section class="space-y-4">
+<div class="flex justify-between items-center">
+<h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Approval Workflow</h3>
+<span class="text-[10px] font-bold text-primary px-2 py-0.5 bg-primary-fixed rounded uppercase">In Progress</span>
+</div>
+<div class="relative pl-8 space-y-6 before:content-[''] before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-slate-200">
+<!-- Level 1: Sales -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[30px] top-1 w-6 h-6 rounded-full bg-tertiary flex items-center justify-center text-white z-10 shadow-sm">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3 rounded-xl border border-slate-100">
+<div class="flex justify-between items-start mb-1">
+<p class="text-[10px] font-bold uppercase tracking-tight text-tertiary-container">Stage 1: Sales</p>
+<span class="text-[9px] font-medium text-slate-400">Oct 24, 09:15 AM</span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-bold text-on-surface">Sales Manager Approved</h4>
+<p class="text-[11px] text-on-surface-variant italic">"Pricing looks competitive for this account."</p>
+</div>
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full border-2 border-surface-container-low bg-slate-300 flex items-center justify-center text-[8px] font-bold">MK</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Level 2: Finance -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[30px] top-1 w-6 h-6 rounded-full bg-tertiary flex items-center justify-center text-white z-10 shadow-sm">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="flex-1 bg-surface-container-low p-3 rounded-xl border border-slate-100">
+<div class="flex justify-between items-start mb-1">
+<p class="text-[10px] font-bold uppercase tracking-tight text-tertiary-container">Stage 2: Finance</p>
+<span class="text-[9px] font-medium text-slate-400">Oct 26, 02:45 PM</span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-bold text-on-surface">Credit Risk Cleared</h4>
+<p class="text-[11px] text-on-surface-variant">Approved by Sarah Jenkins</p>
+</div>
+<div class="w-6 h-6 rounded-full border-2 border-surface-container-low bg-slate-200 flex items-center justify-center text-[10px] text-slate-500">
+<span class="material-symbols-outlined text-[14px]">payments</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Level 3: Executive -->
+<div class="relative flex items-start gap-4">
+<div class="absolute -left-[30px] top-1 w-6 h-6 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container z-10 shadow-[0_0_10px_rgba(178,34,34,0.2)] animate-pulse">
+<span class="material-symbols-outlined text-[16px]">pending</span>
+</div>
+<div class="flex-1 bg-white p-3 rounded-xl border-2 border-primary-fixed shadow-sm">
+<div class="flex justify-between items-start mb-1">
+<p class="text-[10px] font-bold uppercase tracking-tight text-primary">Stage 3: Executive</p>
+<span class="px-1.5 py-0.5 bg-primary-fixed text-primary text-[8px] font-black rounded">PENDING</span>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-bold text-on-surface">Final Approval (GM)</h4>
+<p class="text-[11px] text-on-surface-variant font-medium">Assigned to: John Doe</p>
+</div>
+<button class="bg-primary text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm">Remind</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Change History -->
+<section class="bg-surface-container-highest p-4 rounded-xl border-l-4 border-primary">
+<h3 class="text-[10px] font-bold uppercase tracking-widest text-primary mb-2">History Log</h3>
+<p class="text-xs font-medium text-on-surface leading-relaxed">
+                Oct 28: Status changed from <span class="font-bold">SENT</span> to <span class="font-bold text-tertiary">ACCEPTED</span> by <span class="underline">Sales Mgr</span>
+</p>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe h-20 bg-[#f4faff] dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900 shadow-[0_-4px_20px_0_rgba(0,31,42,0.06)]">
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest">Customers</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#c9e7f7] dark:bg-slate-800 text-[#8f000d] dark:text-[#ff4d4d] rounded-xl px-3 py-1 scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest">Proposals</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest">Missions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1 hover:text-[#b22222] scale-95 active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">how_to_reg</span>
+<span class="font-['Inter'] text-[10px] font-medium uppercase tracking-widest">Approvals</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Missions - MiCRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#ffb4ac",
+                        "on-surface": "#001f2a",
+                        "on-secondary-container": "#772a25",
+                        "on-primary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#b22222",
+                        "secondary": "#99443d",
+                        "tertiary-container": "#006292",
+                        "inverse-surface": "#163440",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#ffdad6",
+                        "outline": "#8e706d",
+                        "surface-container-highest": "#c9e7f7",
+                        "inverse-on-surface": "#e0f4ff",
+                        "on-tertiary-container": "#b1daff",
+                        "secondary-fixed-dim": "#ffb4ac",
+                        "surface-variant": "#c9e7f7",
+                        "inverse-primary": "#ffb4ac",
+                        "on-primary-container": "#ffc8c2",
+                        "on-surface-variant": "#5a403e",
+                        "on-tertiary-fixed": "#001e30",
+                        "surface-container": "#d9f2ff",
+                        "surface": "#f4faff",
+                        "tertiary-fixed": "#cbe6ff",
+                        "tertiary": "#00496e",
+                        "surface-container-high": "#ceedfd",
+                        "surface-tint": "#b52424",
+                        "primary-fixed": "#ffdad6",
+                        "surface-dim": "#c0dfee",
+                        "outline-variant": "#e2beba",
+                        "background": "#f4faff",
+                        "on-tertiary-fixed-variant": "#004b71",
+                        "on-primary-fixed-variant": "#92030f",
+                        "error": "#ba1a1a",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-background": "#001f2a",
+                        "primary": "#8f000d",
+                        "on-primary-fixed": "#410003",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#fe9389",
+                        "tertiary-fixed-dim": "#8fcdff",
+                        "surface-container-low": "#e6f6ff",
+                        "surface-bright": "#f4faff",
+                        "on-secondary-fixed": "#400203",
+                        "on-secondary-fixed-variant": "#7b2d28"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="w-full top-0 sticky z-40 bg-[#f4faff] dark:bg-slate-950 flex items-center justify-between px-6 py-4 w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer" data-icon="menu">menu</span>
+<h1 class="font-manrope font-bold text-xl text-[#b22222] dark:text-red-500">Missions</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500" data-icon="search">search</span>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="professional portrait of a man in a modern office with natural light and blurred corporate background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWLsAYqH4StrjDueMVhj7zBvV2vWUuqsVSGvhvF_STvQWMgdSmcuytPk5ywWTW28Re38C9cLcWbKbsFZG8DpEM5qpR0GPKDzmgD9h7-3WzDzbbZH9vMczJHuf_wCbEPJQGjZbJFmDQOb80UeoB1Z0V2pvDIsxVDDnu1LHzecYRsHgiEfg30CW2qeW4VZkHlFl-3XQNKD_Opi1Mb0F_lsUZRdka89RZzI8tC46zz-ku76cq1pxakBpya9M0MTkdokxiUqqcUjM2af9H"/>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 space-y-6">
+<!-- Progress Summary: Precision B2B Stats -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="md:col-span-2 p-6 rounded-xl bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-lg relative overflow-hidden">
+<div class="relative z-10 flex flex-col justify-between h-full">
+<div>
+<p class="font-label text-sm opacity-80 uppercase tracking-widest font-semibold">Total Rewards Earned</p>
+<h2 class="font-headline text-4xl font-extrabold mt-1">12,450 <span class="text-xl font-medium opacity-90">pts</span></h2>
+</div>
+<div class="mt-8 flex items-end justify-between">
+<div>
+<span class="font-label text-xs uppercase opacity-70">Current Rank</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-yellow-400" data-icon="workspace_premium" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+<span class="font-headline text-xl font-bold">Bronze Tier</span>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label text-xs uppercase opacity-70">Next Rank: Silver (2,550 pts to go)</span>
+<div class="w-48 h-1.5 bg-white/20 rounded-full mt-2">
+<div class="bg-white h-full rounded-full" style="width: 78%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Glassmorphism decorative circles -->
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+<div class="absolute -right-4 -bottom-4 w-24 h-24 bg-on-primary-container/20 rounded-full blur-xl"></div>
+</div>
+<!-- Quick Action / Summary Mini Card -->
+<div class="bg-surface-container-highest p-6 rounded-xl flex flex-col justify-center gap-4">
+<div class="flex items-center justify-between">
+<span class="font-headline font-bold text-on-surface">Active Streak</span>
+<span class="material-symbols-outlined text-primary" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<div class="text-3xl font-extrabold text-on-surface">14 Days</div>
+<p class="text-xs text-on-surface-variant">You're in the top 5% of earners this month. Keep it up!</p>
+</div>
+</section>
+<!-- Daily Missions Section -->
+<section class="space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="font-headline text-lg font-bold text-on-surface">Daily Missions</h3>
+<a class="text-sm font-semibold text-primary flex items-center hover:underline" href="#">
+                    View All
+                    <span class="material-symbols-outlined text-sm ml-1" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+<!-- Daily Card 1 -->
+<div class="flex-none w-72 bg-surface-container-low p-4 rounded-xl space-y-4 hover:bg-surface-container transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-surface-container-highest text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Daily</span>
+<span class="text-primary font-bold text-xs">+50 pts</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-base">Make 5 Discovery Calls</h4>
+<p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Initiate conversation with new leads in the pipeline.</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold text-on-surface-variant uppercase">
+<span>Progress</span>
+<span>3 / 5</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 60%"></div>
+</div>
+</div>
+</div>
+<!-- Daily Card 2 (Completed) -->
+<div class="flex-none w-72 bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/15 space-y-4 relative opacity-80">
+<div class="absolute top-4 right-4 text-green-600">
+<span class="material-symbols-outlined text-2xl" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex justify-between items-start">
+<span class="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Daily</span>
+<span class="text-slate-400 font-bold text-xs line-through">+25 pts</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-slate-500 text-base">Update 3 Lead Statuses</h4>
+<p class="text-xs text-slate-400 mt-1 line-clamp-2">Ensure all active leads have current stage information.</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+<span>Completed</span>
+<span>3 / 3</span>
+</div>
+<div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+<div class="bg-green-600 h-full w-full"></div>
+</div>
+</div>
+</div>
+<!-- Daily Card 3 -->
+<div class="flex-none w-72 bg-surface-container-low p-4 rounded-xl space-y-4 hover:bg-surface-container transition-colors duration-200">
+<div class="flex justify-between items-start">
+<span class="bg-surface-container-highest text-on-tertiary-fixed-variant text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Daily</span>
+<span class="text-primary font-bold text-xs">+100 pts</span>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-base">Log Meeting Notes</h4>
+<p class="text-xs text-on-surface-variant mt-1 line-clamp-2">Add detailed summaries for at least 2 client meetings today.</p>
+</div>
+<div class="space-y-1">
+<div class="flex justify-between text-[10px] font-bold text-on-surface-variant uppercase">
+<span>Progress</span>
+<span>0 / 2</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full w-0"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Weekly Missions Section -->
+<section class="space-y-3">
+<div class="flex justify-between items-center">
+<h3 class="font-headline text-lg font-bold text-on-surface">Weekly Missions</h3>
+<a class="text-sm font-semibold text-primary flex items-center hover:underline" href="#">
+                    View All
+                    <span class="material-symbols-outlined text-sm ml-1" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+<div class="flex gap-4 overflow-x-auto no-scrollbar pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+<!-- Weekly Card 1 -->
+<div class="flex-none w-80 bg-surface-container-low p-5 rounded-xl space-y-4 border-l-4 border-primary shadow-sm">
+<div class="flex justify-between items-start">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Weekly</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="text-primary font-bold text-sm">+200 pts</span>
+</div>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-lg">Convert 2 Leads to Proposals</h4>
+<p class="text-xs text-on-surface-variant mt-1">Move potential clients into the proposal stage by Friday EOD.</p>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Current Progress</span>
+<span class="text-sm font-bold text-on-surface">0 / 2</span>
+</div>
+<div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full w-0 transition-all duration-500"></div>
+</div>
+</div>
+<button class="w-full py-2 bg-surface-container-highest text-on-surface text-xs font-bold rounded-lg hover:bg-surface-container-high transition-all">
+                        View Eligible Leads
+                    </button>
+</div>
+<!-- Weekly Card 2 -->
+<div class="flex-none w-80 bg-surface-container-low p-5 rounded-xl space-y-4 border-l-4 border-primary shadow-sm">
+<div class="flex justify-between items-start">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Weekly</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="text-primary font-bold text-sm">+500 pts</span>
+</div>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-lg">Close a High-Value Deal</h4>
+<p class="text-xs text-on-surface-variant mt-1">Finalize a contract worth over $5,000 this week.</p>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Current Progress</span>
+<span class="text-sm font-bold text-on-surface">0 / 1</span>
+</div>
+<div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full w-0"></div>
+</div>
+</div>
+<button class="w-full py-2 bg-surface-container-highest text-on-surface text-xs font-bold rounded-lg hover:bg-surface-container-high transition-all">
+                        Open Pipeline
+                    </button>
+</div>
+<!-- Weekly Card 3 -->
+<div class="flex-none w-80 bg-surface-container-low p-5 rounded-xl space-y-4 border-l-4 border-primary shadow-sm">
+<div class="flex justify-between items-start">
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-tighter">Weekly</span>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-xs text-primary" data-icon="stars" style="font-variation-settings: 'FILL' 1;">stars</span>
+<span class="text-primary font-bold text-sm">+150 pts</span>
+</div>
+</div>
+<div>
+<h4 class="font-headline font-bold text-on-surface text-lg">Team Collaboration</h4>
+<p class="text-xs text-on-surface-variant mt-1">Review and comment on 5 colleagues' deal proposals.</p>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Current Progress</span>
+<span class="text-sm font-bold text-on-surface">2 / 5</span>
+</div>
+<div class="w-full h-2.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full" style="width: 40%"></div>
+</div>
+</div>
+<button class="w-full py-2 bg-surface-container-highest text-on-surface text-xs font-bold rounded-lg hover:bg-surface-container-high transition-all">
+                        Review Feed
+                    </button>
+</div>
+</div>
+</section>
+<!-- Dynamic Leaderboard Preview -->
+<section class="bg-surface-container-low rounded-2xl p-6 overflow-hidden relative">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="font-headline text-lg font-bold text-on-surface">Team Leaderboard</h3>
+<p class="text-xs text-on-surface-variant">Regional Sales - East Coast</p>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:brightness-110 transition-all">
+                    Full Standings
+                </button>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between p-3 bg-white/50 backdrop-blur-sm rounded-xl">
+<div class="flex items-center gap-3">
+<span class="font-headline font-extrabold text-primary w-6">1</span>
+<div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="portrait of a focused professional woman in a modern corporate setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDg1ca9Z206Lr24HW_JStDqQ4wXmHueYMSEu4n-84ye3sQIBbpO9HdES2FHmOuqtdnADlT1oGg1Dzf-r-GGWHkyVgiAB1qXghCtw8m0jssvCGiJqKU8DFlHLpaZAfdez3AREB0Fz-zNVaSAzHCBvmGsoRY2VWxOv5KB44LgZ4K-il_fkiwvcQ6YzhWcZE66-ND1Y3JWu5x98Upah4MvCQGRga1Kw6lFxHtHcNCebLMClG91Ujbc8thcRvoOwKfAoctkSUxjZc8DQz0E"/>
+</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Sarah Jenkins</p>
+<p class="text-[10px] text-on-surface-variant">24 Missions Done</p>
+</div>
+</div>
+<span class="font-bold text-primary">18,200 pts</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-white/50 backdrop-blur-sm rounded-xl">
+<div class="flex items-center gap-3">
+<span class="font-headline font-extrabold text-slate-400 w-6">2</span>
+<div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="headshot of a smiling male executive with clean minimal background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBpBLBYf_o0bNBabcErmK6qKEnI7meulbP84UaPKiSrMMEkTRBxVNiVHUfA4glXpFxzsBxIiOJVhQ6eEx5Xq0lKlA-OCkJ4W_Ug52k9186rwRcwzvTsNI79SH6XWtGGdthiHRPJG1a4eXBtUEOC-ICuEvbe0j8sBQi7eMi7uI-7eONanvjHumneV3NifAxsaNEBK1cLJ7Z73_v0Za3ZGwtiCf08YzskwIWt1xw-Rq2kjrpRPF-ywYamGdB15AbLnOyHBGOx4MNuS7P"/>
+</div>
+<div>
+<p class="font-bold text-sm text-on-surface">Michael Chen</p>
+<p class="text-[10px] text-on-surface-variant">21 Missions Done</p>
+</div>
+</div>
+<span class="font-bold text-primary">15,450 pts</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-[#c9e7f7] border border-primary/20 rounded-xl shadow-sm">
+<div class="flex items-center gap-3">
+<span class="font-headline font-extrabold text-[#b22222] w-6">3</span>
+<div class="w-10 h-10 rounded-full bg-slate-200 border-2 border-[#b22222]/30 shadow-sm overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a man in a modern office with natural light and blurred corporate background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAuIrnTRTHdb-U6_sXIebx3FLCGVFIt7PdobE6MnkK5hAwdpRQP5YaP5JMlz0Z_o--nDNN305wcEgvYvj4tpA2W44zPSW6rlx3ZX2iAzzDWJop0j8PEt87bLuLab2e2I9nps3kYMhcXCtbO4AD-NS2tkfRv7Dofb_XKKYoPyC54QFWWrCt0TEx4w3SX_MJLa4DHk83xtak-87s8DNWlWo81PL172JAVRVblgQ9S5KlUx1eVVr8QGcF9VPWlf_jNR6Rjq8SJSWOWx4UJ"/>
+</div>
+<div>
+<p class="font-bold text-sm text-[#b22222]">You</p>
+<p class="text-[10px] text-[#b22222]/70">18 Missions Done</p>
+</div>
+</div>
+<span class="font-bold text-[#b22222]">12,450 pts</span>
+</div>
+</div>
+<!-- Abstract background shape -->
+<div class="absolute -bottom-10 -right-10 w-40 h-40 bg-primary-container/5 rounded-full"></div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#f4faff]/80 dark:bg-slate-950/80 backdrop-blur-xl border-t border-slate-200/15 dark:border-slate-800/15 shadow-2xl dark:shadow-none">
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-inter text-[10px] font-medium">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-inter text-[10px] font-medium">Customers</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+<span class="font-inter text-[10px] font-medium">Proposals</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#c9e7f7] dark:bg-red-900/30 text-[#b22222] dark:text-red-400 rounded-xl px-3 py-1.5 transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="assignment" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-inter text-[10px] font-medium">Missions</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 px-3 py-1.5 transition-transform scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-inter text-[10px] font-medium">Approvals</span>
+</div>
+</nav>
+<!-- FAB: Log Activity (Contextual) -->
+<div class="fixed right-6 bottom-24 z-40">
+<button class="bg-primary text-on-primary w-14 h-14 rounded-2xl shadow-xl flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-3xl" data-icon="add">add</span>
+</button>
+</div>
+</body></html>

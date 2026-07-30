@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Customers | MiCRM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "ironclad-red": "#B22222",
+                        "surface-bright": "#F3F4F6", // Light gray background
+                        "on-surface": "#111827",
+                        "on-surface-variant": "#4B5563",
+                        "outline-variant": "#E5E7EB",
+                        "primary": "#B22222",
+                        "surface-container-lowest": "#FFFFFF",
+                        "error": "#B91C1C",
+                        "error-container": "#FEE2E2",
+                        "on-error-container": "#991B1B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .high-density-row:nth-child(even) { background-color: #FAFAFA; }
+        .high-density-row:nth-child(odd) { background-color: #FFFFFF; }
+    </style>
+</head>
+<body class="bg-surface-bright text-on-surface antialiased">
+<!-- TopAppBar Shell -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 h-16 bg-white border-b border-gray-200">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-ironclad-red p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors duration-200">menu</span>
+<h1 class="font-headline font-black italic text-xl text-ironclad-red">MiCRM</h1>
+</div>
+<div class="flex-1 max-w-md mx-4">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-xl">search</span>
+<input class="w-full bg-gray-100 border-none rounded-lg py-2 pl-10 pr-10 text-sm focus:ring-2 focus:ring-ironclad-red focus:ring-offset-0 placeholder:text-on-surface-variant/60" placeholder="Search customers..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 text-ironclad-red cursor-pointer text-xl">filter_list</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
+<img alt="Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuu-uryQZaoLZQbum_kKLgATXYQf1bEYMZ6c7HFV3jVx5hcI9u0LOvopYUA5jXduI0I0tjCGOu8hlfkU3dtPRPHz1m2e0sccvuLa4JwIKPzIFg1IOM0x5VLjlcJAyrWzea_I23MPuUfdROMUSFTZGua-8ZI8eaqRxH07j9dZz6t2vdUYIDIUZ6XZzipbhXEjCQoU_50hLPNgWhuocdIz9mdFXVSD_aQN-y0ucqqf8oaqtz70RrqmfquDl459o7V2C7OL4olriFFE1Q"/>
+</div>
+</div>
+</header>
+<main class="pt-20 pb-24 px-4 max-w-5xl mx-auto">
+<!-- Content Header -->
+<div class="mb-6 flex flex-col gap-1">
+<h2 class="font-headline font-extrabold text-2xl tracking-tight text-on-surface">Customers</h2>
+<p class="text-on-surface-variant text-xs font-medium">1,248 active B2B relationships</p>
+</div>
+<!-- High-Density Data Grid -->
+<div class="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+<!-- Grid Header -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200">
+<div class="col-span-7 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Company &amp; Segment</div>
+<div class="col-span-5 text-right text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Last Activity</div>
+</div>
+<!-- List Content -->
+<div class="flex flex-col divide-y divide-gray-100">
+<!-- Row 1: Delinquent -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">Global Logistics Partners</span>
+<span class="bg-error-container text-error text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-error/20 uppercase tracking-tighter">Delinquent</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">Enterprise</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Oct 12, 2023</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">phone</span> Outbound Call
+                        </span>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">Horizon Digital Group</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">SME</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Oct 28, 2023</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">mail</span> Email Sent
+                        </span>
+</div>
+</div>
+<!-- Row 3: Delinquent -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">Apex Manufacturing Co.</span>
+<span class="bg-error-container text-error text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-error/20 uppercase tracking-tighter">Delinquent</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">Enterprise</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Nov 02, 2023</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">handshake</span> In-person Meeting
+                        </span>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">Blue River Ventures</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">Strategic</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Oct 15, 2023</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">schedule</span> Site Visit
+                        </span>
+</div>
+</div>
+<!-- Row 5 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">Stellar Systems Inc</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">SME</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Yesterday</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">chat_bubble</span> Chat Support
+                        </span>
+</div>
+</div>
+<!-- Row 6 -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 items-center hover:bg-gray-50 transition-colors high-density-row">
+<div class="col-span-7 flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body font-bold text-sm text-on-surface">OmniRetail Global</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-medium text-on-surface-variant/80 px-1.5 py-0.5 bg-gray-100 rounded">Strategic</span>
+</div>
+</div>
+<div class="col-span-5 text-right flex flex-col items-end">
+<span class="text-[11px] font-medium text-on-surface">Oct 30, 2023</span>
+<span class="text-[10px] text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">description</span> Doc Signed
+                        </span>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB -->
+<button class="fixed bottom-24 right-6 w-14 h-14 rounded-full bg-ironclad-red text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform duration-150 z-40">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+<!-- Standardized BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-2 pb-safe h-20 bg-white border-t border-gray-200 shadow-lg">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center text-gray-400 px-3 py-1 hover:text-ironclad-red transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label text-[10px] font-medium uppercase tracking-widest mt-1">Dashboard</span>
+</a>
+<!-- Customers (Active) -->
+<a class="flex flex-col items-center justify-center text-ironclad-red bg-red-50 rounded-xl px-4 py-2" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label text-[10px] font-bold uppercase tracking-widest mt-0.5">Customers</span>
+</a>
+<!-- Proposals -->
+<a class="flex flex-col items-center justify-center text-gray-400 px-3 py-1 hover:text-ironclad-red transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+<span class="font-label text-[10px] font-medium uppercase tracking-widest mt-1">Proposals</span>
+</a>
+<!-- Missions -->
+<a class="flex flex-col items-center justify-center text-gray-400 px-3 py-1 hover:text-ironclad-red transition-colors" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label text-[10px] font-medium uppercase tracking-widest mt-1">Missions</span>
+</a>
+<!-- Approvals -->
+<a class="flex flex-col items-center justify-center text-gray-400 px-3 py-1 hover:text-ironclad-red transition-colors" href="#">
+<span class="material-symbols-outlined">how_to_reg</span>
+<span class="font-label text-[10px] font-medium uppercase tracking-widest mt-1">Approvals</span>
+</a>
+</nav>
+</body></html>

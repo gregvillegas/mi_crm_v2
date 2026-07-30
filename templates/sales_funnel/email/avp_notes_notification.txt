@@ -1,0 +1,32 @@
+Hi {{ recipient_name }},
+
+{{ updater_name }} ({{ updater_role }}) has added or updated notes on one of your Sales Funnel entries.
+
+------------------------------------------------------------
+FUNNEL ENTRY DETAILS
+------------------------------------------------------------
+Company       : {{ entry.company_name }}
+Brand         : {{ entry.brand|default:"—" }}
+Stage         : {{ entry.get_stage_display }}
+SRP           : ₱{{ entry.display_retail|floatformat:2 }}
+Salesperson   : {{ salesperson_name }}
+------------------------------------------------------------
+UPDATED NOTES
+------------------------------------------------------------
+{{ new_notes }}
+------------------------------------------------------------
+{% if old_notes %}
+Previous notes:
+{{ old_notes }}
+------------------------------------------------------------
+{% endif %}
+
+You can view this funnel entry by logging into the CRM:
+{{ funnel_url }}
+
+This is an automated notification. Do not reply to this email.
+
+—
+{{ company_name }}
+{{ company_address }}
+{{ company_website }}
