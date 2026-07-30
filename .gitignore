@@ -41,9 +41,12 @@ sent_emails/
 *.swp
 *.swo
 *~
+
+# Android
 mcp-server-puppeteer-py/
 MiCRM_Android/
 micrm_android_mockup/
+
 # OS
 .DS_Store
 Thumbs.db

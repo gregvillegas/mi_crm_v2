@@ -6,7 +6,7 @@ from django.db import models, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from .models import Customer, CustomerBackup, CustomerHistory, DelinquencyRecord, CustomerNote, CustomerContact, CustomerCreateRequest
-from .forms import CustomerForm, CustomerContactFormSet, SalespersonCustomerForm
+from .forms import CustomerForm, CustomerContactFormSet, SalespersonCustomerForm, SalespersonCustomerUpdateForm
 from users.models import User
 from teams.models import Team, Group, TeamMembership
 from sales_funnel.models import SalesFunnel
@@ -24,6 +24,13 @@ def is_executive(user):
 
 def is_admin_or_exec(user):
     return user.role in ['admin', 'gm', 'vp', 'marketing']
+
+def can_edit_customer(user, customer):
+    if user.role in ['admin', 'president', 'gm', 'vp', 'marketing']:
+        return True
+    if user.role == 'salesperson' and customer.salesperson_id == user.id:
+        return True
+    return False
 
 @login_required
 def add_customer_note(request, pk):
@@ -1443,19 +1450,23 @@ def customer_history(request, pk):
 # =====================================================================
 
 @login_required
-@user_passes_test(is_admin_or_exec)
 def edit_customer(request, pk):
-    """Admin can edit customer details with automatic backup"""
     customer = get_object_or_404(Customer, pk=pk)
+    if not can_edit_customer(request.user, customer):
+        messages.error(request, "You don't have permission to edit this customer.")
+        return redirect('customer_list')
     
     if request.method == 'POST':
         # Create backup before making changes
         customer.create_backup(
             changed_by=request.user,
-            reason="Before admin edit"
+            reason="Before edit"
         )
         
-        form = CustomerForm(request.POST, instance=customer)
+        if request.user.role == 'salesperson':
+            form = SalespersonCustomerUpdateForm(request.POST, instance=customer)
+        else:
+            form = CustomerForm(request.POST, instance=customer)
         contact_formset = CustomerContactFormSet(request.POST, instance=customer)
         if form.is_valid() and contact_formset.is_valid():
             form.save()
@@ -1465,7 +1476,10 @@ def edit_customer(request, pk):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = CustomerForm(instance=customer)
+        if request.user.role == 'salesperson':
+            form = SalespersonCustomerUpdateForm(instance=customer)
+        else:
+            form = CustomerForm(instance=customer)
         contact_formset = CustomerContactFormSet(instance=customer)
     
     # Get recent backups for this customer
@@ -1923,5 +1937,6 @@ def customer_detail(request, pk):
         'open_tickets_count': open_tickets_count,
         'notes': notes,
         'total_won_value': total_won_value,
+        'can_edit': can_edit_customer(request.user, customer),
     }
     return render(request, 'customers/customer_detail.html', context)

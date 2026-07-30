@@ -158,6 +158,13 @@ class LeadImportForm(forms.Form):
             qs = User.objects.filter(team_membership__group__in=groups, role='salesperson')
         self.fields['default_assigned_to'].queryset = qs
 
+    def clean_file(self):
+        f = self.cleaned_data.get('file')
+        name = (getattr(f, 'name', '') or '').lower()
+        if not (name.endswith('.csv') or name.endswith('.xlsx')):
+            raise forms.ValidationError('Upload a CSV (.csv) or Excel (.xlsx) file.')
+        return f
+
 class LeadActivityForm(forms.ModelForm):
     """Form for logging lead activities"""
     

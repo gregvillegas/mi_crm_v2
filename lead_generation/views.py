@@ -20,6 +20,8 @@ from sales_funnel.models import SalesFunnel
 from customers.models import Customer
 from users.models import User
 
+EXEC_ROLES = {'admin', 'president', 'gm', 'vp'}
+
 
 @login_required
 def lead_dashboard(request):
@@ -208,23 +210,42 @@ def lead_import(request):
             f = form.cleaned_data['file']
             calculate_scores = form.cleaned_data.get('calculate_scores', True)
             default_assigned = form.cleaned_data.get('default_assigned_to')
+            file_name = (getattr(f, 'name', '') or '').lower()
+            rows = []
             try:
-                data = f.read().decode('utf-8')
+                if file_name.endswith('.xlsx'):
+                    from openpyxl import load_workbook
+                    wb = load_workbook(f, data_only=True)
+                    ws = wb.active
+                    all_rows = list(ws.iter_rows(values_only=True))
+                    if not all_rows:
+                        raise ValueError('The uploaded Excel file is empty.')
+                    headers = [str(c).strip() if c is not None else '' for c in all_rows[0]]
+                    for r in all_rows[1:]:
+                        row = {}
+                        for k, v in zip(headers, r):
+                            row[k] = '' if v is None else str(v).strip()
+                        rows.append(row)
+                else:
+                    data = f.read().decode('utf-8')
+                    reader = csv.DictReader(data.splitlines())
+                    rows = list(reader)
             except Exception:
-                errors.append('Unable to read the uploaded file. Ensure it is UTF-8 encoded CSV.')
+                errors.append('Unable to read the uploaded file. Upload a UTF-8 CSV or an Excel .xlsx file.')
                 return render(request, 'lead_generation/lead_import.html', {'form': form, 'created': created, 'errors': errors})
-            reader = csv.DictReader(data.splitlines())
-            for i, row in enumerate(reader, start=2):
+
+            for i, row in enumerate(rows, start=2):
                 try:
-                    first_name = (row.get('first_name') or '').strip()
-                    last_name = (row.get('last_name') or '').strip()
-                    email = (row.get('email') or '').strip()
-                    source_name = (row.get('source') or '').strip()
+                    row_norm = {(k or '').strip().lower(): (v or '').strip() for k, v in (row or {}).items()}
+                    first_name = (row_norm.get('first_name') or '').strip()
+                    last_name = (row_norm.get('last_name') or '').strip()
+                    email = (row_norm.get('email') or '').strip()
+                    source_name = (row_norm.get('source') or '').strip()
                     if not first_name or not last_name or not email or not source_name:
                         raise ValueError('first_name, last_name, email, and source are required')
                     source, _ = LeadSource.objects.get_or_create(name=source_name, defaults={'source_type': 'other'})
                     assigned = default_assigned
-                    assigned_username = (row.get('assigned_to_username') or '').strip()
+                    assigned_username = (row_norm.get('assigned_to_username') or '').strip()
                     if assigned_username:
                         try:
                             assigned = User.objects.get(username=assigned_username, role='salesperson', is_active=True)
@@ -236,24 +257,24 @@ def lead_import(request):
                         first_name=first_name,
                         last_name=last_name,
                         email=email,
-                        phone_number=(row.get('phone_number') or '').strip(),
-                        company_name=(row.get('company_name') or '').strip(),
-                        job_title=(row.get('job_title') or '').strip(),
-                        address=(row.get('address') or '').strip(),
-                        city=(row.get('city') or '').strip(),
-                        territory=(row.get('territory') or '').strip(),
-                        industry=(row.get('industry') or '').strip(),
-                        company_size=(row.get('company_size') or '').strip(),
-                        annual_revenue=(row.get('annual_revenue') or '').strip(),
-                        status=(row.get('status') or 'new').strip() or 'new',
-                        priority=(row.get('priority') or 'medium').strip() or 'medium',
+                        phone_number=(row_norm.get('phone_number') or '').strip(),
+                        company_name=(row_norm.get('company_name') or '').strip(),
+                        job_title=(row_norm.get('job_title') or '').strip(),
+                        address=(row_norm.get('address') or '').strip(),
+                        city=(row_norm.get('city') or '').strip(),
+                        territory=(row_norm.get('territory') or '').strip(),
+                        industry=(row_norm.get('industry') or '').strip(),
+                        company_size=(row_norm.get('company_size') or '').strip(),
+                        annual_revenue=(row_norm.get('annual_revenue') or '').strip(),
+                        status=(row_norm.get('status') or 'new').strip() or 'new',
+                        priority=(row_norm.get('priority') or 'medium').strip() or 'medium',
                         source=source,
                         assigned_to=assigned,
-                        initial_interest=(row.get('initial_interest') or '').strip(),
-                        requirements=(row.get('requirements') or '').strip(),
-                        budget_range=(row.get('budget_range') or '').strip(),
-                        timeline=(row.get('timeline') or '').strip(),
-                        notes=(row.get('notes') or '').strip(),
+                        initial_interest=(row_norm.get('initial_interest') or '').strip(),
+                        requirements=(row_norm.get('requirements') or '').strip(),
+                        budget_range=(row_norm.get('budget_range') or '').strip(),
+                        timeline=(row_norm.get('timeline') or '').strip(),
+                        notes=(row_norm.get('notes') or '').strip(),
                         created_by=request.user
                     )
                     lead.save()
@@ -328,7 +349,7 @@ def lead_detail(request, lead_id):
         'activity_form': activity_form,
         'conversion_form': conversion_form,
         'mark_lost_form': mark_lost_form,
-        'can_edit': request.user.role in ['admin', 'executive'] or lead.assigned_to == request.user,
+        'can_edit': request.user.role != 'salesperson' or lead.assigned_to == request.user,
         'can_convert': lead.can_convert_to_customer,
         'can_mark_lost': lead.status not in ['converted', 'lost'],
     }
@@ -521,8 +542,8 @@ def lead_source_create(request):
     """Create new lead source"""
     
     # Only allow admins and executives to create sources
-    if request.user.role not in ['admin', 'executive']:
-        messages.error(request, 'Only administrators can create lead sources.')
+    if request.user.role not in (EXEC_ROLES | {'marketing'}):
+        messages.error(request, 'You do not have permission to create lead sources.')
         return redirect('lead_generation:lead_sources')
     
     if request.method == 'POST':

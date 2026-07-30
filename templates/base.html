@@ -222,7 +222,7 @@
                                 <i class="fas fa-user-times text-danger"></i><span>Delinquent</span>
                             </a>
                         </li>
-                        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="leadsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Lead Management">
                                     <i class="fas fa-user-plus"></i><span>Leads</span>
@@ -239,9 +239,11 @@
                                     {% if user.role == 'salesperson' %}
                                         <li><a class="dropdown-item" href="{% url 'lead_generation:lead_create' %}"><i class="fas fa-plus me-2"></i>Add New Lead</a></li>
                                     {% endif %}
-                                    {% if user.role in 'supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+                                    {% if user.role in 'supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
                                         <li><a class="dropdown-item" href="{% url 'lead_generation:analytics' %}"><i class="fas fa-chart-pie me-2"></i>Analytics</a></li>
                                         <li><a class="dropdown-item" href="{% url 'lead_generation:lead_sources' %}"><i class="fas fa-bullhorn me-2"></i>Lead Sources</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:lead_import' %}"><i class="fas fa-file-import me-2"></i>Import Leads</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'lead_generation:lead_import_template' %}"><i class="fas fa-download me-2"></i>Import Template</a></li>
                                     {% endif %}
                                 </ul>
                             </li>

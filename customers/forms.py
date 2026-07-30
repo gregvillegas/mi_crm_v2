@@ -123,6 +123,7 @@ class SalespersonCustomerForm(forms.ModelForm):
         self.fields['territory'].widget.attrs.update({'class': 'form-select'})
         
         self.helper = FormHelper()
+        self.helper.form_tag = False
         self.helper.layout = Layout(
             HTML('<div class="alert alert-info"><i class="fas fa-info-circle"></i> You will be automatically assigned as the salesperson for this customer.</div>'),
             HTML('<h5 class="mb-3">Basic Information</h5>'),
@@ -148,12 +149,11 @@ class SalespersonCustomerForm(forms.ModelForm):
     
     def save(self, commit=True):
         customer = super().save(commit=False)
-        # Automatically assign the salesperson
-        if self.salesperson:
-            customer.salesperson = self.salesperson
-        # New customers are active by default, not VIP
-        customer.is_active = True
-        customer.is_vip = False
+        if not customer.pk:
+            if self.salesperson:
+                customer.salesperson = self.salesperson
+            customer.is_active = True
+            customer.is_vip = False
         
         if commit:
             customer.save()
@@ -166,6 +166,48 @@ class SalespersonCustomerForm(forms.ModelForm):
                 changed_by=self.salesperson
             )
         return customer
+
+class SalespersonCustomerUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = [
+            'company_name', 'contact_person_name', 'contact_person_position', 'email', 'phone_number', 'address',
+            'industry', 'territory'
+        ]
+        labels = {
+            'company_name': 'Company Name',
+            'contact_person_name': 'Contact Person Name',
+            'contact_person_position': 'Position/Title',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['industry'].widget.attrs.update({'class': 'form-select'})
+        self.fields['territory'].widget.attrs.update({'class': 'form-select'})
+
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.layout = Layout(
+            HTML('<h5 class="mb-3">Basic Information</h5>'),
+            Row(
+                Column('company_name', css_class='form-group col-md-6 mb-3'),
+                Column('contact_person_name', css_class='form-group col-md-6 mb-3'),
+            ),
+            'contact_person_position',
+            Row(
+                Column('email', css_class='form-group col-md-6 mb-3'),
+                Column('phone_number', css_class='form-group col-md-6 mb-3'),
+            ),
+            'address',
+
+            HTML('<h5 class="mb-3 mt-4">Business Information</h5>'),
+            Row(
+                Column('industry', css_class='form-group col-md-6 mb-3'),
+                Column('territory', css_class='form-group col-md-6 mb-3'),
+            ),
+            HTML('<br>'),
+            Submit('submit', 'Save Customer', css_class='btn btn-primary')
+        )
 
 class DelinquencyRecordForm(forms.ModelForm):
     class Meta:

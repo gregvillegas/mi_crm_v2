@@ -658,7 +658,7 @@ def generate_pdf_buffer(proposal):
     elements.append(Spacer(1, 12))
     
     # --- SALUTATION ---
-    elements.append(Paragraph("Dear {contact_name},", styles['NormalSmall']))
+    elements.append(Paragraph("Dear Sir/Madame,", styles['NormalSmall']))
     elements.append(Spacer(1, 6))
     
     # --- OPENING ---
