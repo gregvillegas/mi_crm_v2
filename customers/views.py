@@ -17,7 +17,7 @@ import csv
 import io
 
 def is_manager(user):
-    return user.role in ['admin', 'avp', 'supervisor', 'asm', 'teamlead']
+    return user.role in ['admin', 'avp', 'supervisor', 'asm', 'sm', 'teamlead']
 
 def is_executive(user):
     return user.role in ['admin', 'president', 'gm', 'vp']
@@ -28,7 +28,7 @@ def is_admin_or_exec(user):
 def can_edit_customer(user, customer):
     if user.role in ['admin', 'president', 'gm', 'vp', 'marketing']:
         return True
-    if user.role == 'salesperson' and customer.salesperson_id == user.id:
+    if user.role in ['salesperson', 'supervisor', 'asm', 'sm', 'avp'] and customer.salesperson_id == user.id:
         return True
     return False
 
@@ -63,25 +63,25 @@ def customer_list(request):
         groups = Group.objects.filter(team__in=teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(salesperson__in=salespeople)
-    elif user.role == 'asm':
+        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
+    elif user.role in ['asm', 'sm']:
         # ASM can see customers from their assigned teams
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(salesperson__in=salespeople)
+        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
     elif user.role == 'supervisor':
         groups = Group.objects.filter(supervisor=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(salesperson__in=salespeople)
+        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
     elif user.role == 'teamlead':
         # Teamlead can see customers from their assigned group
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
         salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(salesperson__in=salespeople)
+        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
     elif user.role == 'salesperson':
         customers = Customer.objects.filter(salesperson=user)
 
@@ -131,15 +131,15 @@ def customer_list(request):
     customers = customers.select_related('salesperson').order_by('-is_millionaire_account', '-created_at')
     
     # Available salespeople for filter dropdown (active only)
-    available_salespeople = User.objects.filter(role='salesperson', is_active=True).order_by('first_name','last_name','username')
+    available_salespeople = User.objects.filter(role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'], is_active=True).order_by('first_name','last_name','username')
     
     # Determine if user can see admin actions column
     # Admin, VP, GM, Marketing: Full access
     # AVP, ASM, Supervisor: Transfer access
-    can_manage_customers = user.role in ['admin', 'gm', 'vp', 'marketing', 'avp', 'asm', 'supervisor']
+    can_manage_customers = user.role in ['admin', 'gm', 'vp', 'marketing', 'avp', 'asm', 'sm', 'supervisor']
 
     pending_create_count = 0
-    if user.role in ['admin', 'avp', 'gm', 'vp', 'marketing']:
+    if user.role in ['admin', 'avp', 'gm', 'vp', 'marketing', 'asm', 'sm', 'supervisor']:
         pending_create_count = CustomerCreateRequest.objects.filter(status='pending').count()
 
     # Get filter options for the template
@@ -225,7 +225,7 @@ def delinquent_list(request):
             pass
     # Available AE list for dropdown (all)
     from users.models import User
-    available_ae = User.objects.filter(is_active=True, role__in=['salesperson','supervisor','asm','avp'])
+    available_ae = User.objects.filter(is_active=True, role__in=['salesperson','supervisor','asm','sm','avp'])
     context = {
         'records': records.order_by('customer__company_name'),
         'current_filters': {
@@ -317,7 +317,7 @@ def create_customer(request):
     
     # Salespeople can request creation (with duplicate check/approval); managers can create directly
     is_salesperson = user.role == 'salesperson'
-    if not is_salesperson and user.role not in ['admin', 'gm', 'vp', 'marketing', 'avp', 'supervisor', 'asm', 'teamlead']:
+    if not is_salesperson and user.role not in ['admin', 'gm', 'vp', 'marketing', 'avp', 'supervisor', 'asm', 'sm', 'teamlead']:
         messages.error(request, "You don't have permission to create customers.")
         return redirect('customer_list')
     
@@ -445,21 +445,21 @@ def customer_create_request_history(request):
 @login_required
 def transfer_customer(request, pk):
     # Permission check: Admin, VP, GM, Marketing, AVP, Supervisor, ASM
-    if request.user.role not in ['admin', 'vp', 'gm', 'marketing', 'avp', 'supervisor', 'asm']:
+    if request.user.role not in ['admin', 'vp', 'gm', 'marketing', 'avp', 'supervisor', 'asm', 'sm']:
         messages.error(request, "You don't have permission to transfer customers.")
         return redirect('customer_list')
 
     customer = get_object_or_404(Customer, pk=pk)
     if request.method == 'POST':
         new_salesperson_id = request.POST.get('salesperson')
-        new_salesperson = get_object_or_404(User, id=new_salesperson_id, role='salesperson')
+        new_salesperson = get_object_or_404(User, id=new_salesperson_id, role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'])
         customer.salesperson = new_salesperson
         customer.save()
         messages.success(request, f'Customer "{customer.company_name}" has been transferred to {new_salesperson.get_full_name()}.')
         return redirect('customer_list')
 
     # Get available salespeople based on role (could be filtered by team in future)
-    salespeople = User.objects.filter(role='salesperson', is_active=True)
+    salespeople = User.objects.filter(role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'], is_active=True)
     return render(request, 'customers/transfer_customer.html', {'customer': customer, 'salespeople': salespeople})
 
 
@@ -764,7 +764,7 @@ def import_customers(request):
                 salesperson = None
                 if salesperson_initials:
                     try:
-                        salesperson = User.objects.get(initials=salesperson_initials, role='salesperson', is_active=True)
+                        salesperson = User.objects.get(initials=salesperson_initials, role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'], is_active=True)
                     except User.DoesNotExist:
                         errors.append(f'Row {row_num}: Active salesperson with initials "{salesperson_initials}" not found')
                         continue
@@ -1086,7 +1086,7 @@ def import_customers_with_contacts(request):
                 if salesperson_initials:
                     salesperson = User.objects.filter(
                         initials__iexact=salesperson_initials,
-                        role='salesperson',
+                        role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'],
                         is_active=True,
                     ).first()
                     if salesperson is None:
@@ -1390,20 +1390,20 @@ def customer_history(request, pk):
         teams = Team.objects.filter(avp=user)
         groups = Group.objects.filter(team__in=teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids
-    elif user.role == 'asm':
+        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
+    elif user.role in ['asm', 'sm']:
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids
+        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
     elif user.role == 'supervisor':
         groups = Group.objects.filter(supervisor=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids
+        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
     elif user.role == 'teamlead':
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids
+        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
     elif user.role == 'salesperson':
         has_access = customer.salesperson == user
     

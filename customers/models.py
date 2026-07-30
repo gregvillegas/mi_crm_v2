@@ -139,7 +139,7 @@ class Customer(models.Model):
         null=True, 
         blank=True, 
         related_name='customers', 
-        limit_choices_to={'role': 'salesperson', 'is_active': True}
+        limit_choices_to={'role__in': ['salesperson', 'supervisor', 'asm', 'sm', 'avp'], 'is_active': True}
     )
     
     # Timestamps

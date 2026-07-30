@@ -28,7 +28,7 @@ class CustomerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Only show active salespeople in the dropdown
         self.fields['salesperson'].queryset = User.objects.filter(
-            role='salesperson', 
+            role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'],
             is_active=True
         )
         self.fields['is_millionaire_account'].disabled = True

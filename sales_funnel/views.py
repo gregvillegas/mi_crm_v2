@@ -115,22 +115,22 @@ def _send_avp_notes_notification(request, entry, old_notes, new_notes):
 
 def can_access_funnel(user):
     """Check if user can access sales funnel features"""
-    return user.role in ['salesperson', 'supervisor', 'teamlead', 'asm', 'avp', 'admin', 'president', 'gm', 'vp']
+    return user.role in ['salesperson', 'supervisor', 'teamlead', 'asm', 'sm', 'avp', 'admin', 'president', 'gm', 'vp']
 
 def is_salesperson(user):
     return user.role == 'salesperson'
 
 def is_manager(user):
-    return user.role in ['supervisor', 'teamlead', 'asm', 'avp', 'admin', 'president', 'gm', 'vp']
+    return user.role in ['supervisor', 'teamlead', 'asm', 'sm', 'avp', 'admin', 'president', 'gm', 'vp']
 
 def is_exec_admin(user):
     return user.role in ['admin', 'president', 'gm', 'vp']
 
 def can_add_entry(user):
-    return user.role in ['salesperson', 'supervisor', 'asm', 'avp']
+    return user.role in ['salesperson', 'supervisor', 'asm', 'sm', 'avp']
 
 def can_import_entries(user):
-    return user.role in ['salesperson', 'supervisor', 'asm', 'avp', 'admin']
+    return user.role in ['salesperson', 'supervisor', 'asm', 'sm', 'avp', 'admin']
 
 @login_required
 @user_passes_test(can_access_funnel)
@@ -164,7 +164,7 @@ def funnel_dashboard(request):
             is_active=True,
             is_closed=False
         )
-    elif user.role == 'asm':
+    elif user.role in ['asm', 'sm']:
         # ASM can see entries from their teams
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
@@ -249,7 +249,7 @@ def funnel_dashboard(request):
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(salesperson_id__in=salespeople_ids, is_closed=True)
-    elif user.role == 'asm':
+    elif user.role in ['asm', 'sm']:
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
@@ -336,7 +336,7 @@ def funnel_dashboard(request):
         'filter_form': filter_form,
         'can_add': can_add_entry(user),
         'can_import': can_import_entries(user),
-        'can_edit_all': user.role in ['admin', 'supervisor', 'asm', 'avp'],
+        'can_edit_all': user.role in ['admin', 'supervisor', 'asm', 'sm', 'avp'],
         'view_mode': view_mode,
         'show_actions': view_mode != 'table',
         'brand_suggestions': brand_suggestions,
@@ -360,7 +360,7 @@ def export_funnel_report(request):
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
         qs = SalesFunnel.objects.filter(salesperson_id__in=salespeople_ids, is_active=True, is_closed=False)
-    elif user.role == 'asm':
+    elif user.role in ['asm', 'sm']:
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
@@ -632,7 +632,7 @@ def deals_history(request):
         groups = Group.objects.filter(supervisor=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(
-            salesperson_id__in=salespeople_ids,
+            Q(salesperson_id__in=salespeople_ids) | Q(salesperson=user),
             is_closed=True
         )
     elif user.role == 'teamlead':
@@ -642,12 +642,12 @@ def deals_history(request):
             salesperson_id__in=salespeople_ids,
             is_closed=True
         )
-    elif user.role == 'asm':
+    elif user.role in ['asm', 'sm']:
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(
-            salesperson_id__in=salespeople_ids,
+            Q(salesperson_id__in=salespeople_ids) | Q(salesperson=user),
             is_closed=True
         )
     elif user.role == 'avp':
@@ -655,7 +655,7 @@ def deals_history(request):
         groups = Group.objects.filter(team__in=teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(
-            salesperson_id__in=salespeople_ids,
+            Q(salesperson_id__in=salespeople_ids) | Q(salesperson=user),
             is_closed=True
         )
     else:
@@ -784,7 +784,7 @@ def import_funnel_entries(request):
             if request.user.role == 'supervisor':
                 groups = Group.objects.filter(supervisor=request.user)
                 allowed_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)) + [request.user.id]
-            elif request.user.role == 'asm':
+            elif request.user.role in ['asm', 'sm']:
                 asm_teams = request.user.asm_teams.all()
                 groups = Group.objects.filter(team__in=asm_teams)
                 sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
@@ -987,11 +987,11 @@ def import_funnel_entries(request):
 
     # GET: show form; for managers, provide salesperson selector within scope
     available_salespeople = None
-    if request.user.role in ['supervisor', 'asm', 'avp', 'admin']:
+    if request.user.role in ['supervisor', 'asm', 'sm', 'avp', 'admin']:
         if request.user.role == 'supervisor':
             groups = Group.objects.filter(supervisor=request.user)
             sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)) + [request.user.id]
-        elif request.user.role == 'asm':
+        elif request.user.role in ['asm', 'sm']:
             asm_teams = request.user.asm_teams.all()
             groups = Group.objects.filter(team__in=asm_teams)
             sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))

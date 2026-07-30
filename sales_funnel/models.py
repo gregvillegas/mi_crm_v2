@@ -149,8 +149,6 @@ class SalesFunnel(models.Model):
 
     @property
     def display_cost(self):
-        if self.proposal_id and self.proposal:
-            return self.proposal.quoted_cost_php
         return self.cost
     
     @property

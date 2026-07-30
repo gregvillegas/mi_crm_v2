@@ -4,6 +4,7 @@ from django.forms import inlineformset_factory
 from .models import Proposal, ProposalItem, ProposalApprovalTier, ProposalAttachment
 from customers.models import Customer
 from teams.models import Team, Group, TeamMembership
+from django.db.models import Q
 
 from django.forms import NumberInput, TextInput, Textarea, ClearableFileInput
 
@@ -71,22 +72,22 @@ class ProposalForm(forms.ModelForm):
         elif role == 'supervisor':
             groups = Group.objects.filter(supervisor=self.user)
             sp_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-            qs = qs.filter(salesperson_id__in=sp_ids)
+            qs = qs.filter(Q(salesperson_id__in=sp_ids) | Q(salesperson=self.user))
         elif role == 'teamlead':
             groups = Group.objects.filter(teamlead=self.user)
             sp_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-            qs = qs.filter(salesperson_id__in=sp_ids)
-        elif role == 'asm':
+            qs = qs.filter(Q(salesperson_id__in=sp_ids) | Q(salesperson=self.user))
+        elif role in ['asm', 'sm']:
             asm_teams = getattr(self.user, 'asm_teams', None)
             team_qs = asm_teams.all() if asm_teams is not None else Team.objects.none()
             groups = Group.objects.filter(team__in=team_qs)
             sp_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-            qs = qs.filter(salesperson_id__in=sp_ids)
+            qs = qs.filter(Q(salesperson_id__in=sp_ids) | Q(salesperson=self.user))
         elif role == 'avp':
             teams = Team.objects.filter(avp=self.user)
             groups = Group.objects.filter(team__in=teams)
             sp_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-            qs = qs.filter(salesperson_id__in=sp_ids)
+            qs = qs.filter(Q(salesperson_id__in=sp_ids) | Q(salesperson=self.user))
         self.fields['customer'].queryset = qs
         self.fields['discount_amount'].required = False
 

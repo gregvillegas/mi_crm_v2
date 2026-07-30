@@ -196,7 +196,7 @@ class Proposal(models.Model):
         
         # Gross profit is Total Revenue (excl tax if we consider net sales, but typically GP is Sales - COGS)
         # Assuming subtotal is Net Sales.
-        self.gross_profit = self.total_amount - self.total_cost
+        self.gross_profit = self.total_amount - self.internal_cost_with_uplift
         php_total = self.total_amount
         if self.currency == 'USD':
             rate = self.exchange_rate if self.exchange_rate > 0 else Decimal('1.0')
@@ -247,7 +247,7 @@ class Proposal(models.Model):
 
     @property
     def quoted_gross_profit(self):
-        return self.quoted_total_amount - self.quoted_total_cost
+        return self.quoted_total_amount - (self.quoted_total_cost * Decimal('1.05'))
 
     @property
     def quoted_amount_php(self):

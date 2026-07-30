@@ -1288,7 +1288,7 @@ def log_sales_activity(proposal, user):
 def update_sales_funnel(proposal):
     # Determine PHP amounts for Sales Funnel (which tracks in PHP)
     retail_php = proposal.quoted_amount_php
-    cost_php = proposal.quoted_cost_php
+    cost_php = proposal.quoted_cost_php * Decimal('1.05')
 
     # Try to find a funnel entry linked to this proposal
     funnel = SalesFunnel.objects.filter(proposal=proposal).first()
