@@ -7,6 +7,12 @@ from django.db.models import Sum
 from django.utils import timezone
 from .models import Customer, CustomerBackup, CustomerHistory, DelinquencyRecord, CustomerNote, CustomerContact, CustomerCreateRequest
 from .forms import CustomerForm, CustomerContactFormSet, SalespersonCustomerForm, SalespersonCustomerUpdateForm
+from .permissions import (
+    can_edit_customer as perms_can_edit_customer,
+    can_view_customer as perms_can_view_customer,
+    visible_customers_queryset,
+    assignment_targets_queryset,
+)
 from users.models import User
 from teams.models import Team, Group, TeamMembership
 from sales_funnel.models import SalesFunnel
@@ -25,16 +31,12 @@ def is_executive(user):
 def is_admin_or_exec(user):
     return user.role in ['admin', 'gm', 'vp', 'marketing']
 
-def can_edit_customer(user, customer):
-    if user.role in ['admin', 'president', 'gm', 'vp', 'marketing']:
-        return True
-    if user.role in ['salesperson', 'supervisor', 'asm', 'sm', 'avp'] and customer.salesperson_id == user.id:
-        return True
-    return False
-
 @login_required
 def add_customer_note(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
+    if not perms_can_view_customer(request.user, customer):
+        messages.error(request, 'You do not have permission to add a note to this customer.')
+        return redirect('customer_list')
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
@@ -51,39 +53,8 @@ def add_customer_note(request, pk):
 @login_required
 def customer_list(request):
     user = request.user
-    customers = Customer.objects.none()
+    customers = visible_customers_queryset(user)
     view_mode = request.GET.get('view', 'table')
-
-    # Get base customer queryset based on user role
-    if user.role in ['admin', 'president', 'gm', 'vp', 'marketing']:
-        # Executives and marketing have full access to all customers
-        customers = Customer.objects.all()
-    elif user.role == 'avp':
-        teams = Team.objects.filter(avp=user)
-        groups = Group.objects.filter(team__in=teams)
-        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
-    elif user.role in ['asm', 'sm']:
-        # ASM can see customers from their assigned teams
-        asm_teams = user.asm_teams.all()
-        groups = Group.objects.filter(team__in=asm_teams)
-        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
-    elif user.role == 'supervisor':
-        groups = Group.objects.filter(supervisor=user)
-        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
-    elif user.role == 'teamlead':
-        # Teamlead can see customers from their assigned group
-        teamlead_groups = Group.objects.filter(teamlead=user)
-        salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
-        salespeople = User.objects.filter(id__in=salespeople_ids)
-        customers = Customer.objects.filter(models.Q(salesperson__in=salespeople) | models.Q(salesperson=user))
-    elif user.role == 'salesperson':
-        customers = Customer.objects.filter(salesperson=user)
 
     # Apply filters based on GET parameters
     status_filter = request.GET.get('status')
@@ -131,7 +102,7 @@ def customer_list(request):
     customers = customers.select_related('salesperson').order_by('-is_millionaire_account', '-created_at')
     
     # Available salespeople for filter dropdown (active only)
-    available_salespeople = User.objects.filter(role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'], is_active=True).order_by('first_name','last_name','username')
+    available_salespeople = assignment_targets_queryset(user)
     
     # Determine if user can see admin actions column
     # Admin, VP, GM, Marketing: Full access
@@ -174,6 +145,8 @@ def customer_list(request):
 def customer_contacts(request, pk):
     """Return up to 4 contacts for a customer in JSON for dependent dropdowns."""
     customer = get_object_or_404(Customer, pk=pk)
+    if not perms_can_view_customer(request.user, customer):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
     # Convert queryset to list of dicts
     additional = list(CustomerContact.objects.filter(customer=customer).order_by('-is_primary','name').values('id','name','position','email','phone','is_primary'))
     # Always include legacy main contact as an option
@@ -351,7 +324,7 @@ def create_customer(request):
             context = {'form': form, 'contact_formset': None, 'title': 'Add New Customer', 'is_salesperson_form': True}
             return render(request, 'customers/customer_form.html', context)
         else:
-            form = CustomerForm(request.POST)
+            form = CustomerForm(request.POST, user=user)
             if form.is_valid():
                 customer = form.save()
                 contact_formset = CustomerContactFormSet(request.POST, instance=customer)
@@ -381,7 +354,7 @@ def create_customer(request):
             form = SalespersonCustomerForm(salesperson=user)
             context = {'form': form, 'contact_formset': None, 'title': 'Add New Customer', 'is_salesperson_form': True}
         else:
-            form = CustomerForm()
+            form = CustomerForm(user=user)
             contact_formset = CustomerContactFormSet()
             context = {
                 'form': form,
@@ -450,16 +423,20 @@ def transfer_customer(request, pk):
         return redirect('customer_list')
 
     customer = get_object_or_404(Customer, pk=pk)
+    if not perms_can_edit_customer(request.user, customer):
+        messages.error(request, "You don't have permission to transfer this customer.")
+        return redirect('customer_list')
     if request.method == 'POST':
         new_salesperson_id = request.POST.get('salesperson')
-        new_salesperson = get_object_or_404(User, id=new_salesperson_id, role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'])
+        targets = assignment_targets_queryset(request.user)
+        new_salesperson = get_object_or_404(targets, id=new_salesperson_id)
         customer.salesperson = new_salesperson
         customer.save()
         messages.success(request, f'Customer "{customer.company_name}" has been transferred to {new_salesperson.get_full_name()}.')
         return redirect('customer_list')
 
     # Get available salespeople based on role (could be filtered by team in future)
-    salespeople = User.objects.filter(role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'], is_active=True)
+    salespeople = assignment_targets_queryset(request.user)
     return render(request, 'customers/transfer_customer.html', {'customer': customer, 'salespeople': salespeople})
 
 
@@ -1452,7 +1429,7 @@ def customer_history(request, pk):
 @login_required
 def edit_customer(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
-    if not can_edit_customer(request.user, customer):
+    if not perms_can_edit_customer(request.user, customer):
         messages.error(request, "You don't have permission to edit this customer.")
         return redirect('customer_list')
     
@@ -1466,7 +1443,7 @@ def edit_customer(request, pk):
         if request.user.role == 'salesperson':
             form = SalespersonCustomerUpdateForm(request.POST, instance=customer)
         else:
-            form = CustomerForm(request.POST, instance=customer)
+            form = CustomerForm(request.POST, instance=customer, user=request.user)
         contact_formset = CustomerContactFormSet(request.POST, instance=customer)
         if form.is_valid() and contact_formset.is_valid():
             form.save()
@@ -1479,7 +1456,7 @@ def edit_customer(request, pk):
         if request.user.role == 'salesperson':
             form = SalespersonCustomerUpdateForm(instance=customer)
         else:
-            form = CustomerForm(instance=customer)
+            form = CustomerForm(instance=customer, user=request.user)
         contact_formset = CustomerContactFormSet(instance=customer)
     
     # Get recent backups for this customer
@@ -1894,9 +1871,9 @@ def toggle_customer_active(request, pk):
 def customer_detail(request, pk):
     """360-degree view of a customer"""
     customer = get_object_or_404(Customer, pk=pk)
-    
-    # Check permissions (reuse existing logic or simplify)
-    # For now, allow access if user can see customer_list or is owner
+    if not perms_can_view_customer(request.user, customer):
+        messages.error(request, 'You do not have permission to view this customer.')
+        return redirect('customer_list')
     
     # Gather Data
     active_deals = SalesFunnel.objects.filter(customer=customer).exclude(deal_outcome__in=['won', 'lost', 'cancelled'])
@@ -1937,6 +1914,6 @@ def customer_detail(request, pk):
         'open_tickets_count': open_tickets_count,
         'notes': notes,
         'total_won_value': total_won_value,
-        'can_edit': can_edit_customer(request.user, customer),
+        'can_edit': perms_can_edit_customer(request.user, customer),
     }
     return render(request, 'customers/customer_detail.html', context)

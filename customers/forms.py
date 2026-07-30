@@ -4,6 +4,7 @@ from users.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Submit, HTML
 from django.forms import inlineformset_factory
+from .permissions import assignment_targets_queryset
 
 class CustomerForm(forms.ModelForm):
     class Meta:
@@ -25,9 +26,9 @@ class CustomerForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        # Only show active salespeople in the dropdown
-        self.fields['salesperson'].queryset = User.objects.filter(
+        self.fields['salesperson'].queryset = assignment_targets_queryset(user) if user else User.objects.filter(
             role__in=['salesperson', 'supervisor', 'asm', 'sm', 'avp'],
             is_active=True
         )
