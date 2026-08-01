@@ -143,21 +143,38 @@ class Proposal(models.Model):
     def save(self, *args, **kwargs):
         if not self.proposal_number:
             today = timezone.now()
-            prefix = f"PROP-{today.year}-"
-            existing = Proposal.objects.filter(proposal_number__startswith=prefix).values_list('proposal_number', flat=True)
+            year = today.year
+
+            user = getattr(self, 'created_by', None)
+            initials = (getattr(user, 'initials', None) or '').upper()
+            if not initials:
+                parts = [getattr(user, 'first_name', ''), getattr(user, 'last_name', '')]
+                initials = ''.join((p[:1] or '').upper() for p in parts)
+            if not initials:
+                initials = (getattr(user, 'username', '') or '').upper()
+            initials = (initials[:3] if initials else 'XXX').ljust(3, 'X')
+
+            existing = Proposal.objects.filter(proposal_number__contains=f"-{year}-").values_list('proposal_number', flat=True)
             max_seq = 0
+            pattern = re.compile(r"^(?P<prefix>[^-]+)-(?P<year>\d{4})-(?P<seq>\d+)$")
             for num in existing:
+                m = pattern.match(num or '')
+                if not m:
+                    continue
+                if int(m.group('year')) != year:
+                    continue
                 try:
-                    seq = int(num.split('-')[-1])
-                    if seq > max_seq:
-                        max_seq = seq
+                    seq = int(m.group('seq'))
                 except Exception:
                     continue
+                if seq > max_seq:
+                    max_seq = seq
+
             next_seq = max_seq + 1
-            candidate = f"{prefix}{next_seq:04d}"
+            candidate = f"{initials}-{year}-{next_seq:04d}"
             while Proposal.objects.filter(proposal_number=candidate).exists():
                 next_seq += 1
-                candidate = f"{prefix}{next_seq:04d}"
+                candidate = f"{initials}-{year}-{next_seq:04d}"
             self.proposal_number = candidate
         # Autogenerate Reference Number: III + YYYYMMDD + ### (per-salesperson sequence)
         if not self.reference_number and self.created_by_id:

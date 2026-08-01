@@ -566,7 +566,9 @@ def generate_pdf_buffer(proposal):
     styles.add(ParagraphStyle(name='NormalSmall', parent=styles['Normal'], fontName=font_normal, fontSize=9, leading=11))
     styles.add(ParagraphStyle(name='TableText', parent=styles['Normal'], fontName=font_normal, fontSize=8, leading=10))
     styles.add(ParagraphStyle(name='TableTextCenter', parent=styles['TableText'], alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name='TableTextRight', parent=styles['TableText'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='TableHeader', parent=styles['Normal'], fontName=font_bold, fontSize=8, leading=10, textColor=colors.white, alignment=TA_CENTER))
+    styles.add(ParagraphStyle(name='TableHeaderRight', parent=styles['TableHeader'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='NoteHeader', parent=styles['Normal'], fontName=font_bold, fontSize=9, backColor=MIC_YELLOW))
 
     def draw_footer(canvas, doc):
@@ -658,7 +660,8 @@ def generate_pdf_buffer(proposal):
     elements.append(Spacer(1, 12))
     
     # --- SALUTATION ---
-    elements.append(Paragraph("Dear Sir/Madame,", styles['NormalSmall']))
+    salutation_name = (contact_name or "").strip()
+    elements.append(Paragraph(f"Dear {salutation_name if salutation_name else 'Sir/Madame'},", styles['NormalSmall']))
     elements.append(Spacer(1, 6))
     
     # --- OPENING ---
@@ -693,8 +696,8 @@ def generate_pdf_buffer(proposal):
                 styles['TableText'],
             ),
             Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
-            Paragraph(f"{currency_symbol} {item.unit_price:,.2f}", styles['TableText']),
-            Paragraph(f"{currency_symbol} {item.amount:,.2f}", styles['TableText']),
+            Paragraph(f"{currency_symbol} {item.unit_price:,.2f}", styles['TableTextRight']),
+            Paragraph(f"{currency_symbol} {item.amount:,.2f}", styles['TableTextRight']),
             Paragraph(item.warranty or proposal.warranty, styles['TableText'])
         ])
         for component in item.bundle_components:
@@ -719,7 +722,7 @@ def generate_pdf_buffer(proposal):
         table_data.append([
             '', '', '', '', 
             Paragraph("Subtotal", styles['TableText']), 
-            Paragraph(f"{currency_symbol} {proposal.subtotal:,.2f}", styles['TableText']), 
+            Paragraph(f"{currency_symbol} {proposal.subtotal:,.2f}", styles['TableTextRight']), 
             ''
         ])
 
@@ -727,7 +730,7 @@ def generate_pdf_buffer(proposal):
             table_data.append([
                 '', '', '', '',
                 Paragraph("Discount", styles['TableText']),
-                Paragraph(f"-{currency_symbol} {proposal.discount_amount:,.2f}", styles['TableText']),
+                Paragraph(f"-{currency_symbol} {proposal.discount_amount:,.2f}", styles['TableTextRight']),
                 ''
             ])
 
@@ -735,7 +738,7 @@ def generate_pdf_buffer(proposal):
         table_data.append([
             '', '', '', '', 
             Paragraph("Grand Total", styles['TableHeader']), 
-            Paragraph(f"{currency_symbol} {proposal.total_amount:,.2f}", styles['TableHeader']), 
+            Paragraph(f"{currency_symbol} {proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
             ''
         ])
     
@@ -1001,11 +1004,6 @@ Best regards,"""
             reply_to=[request.user.email]
         )
         email.attach_alternative(html_message, 'text/html')
-        _attach_inline_image(
-            email,
-            'company-logo',
-            Path(settings.BASE_DIR) / 'core' / 'static' / 'core' / 'images' / 'mi-logo-blk.png',
-        )
         for asset in signature_context['inline_images']:
             _attach_inline_image(email, asset['cid'], asset['path'])
         email.attach(f"{proposal.proposal_number}.pdf", buffer.getvalue(), 'application/pdf')

@@ -5,6 +5,12 @@ from customers.models import Customer
 from users.models import User
 
 class SalesFunnelForm(forms.ModelForm):
+    probability = forms.TypedChoiceField(
+        choices=[(100, '100'), (75, '75'), (50, '50'), (25, '25')],
+        coerce=int,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     class Meta:
         model = SalesFunnel
         fields = [
@@ -52,12 +58,6 @@ class SalesFunnelForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'form-control'
             }),
-            'probability': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'min': '0',
-                'max': '100',
-                'step': '5'
-            }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
@@ -100,6 +100,11 @@ class SalesFunnelForm(forms.ModelForm):
         self.fields['cost'].label = "Cost (₱)"
         self.fields['retail'].label = "SRP (₱)"
         self.fields['probability'].label = "Win Probability (%)"
+        if self.instance.pk and self.instance.probability is not None:
+            existing = int(self.instance.probability)
+            existing_values = {int(v) for v, _ in self.fields['probability'].choices}
+            if existing not in existing_values:
+                self.fields['probability'].choices = [(existing, str(existing))] + list(self.fields['probability'].choices)
         
     def clean(self):
         cleaned_data = super().clean()

@@ -122,7 +122,28 @@ function calculateProfit() {
 document.getElementById('id_cost').addEventListener('input', calculateProfit);
 document.getElementById('id_retail').addEventListener('input', calculateProfit);
 
+function syncCompanyNameFromCustomer() {
+    const customerEl = document.getElementById('id_customer');
+    const companyNameEl = document.getElementById('id_company_name');
+    if (!customerEl || !companyNameEl) {
+        return;
+    }
+    const selectedOption = customerEl.options[customerEl.selectedIndex];
+    if (!selectedOption || !customerEl.value) {
+        return;
+    }
+    companyNameEl.value = (selectedOption.text || '').trim();
+}
+
+const customerEl = document.getElementById('id_customer');
+if (customerEl) {
+    customerEl.addEventListener('change', syncCompanyNameFromCustomer);
+}
+
 // Calculate on page load
-document.addEventListener('DOMContentLoaded', calculateProfit);
+document.addEventListener('DOMContentLoaded', () => {
+    calculateProfit();
+    syncCompanyNameFromCustomer();
+});
 </script>
 {% endblock %}

@@ -23,6 +23,7 @@ class CustomerForm(forms.ModelForm):
             'contact_person_position': 'Position/Title',
             'is_millionaire_account': 'Millionaire Account (Auto)',
             'is_active': 'Active Customer',
+            'salesperson': 'Assigned To',
         }
 
     def __init__(self, *args, **kwargs):

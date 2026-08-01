@@ -219,7 +219,7 @@ def dashboard(request):
     """Main dashboard for sales activity monitoring"""
     user = request.user
     
-    if user.role in ['supervisor', 'asm', 'teamlead']:
+    if user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         return supervisor_dashboard(request)
     elif user.role == 'salesperson':
         return salesperson_dashboard(request)
@@ -236,13 +236,15 @@ def supervisor_dashboard(request):
     """Dashboard for supervisors, ASMs, and teamleads to monitor their team's activities"""
     user = request.user
     
-    if user.role not in ['supervisor', 'asm', 'teamlead']:
+    if user.role not in ['supervisor', 'asm', 'sm', 'teamlead']:
         return HttpResponseForbidden("You don't have permission to access this page.")
     
     # Get supervised groups based on user role
     if user.role == 'teamlead':
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
+    elif user.role in ['asm', 'sm']:
+        supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
     else:
         # Supervisors and ASMs access groups through managed_groups relationship
         supervised_groups = user.managed_groups.all()
@@ -692,7 +694,7 @@ def group_fiscal_summary(request, group_id):
     """Detailed view for group fiscal year summary"""
     user = request.user
     
-    allowed_roles = ['supervisor', 'asm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
+    allowed_roles = ['supervisor', 'asm', 'sm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
     if user.role not in allowed_roles:
         return HttpResponseForbidden("You don't have permission to access this page.")
         
@@ -703,7 +705,7 @@ def group_fiscal_summary(request, group_id):
         if group.team.avp != user:
              return HttpResponseForbidden("You don't have permission to view this group.")
              
-    if user.role in ['supervisor', 'asm', 'teamlead']:
+    if user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         # Simplified check - in real app might be stricter
         pass 
     
@@ -734,7 +736,7 @@ def group_fiscal_summary(request, group_id):
 @login_required
 def export_group_fiscal_summary_excel(request, group_id):
     user = request.user
-    allowed_roles = ['supervisor', 'asm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
+    allowed_roles = ['supervisor', 'asm', 'sm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
     if user.role not in allowed_roles:
         return HttpResponseForbidden("You don't have permission to access this page.")
 
@@ -766,7 +768,7 @@ def export_group_fiscal_summary_excel(request, group_id):
 @login_required
 def export_group_fiscal_summary_pdf(request, group_id):
     user = request.user
-    allowed_roles = ['supervisor', 'asm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
+    allowed_roles = ['supervisor', 'asm', 'sm', 'teamlead', 'avp', 'admin', 'vp', 'gm', 'president']
     if user.role not in allowed_roles:
         return HttpResponseForbidden("You don't have permission to access this page.")
 
@@ -985,14 +987,16 @@ def activity_detail(request, pk):
     # Permission check
     if user.role == 'salesperson' and activity.salesperson != user:
         return HttpResponseForbidden("You don't have permission to view this activity.")
-    elif user.role in ['supervisor', 'asm', 'teamlead']:
+    elif user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         # Check if activity belongs to supervised team
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
+        elif user.role in ['asm', 'sm']:
+            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
         else:
             supervised_groups = user.managed_groups.all()
         
-        if not any(activity.salesperson.team_membership.group in supervised_groups for group in supervised_groups):
+        if not supervised_groups.filter(id=activity.salesperson.team_membership.group_id).exists():
             return HttpResponseForbidden("You don't have permission to view this activity.")
     
     # Get related activity details
@@ -1007,7 +1011,7 @@ def activity_detail(request, pk):
     
     # Supervisor/Teamlead review form
     review_form = None
-    can_review = user.role in ['supervisor', 'asm', 'teamlead']
+    can_review = user.role in ['supervisor', 'asm', 'sm', 'teamlead']
     if can_review:
         if request.method == 'POST' and 'review_submit' in request.POST:
             review_form = SupervisorReviewForm(request.POST, include_engineer_required=activity.is_client_meeting)
@@ -1297,14 +1301,14 @@ def group_performance(request):
     """View group performance metrics for supervisors, ASMs, and teamleads"""
     user = request.user
     
-    if user.role not in ['supervisor', 'asm', 'teamlead']:
+    if user.role not in ['supervisor', 'asm', 'sm', 'teamlead']:
         return HttpResponseForbidden("You don't have permission to access this page.")
     
     # Get groups based on user role
     if user.role == 'teamlead':
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
-    elif user.role == 'asm':
+    elif user.role in ['asm', 'sm']:
         # ASMs see all groups in their assigned teams
         supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
     else:
@@ -1543,10 +1547,12 @@ def generate_activity_report(user, period_start, period_end, include_breakdown=T
     """Generate activity report data"""
     
     # Determine scope based on user role
-    if user.role in ['supervisor', 'asm', 'teamlead']:
+    if user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
+        elif user.role in ['asm', 'sm']:
+            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
         else:
             supervised_groups = user.managed_groups.all()
         
@@ -1640,7 +1646,7 @@ def bulk_update_activities(request):
     """Bulk update multiple activities"""
     user = request.user
     
-    if user.role not in ['supervisor', 'asm', 'teamlead']:
+    if user.role not in ['supervisor', 'asm', 'sm', 'teamlead']:
         return HttpResponseForbidden("You don't have permission to perform bulk updates.")
     
     if request.method == 'POST':
@@ -1695,10 +1701,12 @@ def activity_calendar(request):
     # Determine which activities to show based on user role
     if user.role == 'salesperson':
         activities = SalesActivity.objects.filter(salesperson=user)
-    elif user.role in ['supervisor', 'asm', 'teamlead']:
+    elif user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
+        elif user.role in ['asm', 'sm']:
+            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
         else:
             supervised_groups = user.managed_groups.all()
         
@@ -2317,10 +2325,12 @@ def export_activities(request):
     # Determine which activities to export based on user role
     if user.role == 'salesperson':
         activities = SalesActivity.objects.filter(salesperson=user)
-    elif user.role in ['supervisor', 'asm', 'teamlead']:
+    elif user.role in ['supervisor', 'asm', 'sm', 'teamlead']:
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
+        elif user.role in ['asm', 'sm']:
+            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
         else:
             supervised_groups = user.managed_groups.all()
         
