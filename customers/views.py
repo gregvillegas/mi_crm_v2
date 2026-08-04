@@ -692,8 +692,11 @@ def import_customers(request):
                 )
                 return redirect('customer_list')
             
-            imported_count = 0
+            created_count = 0
+            updated_count = 0
+            skipped_duplicates_in_file = 0
             errors = []
+            seen_emails = set()
             
             for row_num, row in enumerate(csv_data, start=2):
                 if len(row) < 5:  # Minimum required fields
@@ -701,25 +704,42 @@ def import_customers(request):
                     continue
                 
                 # Extract all columns based on export format
-                company_name = row[0] if len(row) > 0 else ''
-                contact_person_name = row[1] if len(row) > 1 else ''
-                contact_person_position = row[2] if len(row) > 2 else ''
-                email = row[3] if len(row) > 3 else ''
-                phone_number = row[4] if len(row) > 4 else ''
-                address = row[5] if len(row) > 5 else ''
-                industry = row[6] if len(row) > 6 else ''
-                territory = row[7] if len(row) > 7 else ''
-                active_status = row[9] if len(row) > 9 else 'Yes'
-                salesperson_initials = row[10] if len(row) > 10 else ''
+                company_name = (row[0] if len(row) > 0 else '').strip()
+                contact_person_name = (row[1] if len(row) > 1 else '').strip()
+                contact_person_position = (row[2] if len(row) > 2 else '').strip()
+                email_raw = (row[3] if len(row) > 3 else '').strip()
+                phone_number = (row[4] if len(row) > 4 else '').strip()
+                address = (row[5] if len(row) > 5 else '').strip()
+                industry = (row[6] if len(row) > 6 else '').strip()
+                territory = (row[7] if len(row) > 7 else '').strip()
+                active_status_raw = (row[9] if len(row) > 9 else '').strip()
+                salesperson_initials = (row[10] if len(row) > 10 else '').strip()
                 # Skip Created At and Updated At (columns 11-12) as they're auto-generated
-                
-                if not company_name or not contact_person_name or not email:
-                    errors.append(f'Row {row_num}: Company name, contact person name, and email are required')
+
+                if not any([company_name, contact_person_name, email_raw, phone_number, address, industry, territory, salesperson_initials, active_status_raw]):
                     continue
-                
-                # Check if customer already exists
-                if Customer.objects.filter(email=email).exists():
-                    errors.append(f'Row {row_num}: Customer with email {email} already exists')
+
+                email = email_raw.lower()
+                if not email:
+                    errors.append(f'Row {row_num}: Email is required')
+                    continue
+
+                company_name_key = company_name.strip().lower()
+                dedupe_key = (company_name_key, email)
+
+                if dedupe_key in seen_emails:
+                    skipped_duplicates_in_file += 1
+                    continue
+
+                seen_emails.add(dedupe_key)
+
+                existing_candidates = Customer.objects.filter(email__iexact=email)
+                existing_customer = None
+                if company_name:
+                    existing_customer = existing_candidates.filter(company_name__iexact=company_name).first()
+
+                if not existing_customer and (not company_name or not contact_person_name):
+                    errors.append(f'Row {row_num}: Company name and contact person name are required for new customers')
                     continue
                 
                 # Validate and convert industry
@@ -734,8 +754,7 @@ def import_customers(request):
                     errors.append(f'Row {row_num}: Invalid territory "{territory}"')
                     continue
                 
-                # Parse active status
-                is_active = active_status.lower() in ['yes', 'true', '1']
+                is_active = active_status_raw.lower() in ['yes', 'true', '1'] if active_status_raw else None
                 
                 # Get salesperson if initials are provided
                 salesperson = None
@@ -746,26 +765,52 @@ def import_customers(request):
                         errors.append(f'Row {row_num}: Active salesperson with initials "{salesperson_initials}" not found')
                         continue
                 
-                # Create customer
+                # Create or update customer
                 try:
-                    Customer.objects.create(
-                        company_name=company_name,
-                        contact_person_name=contact_person_name,
-                        contact_person_position=contact_person_position,
-                        email=email,
-                        phone_number=phone_number,
-                        address=address,
-                        industry=industry_value,
-                        territory=territory_value,
-                        is_active=is_active,
-                        salesperson=salesperson
-                    )
-                    imported_count += 1
+                    if existing_customer:
+                        if company_name:
+                            existing_customer.company_name = company_name
+                        if contact_person_name:
+                            existing_customer.contact_person_name = contact_person_name
+                        if contact_person_position:
+                            existing_customer.contact_person_position = contact_person_position
+                        if phone_number:
+                            existing_customer.phone_number = phone_number
+                        if address:
+                            existing_customer.address = address
+                        if industry or industry_value is not None:
+                            existing_customer.industry = industry_value or ''
+                        if territory or territory_value is not None:
+                            existing_customer.territory = territory_value or ''
+                        if is_active is not None:
+                            existing_customer.is_active = is_active
+                        if salesperson is not None:
+                            existing_customer.salesperson = salesperson
+                        existing_customer.save()
+                        updated_count += 1
+                    else:
+                        Customer.objects.create(
+                            company_name=company_name,
+                            contact_person_name=contact_person_name,
+                            contact_person_position=contact_person_position,
+                            email=email,
+                            phone_number=phone_number,
+                            address=address,
+                            industry=industry_value or '',
+                            territory=territory_value or '',
+                            is_active=is_active if is_active is not None else True,
+                            salesperson=salesperson
+                        )
+                        created_count += 1
                 except Exception as e:
-                    errors.append(f'Row {row_num}: Error creating customer - {str(e)}')
+                    errors.append(f'Row {row_num}: Error saving customer - {str(e)}')
             
-            if imported_count > 0:
-                messages.success(request, f'Successfully imported {imported_count} customers.')
+            if created_count or updated_count:
+                messages.success(
+                    request,
+                    f'Successfully processed customers. Created: {created_count}. Updated: {updated_count}.'
+                    + (f' Skipped duplicates in file: {skipped_duplicates_in_file}.' if skipped_duplicates_in_file else '')
+                )
             
             if errors:
                 error_message = f'Encountered {len(errors)} errors:\n' + '\n'.join(errors[:10])
@@ -874,6 +919,7 @@ def import_customer_contacts(request):
 
             for row_num, row in enumerate(reader, start=2):
                 customer_email = _first_value(row, ['customer_email', 'customer'])
+                company_name = _first_value(row, ['company_name', 'customer_company', 'company'])
                 contact_name = _first_value(row, ['contact_name', 'name'])
                 position = _first_value(row, ['contact_position', 'position', 'title'])
                 contact_email = _first_value(row, ['contact_email', 'email'])
@@ -889,10 +935,25 @@ def import_customer_contacts(request):
                     )
                     continue
 
-                customer = Customer.objects.filter(email__iexact=customer_email).first()
-                if not customer:
+                candidates = Customer.objects.filter(email__iexact=customer_email)
+                if not candidates.exists():
+                    errors.append(f'Row {row_num}: Customer with email "{customer_email}" was not found')
+                    continue
+
+                customer = None
+                if candidates.count() == 1:
+                    customer = candidates.first()
+                elif company_name:
+                    customer = candidates.filter(company_name__iexact=company_name).first()
+
+                if customer is None:
+                    company_names = list(
+                        candidates.values_list('company_name', flat=True)[:5]
+                    )
+                    suffix = '...' if candidates.count() > 5 else ''
                     errors.append(
-                        f'Row {row_num}: Customer with email "{customer_email}" was not found'
+                        f'Row {row_num}: Multiple customers found with email "{customer_email}". '
+                        f'Include company_name to disambiguate. Matches: {", ".join(company_names)}{suffix}'
                     )
                     continue
 
@@ -1043,8 +1104,10 @@ def import_customers_with_contacts(request):
                     )
                     continue
 
-                if Customer.objects.filter(email__iexact=email).exists():
-                    errors.append(f'Row {row_num}: Customer with email {email} already exists')
+                if Customer.objects.filter(email__iexact=email, company_name__iexact=company_name).exists():
+                    errors.append(
+                        f'Row {row_num}: Customer "{company_name}" with email {email} already exists'
+                    )
                     continue
 
                 industry_value = _map_customer_choice(industry, Customer.INDUSTRY_CHOICES)

@@ -77,6 +77,83 @@ class CustomerImportTests(TestCase):
         self.assertEqual(customer.contacts.count(), 0)
         self.assertEqual(CustomerContact.objects.count(), 0)
 
+    def test_legacy_import_customers_updates_existing_customer_by_company_and_email(self):
+        Customer.objects.create(
+            company_name='Old Company',
+            contact_person_name='Old Contact',
+            contact_person_position='Old Position',
+            email='dup@customer.com',
+            phone_number='',
+            address='',
+            industry='',
+            territory='',
+            is_active=True,
+            salesperson=self.salesperson,
+        )
+
+        csv_content = (
+            'Company Name,Contact Person Name,Contact Person Position,Email,Phone Number,Address,Industry,Territory,Millionaire Status,Active Status,Salesperson Initials,Created At,Updated At\n'
+            'Old Company,New Contact,New Position,dup@customer.com,+639000000000,"New Address",Technology,Makati City,No,No,JDS,,\n'
+        )
+        upload = SimpleUploadedFile(
+            'customer_update_existing.csv',
+            csv_content.encode('utf-8'),
+            content_type='text/csv',
+        )
+
+        response = self.client.post(
+            reverse('import_customers'),
+            {'csv_file': upload},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        customer = Customer.objects.get(email='dup@customer.com', company_name='Old Company')
+        self.assertEqual(customer.company_name, 'Old Company')
+        self.assertEqual(customer.contact_person_name, 'New Contact')
+        self.assertEqual(customer.contact_person_position, 'New Position')
+        self.assertEqual(customer.phone_number, '+639000000000')
+        self.assertEqual(customer.territory, 'makati')
+        self.assertFalse(customer.is_active)
+
+        messages = [message.message for message in get_messages(response.wsgi_request)]
+        combined_message = '\n'.join(messages)
+        self.assertIn('Created: 0. Updated: 1.', combined_message)
+        self.assertNotIn('already exists', combined_message)
+
+    def test_legacy_import_customers_allows_duplicate_email_across_companies(self):
+        csv_content = (
+            'Company Name,Contact Person Name,Contact Person Position,Email,Phone Number,Address,Industry,Territory,Millionaire Status,Active Status,Salesperson Initials,Created At,Updated At\n'
+            'Herma Corporation,Justine Morillo,Procurement,shared.it@herma.com.ph,+639111111111,"Makati",Technology,Makati City,No,Yes,JDS,,\n'
+            'Herma Shipping and Transport Corporation,Justine Morillo,Procurement,shared.it@herma.com.ph,+639222222222,"Pasig",Technology,Pasig City,No,Yes,JDS,,\n'
+        )
+        upload = SimpleUploadedFile(
+            'duplicate_email_multiple_companies.csv',
+            csv_content.encode('utf-8'),
+            content_type='text/csv',
+        )
+
+        response = self.client.post(
+            reverse('import_customers'),
+            {'csv_file': upload},
+            follow=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Customer.objects.filter(email='shared.it@herma.com.ph').count(), 2)
+        self.assertTrue(
+            Customer.objects.filter(
+                email='shared.it@herma.com.ph',
+                company_name='Herma Corporation',
+            ).exists()
+        )
+        self.assertTrue(
+            Customer.objects.filter(
+                email='shared.it@herma.com.ph',
+                company_name='Herma Shipping and Transport Corporation',
+            ).exists()
+        )
+
     def test_export_customers_with_contacts_matches_single_file_import_shape(self):
         customer = Customer.objects.create(
             company_name='ABC Corporation',
@@ -212,7 +289,7 @@ class CustomerImportTests(TestCase):
 
         messages = [message.message for message in get_messages(response.wsgi_request)]
         combined_message = '\n'.join(messages)
-        self.assertIn('Successfully imported 2 customers.', combined_message)
+        self.assertIn('Successfully processed customers. Created: 2. Updated: 0.', combined_message)
         self.assertNotIn('Invalid territory', combined_message)
 
     def test_legacy_import_customers_rejects_contacts_only_csv_shape(self):

@@ -42,7 +42,7 @@ class Customer(models.Model):
 		('pharmaceuticals','Pharmaceuticals & Life Sciences'),
 		('realestate','Real Estate & Property Development'),
 		('retail','Retail & E-commerce'),
-		('general','General Services <for consultancy, repair, logistics, etc.>'),
+		('general','General Services'),
 		('technology','Technology <Hardware & Software>'),
 		('telecommunications','Telecommunications'),
 		('transportation','Transportation & Logistics'),
@@ -57,7 +57,7 @@ class Customer(models.Model):
 		('makati','Makati'),
 		('malabon','Malabon'),
 		('mandaluyong','Mandaluyong'),
-		('manila','Manila (capital city)'),
+		('manila','Manila'),
 		('marikina','Marikina'),
 		('muntinlupa','Muntinlupa'),
 		('navotas','Navotas'),
@@ -68,6 +68,15 @@ class Customer(models.Model):
 		('sanjuan','San Juan'),
 		('taguig','Taguig'),
 		('valenzuela','Valenzuela'),
+        ('laguna','Laguna'),
+        ('batangas','Batangas'),
+        ('cavite','Cavite'),
+        ('isabela','Isabela'),
+        ('rizal','Rizal'),
+        ('bicol','Bicol'),
+        ('nuevaecija','Nueva Ecija'),
+        ('baguio','Baguio'),
+        ('calabarzon','Calabarzon'),
 		('outsidencr','Outside NCR'),
     ]
     
@@ -79,7 +88,7 @@ class Customer(models.Model):
         blank=True,
         help_text="Contact person's job title or position"
     )
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True)
     address = models.TextField(blank=True)
     
