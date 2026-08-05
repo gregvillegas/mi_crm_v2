@@ -7,8 +7,11 @@ from django.contrib.auth import logout
 from django.contrib import messages
 from django.db.models import Sum, Q
 from django.utils import timezone
+from django.conf import settings
+from datetime import timedelta
 from sales_funnel.models import SalesFunnel
 from teams.models import Team, Group, TeamMembership
+from users.models import User
 from gamification.models import UserMissionProgress
 from gamification.utils import generate_daily_missions, generate_weekly_missions, get_current_week_start
 
@@ -106,6 +109,27 @@ def home(request):
             'can_add_funnel': user.role in ['salesperson', 'supervisor', 'asm', 'avp'],
         })
     
+    # ------------------------------------------------------------------
+    # Active Users Widget (admin-only)
+    # ------------------------------------------------------------------
+    if user.role == 'admin':
+        threshold_minutes = getattr(settings, 'ONLINE_THRESHOLD_MINUTES', 15)
+        cutoff = timezone.now() - timedelta(minutes=threshold_minutes)
+
+        active_users = (
+            User.objects
+            .filter(last_activity__gte=cutoff, is_active=True)
+            .exclude(pk=user.pk)           # exclude self
+            .select_related()
+            .order_by('-last_activity')
+        )
+
+        context.update({
+            'active_users': active_users,
+            'active_users_count': active_users.count(),
+            'online_threshold_minutes': threshold_minutes,
+        })
+
     return render(request, 'core/home.html', context)
 
 def logout_view(request):

@@ -155,6 +155,13 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024   # 50 MB
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 
 # ---------------------------------------------------------------------------
+# Active Users Widget
+# ---------------------------------------------------------------------------
+# A user is considered "online" if their last_activity is within this window.
+# Powered by UserActivityMiddleware which updates last_activity on every request.
+ONLINE_THRESHOLD_MINUTES = 15
+
+# ---------------------------------------------------------------------------
 # Default primary key
 # ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

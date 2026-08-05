@@ -263,6 +263,116 @@
 </div>
 {% endif %}
 
+{% if user.role == 'admin' and active_users is not None %}
+<!-- ================================================================
+     ACTIVE USERS WIDGET — Admin only
+     Shows users whose last_activity is within ONLINE_THRESHOLD_MINUTES
+     ================================================================ -->
+<div class="row mt-4">
+    <div class="col">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0">
+                    <span class="me-2" style="display:inline-block;width:10px;height:10px;background:#22c55e;border-radius:50%;box-shadow:0 0 0 3px rgba(34,197,94,.25);"></span>
+                    Currently Active Users
+                    <span class="badge bg-success ms-2">{{ active_users_count }}</span>
+                </h5>
+                <span class="text-muted small">
+                    <i class="fas fa-clock me-1"></i>Active within last {{ online_threshold_minutes }} minutes
+                </span>
+            </div>
+
+            <div class="card-body p-0">
+                {% if active_users %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">User</th>
+                                    <th>Role</th>
+                                    <th>Last Seen</th>
+                                    <th class="pe-4">Time Ago</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in active_users %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center gap-2">
+                                            {% if u.profile_picture %}
+                                                <img src="{{ u.profile_picture.url }}"
+                                                     alt="{{ u.get_full_name }}"
+                                                     class="rounded-circle"
+                                                     style="width:34px;height:34px;object-fit:cover;">
+                                            {% else %}
+                                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                                                     style="width:34px;height:34px;font-size:13px;font-weight:700;">
+                                                    {{ u.first_name|first|upper }}{{ u.last_name|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                                                <small class="text-muted">@{{ u.username }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if u.role == 'admin' %}
+                                            <span class="badge bg-dark">Admin</span>
+                                        {% elif u.role in 'president,vp,gm' %}
+                                            <span class="badge bg-danger">{{ u.get_role_display }}</span>
+                                        {% elif u.role == 'avp' %}
+                                            <span class="badge bg-warning text-dark">AVP</span>
+                                        {% elif u.role in 'asm,sm' %}
+                                            <span class="badge bg-info text-dark">{{ u.get_role_display }}</span>
+                                        {% elif u.role == 'supervisor' %}
+                                            <span class="badge bg-primary">Supervisor</span>
+                                        {% elif u.role == 'teamlead' %}
+                                            <span class="badge bg-secondary">Teamlead</span>
+                                        {% elif u.role == 'salesperson' %}
+                                            <span class="badge bg-success">CAM</span>
+                                        {% elif u.role == 'marketing' %}
+                                            <span class="badge bg-purple" style="background:#7c3aed!important;">Marketing</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ u.get_role_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="text-muted small">
+                                            {{ u.last_activity|date:"M d, Y" }}<br>
+                                            {{ u.last_activity|time:"H:i:s" }}
+                                        </span>
+                                    </td>
+                                    <td class="pe-4">
+                                        <span class="text-success fw-semibold small">
+                                            <i class="fas fa-circle fa-xs me-1"></i>{{ u.last_activity|timesince }} ago
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-user-slash fa-2x mb-3 d-block"></i>
+                        No other users active in the last {{ online_threshold_minutes }} minutes.
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if active_users %}
+            <div class="card-footer bg-white text-end">
+                <a href="{% url 'user_management' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-users-cog me-1"></i>Manage Users
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
 
 {% block extra_css %}
