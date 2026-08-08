@@ -28,6 +28,9 @@ def get_user_groups(user):
         # ASM can access groups in their assigned teams
         user_teams = user.asm_teams.all()
         return Group.objects.filter(team__in=user_teams)
+    elif user.role == 'sm':
+        # SM can access only their explicitly assigned groups
+        return user.sm_groups.all()
     elif user.role == 'supervisor':
         # Supervisor can access groups they manage
         return user.managed_groups.all()

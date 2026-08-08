@@ -73,6 +73,15 @@ def home(request):
                 is_active=True,
                 is_closed=False
             )
+        elif user.role == 'sm':
+            # SM sees only entries from their assigned groups
+            groups = user.sm_groups.all()
+            salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+            funnel_entries = SalesFunnel.objects.filter(
+                salesperson_id__in=salespeople_ids,
+                is_active=True,
+                is_closed=False
+            )
         elif user.role == 'avp':
             # AVP can see entries from their teams
             teams = Team.objects.filter(avp=user)

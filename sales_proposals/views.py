@@ -217,6 +217,18 @@ def proposal_list(request):
         
         member_ids.append(request.user.id)
         proposals = Proposal.objects.filter(created_by_id__in=member_ids)
+    elif request.user.role == 'sm':
+        # SM sees proposals from their specifically assigned groups only
+        from teams.models import Group, TeamMembership
+        sm_groups = request.user.sm_groups.all()
+        member_ids = list(TeamMembership.objects.filter(group__in=sm_groups).values_list('user_id', flat=True))
+        supervisor_ids = list(
+            Group.objects.filter(id__in=sm_groups.values_list('id', flat=True), supervisor__isnull=False)
+            .values_list('supervisor_id', flat=True)
+        )
+        member_ids.extend(supervisor_ids)
+        member_ids.append(request.user.id)
+        proposals = Proposal.objects.filter(created_by_id__in=member_ids)
     elif request.user.role == 'teamlead':
         # Team Leads see their led groups
         led_groups = request.user.led_groups.all()
@@ -671,101 +683,177 @@ def generate_pdf_buffer(proposal):
     elements.append(Spacer(1, 12))
     
     # --- ITEMS TABLE ---
-    table_data = [[
-        Paragraph("ITEM #", styles['TableHeader']),
-        Paragraph("PART NUMBER", styles['TableHeader']),
-        Paragraph("PRODUCT DESCRIPTION", styles['TableHeader']),
-        Paragraph("QTY", styles['TableHeader']),
-        Paragraph("UNIT PRICE", styles['TableHeader']),
-        Paragraph("EXTENDED PRICE", styles['TableHeader']),
-        Paragraph("WARRANTY", styles['TableHeader'])
-    ]]
-    
     currency_symbol = '₱' if proposal.currency == 'PHP' else '$'
-    
-    for idx, item in enumerate(proposal.items.all(), start=1):
-        table_data.append([
-            Paragraph(str(idx), styles['TableTextCenter']),
-            Paragraph(item.part_number or '', styles['TableText']),
-            Paragraph(
-                (
-                    f"{item.description}<br/><font size='7'><i>Option {item.optional_option_number}</i></font>"
-                    if item.is_optional and item.description
-                    else (f"<font size='7'><i>Option {item.optional_option_number}</i></font>" if item.is_optional else (item.description or ''))
-                ),
-                styles['TableText'],
-            ),
-            Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
-            Paragraph(f"{currency_symbol} {item.unit_price:,.2f}", styles['TableTextRight']),
-            Paragraph(f"{currency_symbol} {item.amount:,.2f}", styles['TableTextRight']),
-            Paragraph(item.warranty or proposal.warranty, styles['TableText'])
-        ])
-        for component in item.bundle_components:
-            table_data.append([
-                '',
-                Paragraph(component['part_number'] or '', styles['TableText']),
-                Paragraph(component['description'] or '', styles['TableText']),
-                Paragraph(
-                    (
-                        str(int(component['quantity'])) if component.get('quantity') is not None and component['quantity'] % 1 == 0
-                        else (str(component['quantity']) if component.get('quantity') is not None else '')
-                    ),
-                    styles['TableTextCenter'],
-                ),
-                '',
-                '',
+    price_col_header = "TOTAL PRICE" if proposal.use_total_price_label else "EXTENDED PRICE"
+
+    if proposal.is_multi_option:
+        # ===============================================================
+        # MULTI-OPTION FORMAT: Separate table per option group
+        # ===============================================================
+        for group in proposal.option_groups.all():
+            # Option group header
+            elements.append(Paragraph(group.name.upper(), ParagraphStyle(
+                name='OptionGroupHeader', parent=styles['NormalSmall'],
+                fontName=font_bold, fontSize=11, textColor=MIC_RED,
+                spaceBefore=14, spaceAfter=6,
+            )))
+
+            group_table_data = [[
+                Paragraph("ITEM #", styles['TableHeader']),
+                Paragraph("PART NUMBER", styles['TableHeader']),
+                Paragraph("PRODUCT DESCRIPTION", styles['TableHeader']),
+                Paragraph("QTY", styles['TableHeader']),
+                Paragraph("UNIT PRICE", styles['TableHeader']),
+                Paragraph(price_col_header, styles['TableHeader']),
+                Paragraph("WARRANTY", styles['TableHeader']),
+            ]]
+
+            for idx, item in enumerate(group.group_items.all(), start=1):
+                group_table_data.append([
+                    Paragraph(str(idx), styles['TableTextCenter']),
+                    Paragraph(item.part_number or '', styles['TableText']),
+                    Paragraph(item.description or '', styles['TableText']),
+                    Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
+                    Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
+                    Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
+                    Paragraph(item.warranty or proposal.warranty, styles['TableText']),
+                ])
+                for component in item.bundle_components:
+                    group_table_data.append([
+                        '', 
+                        Paragraph(component['part_number'] or '', styles['TableText']),
+                        Paragraph(component['description'] or '', styles['TableText']),
+                        Paragraph(
+                            str(int(component['quantity'])) if component.get('quantity') is not None and component['quantity'] % 1 == 0
+                            else (str(component['quantity']) if component.get('quantity') is not None else ''),
+                            styles['TableTextCenter'],
+                        ),
+                        '', '', '',
+                    ])
+
+            # Total Investment row for this option
+            group_table_data.append([
+                '', '', '', '',
+                Paragraph("Total Investment", styles['TableHeader']),
+                Paragraph(f"{currency_symbol}{group.subtotal:,.2f}", styles['TableHeaderRight']),
                 '',
             ])
-    
-    if not proposal.has_optional_items:
-        # Subtotal
-        table_data.append([
-            '', '', '', '', 
-            Paragraph("Subtotal", styles['TableText']), 
-            Paragraph(f"{currency_symbol} {proposal.subtotal:,.2f}", styles['TableTextRight']), 
-            ''
-        ])
 
-        if proposal.show_discount and (proposal.discount_amount or 0) > 0:
+            col_widths = [0.45*inch, 1.1*inch, 2.4*inch, 0.5*inch, 1.0*inch, 1.1*inch, 0.95*inch]
+            gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
+            gt_style = [
+                ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -2), 1, colors.black),
+                ('ALIGN', (2, 1), (2, -2), 'LEFT'),
+                # Total Investment row styling (yellow background)
+                ('BACKGROUND', (4, -1), (5, -1), colors.HexColor('#FFC107')),
+                ('TEXTCOLOR', (4, -1), (5, -1), colors.black),
+                ('GRID', (4, -1), (5, -1), 1, colors.HexColor('#FFC107')),
+            ]
+            gt.setStyle(TableStyle(gt_style))
+            elements.append(gt)
+            elements.append(Spacer(1, 14))
+
+    else:
+        # ===============================================================
+        # STANDARD SINGLE FORMAT (existing logic — unchanged)
+        # ===============================================================
+        table_data = [[
+            Paragraph("ITEM #", styles['TableHeader']),
+            Paragraph("PART NUMBER", styles['TableHeader']),
+            Paragraph("PRODUCT DESCRIPTION", styles['TableHeader']),
+            Paragraph("QTY", styles['TableHeader']),
+            Paragraph("UNIT PRICE", styles['TableHeader']),
+            Paragraph(price_col_header, styles['TableHeader']),
+            Paragraph("WARRANTY", styles['TableHeader'])
+        ]]
+    
+        for idx, item in enumerate(proposal.items.all(), start=1):
             table_data.append([
-                '', '', '', '',
-                Paragraph("Discount", styles['TableText']),
-                Paragraph(f"-{currency_symbol} {proposal.discount_amount:,.2f}", styles['TableTextRight']),
+                Paragraph(str(idx), styles['TableTextCenter']),
+                Paragraph(item.part_number or '', styles['TableText']),
+                Paragraph(
+                    (
+                        f"{item.description}<br/><font size='7'><i>Option {item.optional_option_number}</i></font>"
+                        if item.is_optional and item.description
+                        else (f"<font size='7'><i>Option {item.optional_option_number}</i></font>" if item.is_optional else (item.description or ''))
+                    ),
+                    styles['TableText'],
+                ),
+                Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
+                Paragraph(f"{currency_symbol} {item.unit_price:,.2f}", styles['TableTextRight']),
+                Paragraph(f"{currency_symbol} {item.amount:,.2f}", styles['TableTextRight']),
+                Paragraph(item.warranty or proposal.warranty, styles['TableText'])
+            ])
+            for component in item.bundle_components:
+                table_data.append([
+                    '',
+                    Paragraph(component['part_number'] or '', styles['TableText']),
+                    Paragraph(component['description'] or '', styles['TableText']),
+                    Paragraph(
+                        (
+                            str(int(component['quantity'])) if component.get('quantity') is not None and component['quantity'] % 1 == 0
+                            else (str(component['quantity']) if component.get('quantity') is not None else '')
+                        ),
+                        styles['TableTextCenter'],
+                    ),
+                    '',
+                    '',
+                    '',
+                ])
+    
+        if not proposal.has_optional_items:
+            # Subtotal
+            table_data.append([
+                '', '', '', '', 
+                Paragraph("Subtotal", styles['TableText']), 
+                Paragraph(f"{currency_symbol} {proposal.subtotal:,.2f}", styles['TableTextRight']), 
                 ''
             ])
 
-        # Grand Total Row
-        table_data.append([
-            '', '', '', '', 
-            Paragraph("Grand Total", styles['TableHeader']), 
-            Paragraph(f"{currency_symbol} {proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
-            ''
-        ])
+            if proposal.show_discount and (proposal.discount_amount or 0) > 0:
+                table_data.append([
+                    '', '', '', '',
+                    Paragraph("Discount", styles['TableText']),
+                    Paragraph(f"-{currency_symbol} {proposal.discount_amount:,.2f}", styles['TableTextRight']),
+                    ''
+                ])
+
+            # Grand Total Row
+            table_data.append([
+                '', '', '', '', 
+                Paragraph("Grand Total", styles['TableHeader']), 
+                Paragraph(f"{currency_symbol} {proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
+                ''
+            ])
     
-    # Tighter widths to improve print margins and reduce empty space in TOTAL PRICE/WARRANTY
-    col_widths = [0.45*inch, 1.1*inch, 2.4*inch, 0.5*inch, 1.0*inch, 1.1*inch, 0.95*inch]
-    t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        # Tighter widths to improve print margins and reduce empty space in TOTAL PRICE/WARRANTY
+        col_widths = [0.45*inch, 1.1*inch, 2.4*inch, 0.5*inch, 1.0*inch, 1.1*inch, 0.95*inch]
+        t = Table(table_data, colWidths=col_widths, repeatRows=1)
     
-    # Styling
-    table_grid_end_row = -2 if not proposal.has_optional_items else -1
-    table_align_end_row = -2 if not proposal.has_optional_items else -1
-    table_style = [
-        ('BACKGROUND', (0,0), (-1,0), MIC_RED), # Header Background
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white), # Header Text
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('GRID', (0,0), (-1,table_grid_end_row), 1, colors.black),
-        ('ALIGN', (2,1), (2,table_align_end_row), 'LEFT'),
-    ]
-    if not proposal.has_optional_items:
-        table_style.extend([
-            ('BACKGROUND', (4,-1), (5,-1), MIC_RED),
-            ('TEXTCOLOR', (4,-1), (5,-1), colors.white),
-            ('GRID', (4,-1), (5,-1), 1, MIC_RED),
-        ])
-    t.setStyle(TableStyle(table_style))
-    elements.append(t)
-    elements.append(Spacer(1, 12))
+        # Styling
+        table_grid_end_row = -2 if not proposal.has_optional_items else -1
+        table_align_end_row = -2 if not proposal.has_optional_items else -1
+        table_style = [
+            ('BACKGROUND', (0,0), (-1,0), MIC_RED), # Header Background
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white), # Header Text
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('GRID', (0,0), (-1,table_grid_end_row), 1, colors.black),
+            ('ALIGN', (2,1), (2,table_align_end_row), 'LEFT'),
+        ]
+        if not proposal.has_optional_items:
+            table_style.extend([
+                ('BACKGROUND', (4,-1), (5,-1), MIC_RED),
+                ('TEXTCOLOR', (4,-1), (5,-1), colors.white),
+                ('GRID', (4,-1), (5,-1), 1, MIC_RED),
+            ])
+        t.setStyle(TableStyle(table_style))
+        elements.append(t)
+        elements.append(Spacer(1, 12))
     
     # --- NOTE ---
     if proposal.special_note:

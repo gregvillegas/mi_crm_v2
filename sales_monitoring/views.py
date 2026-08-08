@@ -243,8 +243,10 @@ def supervisor_dashboard(request):
     if user.role == 'teamlead':
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+    elif user.role == 'sm':
+        supervised_groups = user.sm_groups.all()
     else:
         # Supervisors and ASMs access groups through managed_groups relationship
         supervised_groups = user.managed_groups.all()
@@ -991,8 +993,10 @@ def activity_detail(request, pk):
         # Check if activity belongs to supervised team
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
-        elif user.role in ['asm', 'sm']:
+        elif user.role == 'asm':
             supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        elif user.role == 'sm':
+            supervised_groups = user.sm_groups.all()
         else:
             supervised_groups = user.managed_groups.all()
         
@@ -1308,9 +1312,11 @@ def group_performance(request):
     if user.role == 'teamlead':
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
-    elif user.role in ['asm', 'sm']:
-        # ASMs see all groups in their assigned teams
+    elif user.role == 'asm':
         supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+    elif user.role == 'sm':
+        # SM sees only their explicitly assigned groups
+        supervised_groups = user.sm_groups.all()
     else:
         # Supervisors access groups through managed_groups relationship
         supervised_groups = user.managed_groups.all()
@@ -1551,8 +1557,10 @@ def generate_activity_report(user, period_start, period_end, include_breakdown=T
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
-        elif user.role in ['asm', 'sm']:
+        elif user.role == 'asm':
             supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        elif user.role == 'sm':
+            supervised_groups = user.sm_groups.all()
         else:
             supervised_groups = user.managed_groups.all()
         
@@ -1705,8 +1713,10 @@ def activity_calendar(request):
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
-        elif user.role in ['asm', 'sm']:
+        elif user.role == 'asm':
             supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        elif user.role == 'sm':
+            supervised_groups = user.sm_groups.all()
         else:
             supervised_groups = user.managed_groups.all()
         
@@ -2329,8 +2339,10 @@ def export_activities(request):
         # Get groups based on user role
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
-        elif user.role in ['asm', 'sm']:
+        elif user.role == 'asm':
             supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        elif user.role == 'sm':
+            supervised_groups = user.sm_groups.all()
         else:
             supervised_groups = user.managed_groups.all()
         

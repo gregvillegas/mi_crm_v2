@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load humanize %}
+{% load proposal_tags %}
 
 {% block content %}
 <div class="container mb-5">
@@ -17,9 +18,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Proposal {{ proposal.proposal_number }}</h2>
         <div class="btn-group">
+            {% if proposal.is_multi_option %}
+            <a href="{% url 'multi_option_proposal_update' proposal.pk %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            {% else %}
             <a href="{% url 'proposal_update' proposal.pk %}" class="btn btn-outline-primary">
                 <i class="fas fa-edit"></i> Edit
             </a>
+            {% endif %}
             <a href="{% url 'proposal_pdf' proposal.pk %}" class="btn btn-outline-secondary" target="_blank">
                 <i class="fas fa-file-pdf"></i> View PDF
             </a>
@@ -59,6 +66,63 @@
                     </div>
                     {% endif %}
 
+                    {% if proposal.is_multi_option %}
+                    <!-- Multi-Option Format -->
+                    {% for group in proposal.option_groups.all %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold text-danger">{{ group.name }}</h5>
+                        {% if group.notes %}<p class="text-muted small">{{ group.notes }}</p>{% endif %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">Item #</th>
+                                        <th>Part Number</th>
+                                        <th>Description</th>
+                                        <th class="text-center">Qty</th>
+                                        <th class="text-end">Unit Price</th>
+                                        <th class="text-end">{% if proposal.use_total_price_label %}Total Price{% else %}Extended Price{% endif %}</th>
+                                        <th>Warranty</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in group.group_items.all %}
+                                    <tr>
+                                        <td class="text-center">{{ forloop.counter }}</td>
+                                        <td>{{ item.part_number }}</td>
+                                        <td>{{ item.description }}</td>
+                                        <td class="text-center">{{ item.quantity|intcomma }}</td>
+                                        <td class="text-end">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ item.unit_price|intcomma }}</td>
+                                        <td class="text-end">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ item.amount|intcomma }}</td>
+                                        <td>{{ item.warranty }}</td>
+                                    </tr>
+                                    {% for component in item.bundle_components %}
+                                    <tr class="table-light">
+                                        <td></td>
+                                        <td>{{ component.part_number }}</td>
+                                        <td>{{ component.description }}</td>
+                                        <td class="text-center">{{ component.quantity|default_if_none:"" }}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-warning">
+                                        <td colspan="5" class="text-end"><strong>Total Investment:</strong></td>
+                                        <td class="text-end"><strong>{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ group.subtotal|intcomma }}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    {% else %}
+                    <!-- Standard Single-Format -->
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             <thead class="table-light">
@@ -68,7 +132,7 @@
                                     <th>Description</th>
                                     <th class="text-center">Qty</th>
                                     <th class="text-end">Unit Price</th>
-                                    <th class="text-end">Extended Price</th>
+                                    <th class="text-end">{% if proposal.use_total_price_label %}Total Price{% else %}Extended Price{% endif %}</th>
                                     <th>Warranty</th>
                                 </tr>
                             </thead>
@@ -119,6 +183,7 @@
                             </tfoot>
                         </table>
                     </div>
+                    {% endif %}
 
                     {% if proposal.closing %}
                     <div class="mt-4">
@@ -226,7 +291,7 @@
                                 <div class="collapse mt-2" id="change-log-details-{{ log.id }}">
                                     <small class="text-muted">Details</small>
                                     <ul class="mb-0">
-                                        {% for key, change in log.details.items %}
+                                        {% for key, change in log.details|dict_items %}
                                             {% if key != 'items' %}
                                                 <li>
                                                     <strong>{{ key|cut:"_"|title }}</strong>:
@@ -236,11 +301,12 @@
                                                 </li>
                                             {% endif %}
                                         {% endfor %}
-                                        {% if log.details.items %}
+                                        {% with items_data=log.details|get_item:"items" %}
+                                        {% if items_data %}
                                             <li class="mt-1">
                                                 <strong>Items</strong>:
                                                 <ul class="mb-0">
-                                                    {% for item_id, item_change in log.details.items.items %}
+                                                    {% for item_id, item_change in items_data|dict_items %}
                                                         <li>
                                                             {% if item_change.status == 'added' %}
                                                                 Added item (ID {{ item_id }}): {{ item_change.after.part_number|default:"" }} — {{ item_change.after.description|default:"" }} (Qty {{ item_change.after.quantity|default:"" }}, Unit {{ item_change.after.unit_price|default:"" }}, Warranty {{ item_change.after.warranty|default:"" }})
@@ -264,6 +330,7 @@
                                                 </ul>
                                             </li>
                                         {% endif %}
+                                        {% endwith %}
                                     </ul>
                                 </div>
                             </div>

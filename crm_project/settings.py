@@ -162,6 +162,15 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000
 ONLINE_THRESHOLD_MINUTES = 15
 
 # ---------------------------------------------------------------------------
+# Brute Force Protection
+# ---------------------------------------------------------------------------
+# Account is locked after MAX_FAILED_LOGIN_ATTEMPTS within FAILED_LOGIN_WINDOW_MINUTES.
+# Lockout lasts ACCOUNT_LOCKOUT_MINUTES. Admin can unlock via Django admin.
+MAX_FAILED_LOGIN_ATTEMPTS = config('MAX_FAILED_LOGIN_ATTEMPTS', default=5, cast=int)
+FAILED_LOGIN_WINDOW_MINUTES = config('FAILED_LOGIN_WINDOW_MINUTES', default=15, cast=int)
+ACCOUNT_LOCKOUT_MINUTES = config('ACCOUNT_LOCKOUT_MINUTES', default=30, cast=int)
+
+# ---------------------------------------------------------------------------
 # Default primary key
 # ---------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -172,7 +181,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'users.backends.LockoutAwareBackend',        # brute force protection (replaces ModelBackend)
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
@@ -224,7 +233,7 @@ CORS_ALLOWED_ORIGINS = config(
 # ---------------------------------------------------------------------------
 # Login / Logout
 # ---------------------------------------------------------------------------
-LOGIN_URL = '/login/'
+LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 
 # ---------------------------------------------------------------------------

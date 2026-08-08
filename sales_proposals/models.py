@@ -71,6 +71,7 @@ class Proposal(models.Model):
     # Optional Fields
     include_bank_details = models.BooleanField(default=False, help_text="Include bank details in the proposal PDF")
     show_discount = models.BooleanField(default=False, help_text="Show discount line in the proposal PDF")
+    use_total_price_label = models.BooleanField(default=False, help_text="Use 'Total Price' instead of 'Extended Price' as column header in PDF and detail view")
     discount_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -96,6 +97,12 @@ class Proposal(models.Model):
     # Price Validity options
     validity_subject_to_prior_sale = models.BooleanField(default=False)
     validity_availability_at_order = models.BooleanField(default=False)
+
+    # Multi-Option Proposal
+    is_multi_option = models.BooleanField(
+        default=False,
+        help_text='Enable multi-option format (OPTION 1, OPTION 2, etc.) with separate item tables per option'
+    )
     
     # Financials
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0)
@@ -398,8 +405,43 @@ class Proposal(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+
+class ProposalOptionGroup(models.Model):
+    """
+    Groups items under a named option (OPTION 1, OPTION 2, etc.) for multi-option proposals.
+    Only used when Proposal.is_multi_option=True.
+    """
+    proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='option_groups')
+    name = models.CharField(max_length=100, default='OPTION 1', help_text='Display name for this option group')
+    sort_order = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True, help_text='Optional notes for this option group')
+
+    class Meta:
+        ordering = ['sort_order', 'id']
+
+    def __str__(self):
+        return f"{self.name} — {self.proposal.proposal_number}"
+
+    @property
+    def subtotal(self):
+        return sum(item.amount for item in self.group_items.all())
+
+    @property
+    def total_cost(self):
+        return sum(item.total_cost for item in self.group_items.all())
+
+    @property
+    def profit(self):
+        return self.subtotal - self.total_cost
+
+
 class ProposalItem(models.Model):
     proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='items')
+    option_group = models.ForeignKey(
+        ProposalOptionGroup, on_delete=models.CASCADE,
+        related_name='group_items', null=True, blank=True,
+        help_text='Only set for multi-option proposals'
+    )
     part_number = models.CharField(max_length=100, blank=True, help_text="Product Part Number")
     description = models.TextField(help_text="Item description and specifications")
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)

@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load humanize %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>{{ title }}</h2>
+        <span class="badge bg-info fs-6"><i class="fas fa-layer-group me-1"></i>Multi-Option Format</span>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" id="multi-option-form">
+        {% csrf_token %}
+
+        {% if form.errors or group_formset.errors %}
+        <div class="alert alert-danger mb-4">
+            <strong><i class="fas fa-exclamation-triangle me-2"></i>Please fix the errors below:</strong>
+            {% if form.non_field_errors %}
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            {% endif %}
+            {% for field in form %}
+                {% if field.errors %}
+                    {% for error in field.errors %}<div><strong>{{ field.label }}:</strong> {{ error }}</div>{% endfor %}
+                {% endif %}
+            {% endfor %}
+            {% if group_formset.non_form_errors %}
+                {% for error in group_formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Header Info -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Proposal Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.customer|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Contact Person</label>
+                        <select id="contact_person_select" class="form-select" aria-label="Contact Person">
+                            <option value="">Select contact…</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.contact_name|as_crispy_field }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ form.contact_email|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        {{ form.contact_phone|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.subject|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
+                        {{ form.currency|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3" id="exchange-rate-group">
+                        {{ form.exchange_rate|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.date|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.valid_until|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.stock_availability|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.use_total_price_label|as_crispy_field }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        {{ form.special_note|as_crispy_field }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option Groups -->
+        <div class="card mb-4">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Option Groups & Items</h5>
+                <button type="button" id="add-option-group-btn" class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Add Option
+                </button>
+            </div>
+            <div class="card-body">
+                {{ group_formset.management_form }}
+                
+                <div id="option-groups-container">
+                    {% for gform in group_formset %}
+                    <div class="option-group-card card border-secondary mb-4" data-group-index="{{ forloop.counter0 }}">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                {% for hidden in gform.hidden_fields %}{{ hidden }}{% endfor %}
+                                <input type="text" name="{{ gform.name.html_name }}" 
+                                       value="{{ gform.name.value|default_if_none:'' }}"
+                                       class="form-control form-control-sm bg-dark text-white border-light option-group-name" 
+                                       style="width: 200px;" 
+                                       placeholder="OPTION {{ forloop.counter }}">
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-light text-dark group-subtotal">₱0.00</span>
+                                {% if group_formset.can_delete %}
+                                <div class="form-check form-check-inline mb-0">
+                                    {{ gform.DELETE }}
+                                    <label class="form-check-label text-danger small" for="{{ gform.DELETE.id_for_label }}">
+                                        <i class="fas fa-trash"></i>
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body p-3">
+                            <!-- Items table for this option group -->
+                            <table class="table table-sm table-bordered mb-2">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width:12%">Part Number</th>
+                                        <th style="width:30%">Description</th>
+                                        <th style="width:7%" class="text-center">Qty</th>
+                                        <th style="width:13%" class="text-end">Unit Cost</th>
+                                        <th style="width:13%" class="text-end">Unit Price</th>
+                                        <th style="width:15%">Warranty</th>
+                                        <th style="width:10%" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="group-items-body">
+                                    <!-- Items rendered by JavaScript -->
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-sm btn-outline-primary add-item-to-group">
+                                <i class="fas fa-plus"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Attachments -->
+        {% if attach_formset %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Attachments</h5>
+            </div>
+            <div class="card-body">
+                {{ attach_formset.management_form }}
+                {% for aform in attach_formset %}
+                <div class="row align-items-end mb-2">
+                    {% for hidden in aform.hidden_fields %}{{ hidden }}{% endfor %}
+                    <div class="col-md-7">{{ aform.file|as_crispy_field }}</div>
+                    <div class="col-md-5 d-flex align-items-center">
+                        <div class="form-check me-3">
+                            {{ aform.include_in_email }}
+                            <label class="form-check-label" for="{{ aform.include_in_email.id_for_label }}">Include in Email</label>
+                        </div>
+                        {% if attach_formset.can_delete %}
+                        <div class="form-check">
+                            {{ aform.DELETE }}
+                            <label class="form-check-label text-danger" for="{{ aform.DELETE.id_for_label }}">Delete</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Terms -->
+        <div class="card mb-4">
+            <div class="card-header">Terms & Conditions</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">{{ form.payment_terms|as_crispy_field }}</div>
+                    <div class="col-md-6">{{ form.delivery_lead_time|as_crispy_field }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">{{ form.include_bank_details|as_crispy_field }}</div>
+                </div>
+                {{ form.introduction|as_crispy_field }}
+                {{ form.closing|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Hidden JSON field for all items -->
+        <input type="hidden" name="option_items_json" id="option-items-json" value="">
+
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-5">
+            <a href="{% url 'proposal_list' %}" class="btn btn-secondary me-md-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i>Save Multi-Option Proposal
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Item Row Template (hidden) -->
+<template id="item-row-template">
+    <tr class="item-row">
+        <td><input type="text" class="form-control form-control-sm item-part-number" placeholder="Part #"></td>
+        <td><textarea class="form-control form-control-sm item-description" rows="1" placeholder="Description"></textarea></td>
+        <td><input type="number" class="form-control form-control-sm text-center item-quantity" value="1" min="1" step="1"></td>
+        <td><input type="text" class="form-control form-control-sm text-end item-unit-cost" placeholder="0.00"></td>
+        <td><input type="text" class="form-control form-control-sm text-end item-unit-price" placeholder="0.00"></td>
+        <td><input type="text" class="form-control form-control-sm item-warranty" placeholder="1 year parts"></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" title="Remove">
+                <i class="fas fa-times"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===============================================
+    // Contact Person Auto-Fill (from customer)
+    // ===============================================
+    const customerSelect = document.getElementById('id_customer');
+    const contactSelect = document.getElementById('contact_person_select');
+
+    function setContact(name, email, phone) {
+        const nameInput = document.getElementById('id_contact_name');
+        const emailInput = document.getElementById('id_contact_email');
+        const phoneInput = document.getElementById('id_contact_phone');
+        if (nameInput) nameInput.value = name || '';
+        if (emailInput) emailInput.value = email || '';
+        if (phoneInput) phoneInput.value = phone || '';
+    }
+
+    function loadContacts(customerId, preselectName) {
+        if (!customerId) {
+            contactSelect.innerHTML = '<option value="">Select contact…</option>';
+            setContact('', '', '');
+            return;
+        }
+        fetch('/customers/' + customerId + '/contacts/').then(r => r.json()).then(data => {
+            const contacts = data.contacts || [];
+            contactSelect.innerHTML = '<option value="">Select contact…</option>';
+            contacts.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name + (c.position ? ' — ' + c.position : '');
+                opt.dataset.name = c.name || '';
+                opt.dataset.email = c.email || '';
+                opt.dataset.phone = c.phone || '';
+                contactSelect.appendChild(opt);
+            });
+            if (preselectName) {
+                [...contactSelect.options].forEach(o => {
+                    if ((o.dataset.name || '').startsWith(preselectName)) contactSelect.value = o.value;
+                });
+            } else if (contacts.length) {
+                const primary = contacts.find(c => c.is_primary) || contacts[0];
+                contactSelect.value = primary.id;
+                setContact(primary.name, primary.email || '', primary.phone || '');
+            }
+        }).catch(() => {});
+    }
+
+    if (customerSelect && contactSelect) {
+        customerSelect.addEventListener('change', () => loadContacts(customerSelect.value));
+        contactSelect.addEventListener('change', () => {
+            const opt = contactSelect.selectedOptions[0];
+            if (!opt || !opt.value) { setContact('', '', ''); return; }
+            setContact(opt.dataset.name || '', opt.dataset.email || '', opt.dataset.phone || '');
+        });
+        // Initial load
+        if (customerSelect.value) {
+            const presetName = document.getElementById('id_contact_name')?.value;
+            loadContacts(customerSelect.value, presetName);
+        }
+    }
+
+    // ===============================================
+    // Exchange Rate Toggle (hide when PHP)
+    // ===============================================
+    const currencySelect = document.getElementById('id_currency');
+    const exchangeRateGroup = document.getElementById('exchange-rate-group');
+    const exchangeRateInput = document.getElementById('id_exchange_rate');
+
+    function toggleExchangeRate() {
+        if (!currencySelect || !exchangeRateGroup) return;
+        if (currencySelect.value === 'USD') {
+            exchangeRateGroup.style.display = 'block';
+        } else {
+            exchangeRateGroup.style.display = 'none';
+            if (exchangeRateInput) exchangeRateInput.value = '1.0';
+        }
+    }
+    if (currencySelect) {
+        currencySelect.addEventListener('change', toggleExchangeRate);
+        toggleExchangeRate();
+    }
+
+    // ===============================================
+    // Option Groups & Items Management
+    // ===============================================
+    const container = document.getElementById('option-groups-container');
+    const itemsJsonField = document.getElementById('option-items-json');
+    const existingItems = JSON.parse('{{ existing_items_json|escapejs }}');
+
+    // Load existing items into their groups
+    if (existingItems.length > 0) {
+        existingItems.forEach(function(item) {
+            const groupCard = container.querySelectorAll('.option-group-card')[item.group_index];
+            if (groupCard) {
+                addItemRow(groupCard.querySelector('.group-items-body'), item);
+            }
+        });
+    }
+
+    // Add Item button per group
+    container.addEventListener('click', function(e) {
+        const addBtn = e.target.closest('.add-item-to-group');
+        if (addBtn) {
+            const groupCard = addBtn.closest('.option-group-card');
+            const tbody = groupCard.querySelector('.group-items-body');
+            addItemRow(tbody, null);
+            updateSubtotals();
+        }
+
+        const removeBtn = e.target.closest('.remove-item-btn');
+        if (removeBtn) {
+            removeBtn.closest('tr').remove();
+            updateSubtotals();
+        }
+    });
+
+    // Input change → recalculate subtotals
+    container.addEventListener('input', function(e) {
+        if (e.target.matches('.item-unit-price, .item-quantity')) {
+            updateSubtotals();
+        }
+    });
+
+    // Add Option Group button
+    document.getElementById('add-option-group-btn').addEventListener('click', function() {
+        const totalForms = document.querySelector('[name="groups-TOTAL_FORMS"]');
+        const count = parseInt(totalForms.value);
+        const template = container.querySelector('.option-group-card');
+        if (!template) return;
+        
+        const clone = template.cloneNode(true);
+        clone.setAttribute('data-group-index', count);
+        
+        // Update form field names
+        clone.querySelectorAll('[name]').forEach(function(el) {
+            el.name = el.name.replace(/groups-\d+/, 'groups-' + count);
+            el.id = el.id ? el.id.replace(/groups-\d+/, 'groups-' + count) : '';
+        });
+        
+        // Clear values
+        const nameInput = clone.querySelector('.option-group-name');
+        if (nameInput) nameInput.value = 'OPTION ' + (count + 1);
+        clone.querySelector('.group-items-body').innerHTML = '';
+        clone.querySelector('.group-subtotal').textContent = '₱0.00';
+        
+        // Uncheck DELETE if present
+        const deleteCheck = clone.querySelector('[name$="-DELETE"]');
+        if (deleteCheck) deleteCheck.checked = false;
+        
+        container.appendChild(clone);
+        totalForms.value = count + 1;
+    });
+
+    // Before form submit: serialize all items to JSON
+    document.getElementById('multi-option-form').addEventListener('submit', function() {
+        const allItems = [];
+        container.querySelectorAll('.option-group-card').forEach(function(groupCard, groupIndex) {
+            const deleteCheck = groupCard.querySelector('[name$="-DELETE"]');
+            if (deleteCheck && deleteCheck.checked) return; // skip deleted groups
+            
+            groupCard.querySelectorAll('.item-row').forEach(function(row) {
+                const partNumber = row.querySelector('.item-part-number').value.trim();
+                const description = row.querySelector('.item-description').value.trim();
+                const unitPrice = row.querySelector('.item-unit-price').value.trim();
+                
+                // Only include rows with at least a description or part number
+                if (description || partNumber) {
+                    allItems.push({
+                        group_index: groupIndex,
+                        part_number: partNumber,
+                        description: description,
+                        quantity: row.querySelector('.item-quantity').value || '1',
+                        unit_cost: row.querySelector('.item-unit-cost').value || '0',
+                        unit_price: unitPrice || '0',
+                        warranty: row.querySelector('.item-warranty').value || '',
+                        is_bundle: false,
+                        bundled_items: '',
+                    });
+                }
+            });
+        });
+        itemsJsonField.value = JSON.stringify(allItems);
+    });
+
+    function addItemRow(tbody, data) {
+        const template = document.getElementById('item-row-template');
+        const row = template.content.cloneNode(true).querySelector('tr');
+        if (data) {
+            row.querySelector('.item-part-number').value = data.part_number || '';
+            row.querySelector('.item-description').value = data.description || '';
+            row.querySelector('.item-quantity').value = data.quantity || '1';
+            row.querySelector('.item-unit-cost').value = data.unit_cost || '0';
+            row.querySelector('.item-unit-price').value = data.unit_price || '0';
+            row.querySelector('.item-warranty').value = data.warranty || '';
+        }
+        tbody.appendChild(row);
+    }
+
+    function updateSubtotals() {
+        container.querySelectorAll('.option-group-card').forEach(function(groupCard) {
+            let subtotal = 0;
+            groupCard.querySelectorAll('.item-row').forEach(function(row) {
+                const qty = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                const price = parseFloat(row.querySelector('.item-unit-price').value.replace(/,/g, '')) || 0;
+                subtotal += qty * price;
+            });
+            const badge = groupCard.querySelector('.group-subtotal');
+            badge.textContent = '₱' + subtotal.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        });
+    }
+
+    // Initial subtotal calculation
+    updateSubtotals();
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.option-group-card .form-control-sm {
+    font-size: 0.85rem;
+}
+.option-group-card textarea.form-control-sm {
+    resize: vertical;
+    min-height: 32px;
+}
+.option-group-name {
+    font-weight: 700;
+    font-size: 1rem;
+}
+.group-subtotal {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+</style>
+{% endblock %}

@@ -13,19 +13,22 @@ def is_admin(user):
     return user.role == 'admin'
 
 def can_view_teams(user):
-    return user.role in ['admin', 'president', 'gm', 'vp', 'avp', 'asm', 'supervisor', 'techmgr', 'asst_techmgr']
+    return user.role in ['admin', 'president', 'gm', 'vp', 'avp', 'asm', 'sm', 'supervisor', 'techmgr', 'asst_techmgr']
 
 def can_manage_teams(user):
     return user.role in ['admin', 'president', 'gm', 'vp']
 
 def can_manage_groups(user):
-    return user.role in ['admin', 'president', 'gm', 'vp', 'avp', 'asm', 'supervisor', 'techmgr', 'asst_techmgr']
+    return user.role in ['admin', 'president', 'gm', 'vp', 'avp', 'asm', 'sm', 'supervisor', 'techmgr', 'asst_techmgr']
 
 @login_required
 @user_passes_test(can_view_teams)
 def team_list(request):
     if request.user.role == 'asm':
         teams = request.user.asm_teams.all()
+    elif request.user.role == 'sm':
+        # SM sees only teams that contain at least one of their assigned groups
+        teams = Team.objects.filter(groups__in=request.user.sm_groups.all()).distinct()
     elif request.user.role in ['techmgr', 'asst_techmgr']:
         teams = Team.objects.filter(tech_manager=request.user)
     else:
@@ -51,7 +54,15 @@ def team_groups(request, pk):
     if request.user.role == 'asm' and team not in request.user.asm_teams.all():
         from django.http import Http404
         raise Http404("You don't have permission to view this team.")
+    if request.user.role == 'sm':
+        # SM can only view a team if they manage at least one group within it
+        if not request.user.sm_groups.filter(team=team).exists():
+            from django.http import Http404
+            raise Http404("You don't have permission to view this team.")
     groups = Group.objects.filter(team=team)
+    # SM sees only their assigned groups within that team
+    if request.user.role == 'sm':
+        groups = groups.filter(sm_managers=request.user)
     return render(request, 'teams/team_groups.html', {'team': team, 'groups': groups})
 
 @login_required
@@ -65,6 +76,8 @@ def group_list(request):
     elif request.user.role == 'asm':
         user_teams = request.user.asm_teams.all()
         groups = Group.objects.filter(team__in=user_teams)
+    elif request.user.role == 'sm':
+        groups = request.user.sm_groups.all()
     elif request.user.role in ['techmgr', 'asst_techmgr']:
         user_teams = Team.objects.filter(tech_manager=request.user)
         groups = Group.objects.filter(team__in=user_teams)
@@ -95,6 +108,10 @@ def group_members(request, pk):
         if group.team not in user_teams:
             from django.http import Http404
             raise Http404("You don't have permission to view this group.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
+            from django.http import Http404
+            raise Http404("You don't have permission to view this group.")
     elif request.user.role == 'avp':
         user_teams = Team.objects.filter(avp=request.user)
         if group.team not in user_teams:
@@ -114,6 +131,8 @@ def group_members(request, pk):
     if request.user.role == 'asm':
         user_teams = request.user.asm_teams.all()
         can_edit = group.team in user_teams
+    elif request.user.role == 'sm':
+        can_edit = request.user.sm_groups.filter(pk=group.pk).exists()
     elif request.user.role == 'avp':
         user_teams = Team.objects.filter(avp=request.user)
         can_edit = group.team in user_teams
@@ -131,6 +150,10 @@ def edit_group(request, pk):
     if request.user.role == 'asm':
         user_teams = request.user.asm_teams.all()
         if group.team not in user_teams:
+            from django.http import Http404
+            raise Http404("You don't have permission to edit this group.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
             from django.http import Http404
             raise Http404("You don't have permission to edit this group.")
     elif request.user.role == 'avp':
@@ -166,6 +189,10 @@ def update_member_quota(request, pk):
         if group.team not in user_teams:
             from django.http import Http404
             raise Http404("You don't have permission to edit members of this group.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
+            from django.http import Http404
+            raise Http404("You don't have permission to edit members of this group.")
     elif request.user.role == 'avp':
         user_teams = Team.objects.filter(avp=request.user)
         if group.team not in user_teams:
@@ -188,13 +215,17 @@ def update_member_quota(request, pk):
 @user_passes_test(can_manage_groups)
 def update_supervisor_commitment(request, pk):
     group = get_object_or_404(Group, pk=pk)
-    # Scope enforcement: AVP can update only within her teams; exec/admin can update all; supervisor/asm can update own groups
+    # Scope enforcement: AVP can update only within her teams; exec/admin can update all; supervisor/asm/sm can update own groups
     if request.user.role == 'avp':
         if group.team.avp != request.user:
             from django.http import Http404
             raise Http404("You don't have permission to edit this group's commitment.")
     elif request.user.role == 'asm':
         if group.team not in request.user.asm_teams.all():
+            from django.http import Http404
+            raise Http404("You don't have permission to edit this group's commitment.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
             from django.http import Http404
             raise Http404("You don't have permission to edit this group's commitment.")
     elif request.user.role == 'supervisor':
@@ -254,6 +285,10 @@ def commitment_history(request, pk):
         if group.team not in request.user.asm_teams.all():
             from django.http import Http404
             raise Http404("You don't have permission to view this history.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
+            from django.http import Http404
+            raise Http404("You don't have permission to view this history.")
     elif request.user.role == 'supervisor':
         if group.supervisor != request.user:
             from django.http import Http404
@@ -272,6 +307,10 @@ def update_personal_contribution(request, pk):
             raise Http404("You don't have permission to edit this contribution.")
     elif request.user.role == 'asm':
         if group.team not in request.user.asm_teams.all():
+            from django.http import Http404
+            raise Http404("You don't have permission to edit this contribution.")
+    elif request.user.role == 'sm':
+        if not request.user.sm_groups.filter(pk=group.pk).exists():
             from django.http import Http404
             raise Http404("You don't have permission to edit this contribution.")
     today = timezone.now().date()

@@ -35,7 +35,7 @@ class TeamForm(forms.ModelForm):
 class GroupForm(forms.ModelForm):
     class Meta:
         model = Group
-        fields = ['name', 'team', 'supervisor', 'teamlead']
+        fields = ['name', 'team', 'supervisor', 'teamlead', 'sm_managers']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,6 +44,10 @@ class GroupForm(forms.ModelForm):
         self.fields['supervisor'].help_text = 'Select a supervisor or ASM. For TSG groups, leave supervisor empty — they are managed by the team Technical Manager.'
         self.fields['teamlead'].queryset = User.objects.filter(role='teamlead')
         self.fields['teamlead'].required = False
+        self.fields['sm_managers'].queryset = User.objects.filter(role='sm', is_active=True).order_by('first_name', 'last_name')
+        self.fields['sm_managers'].required = False
+        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
+        self.fields['sm_managers'].help_text = 'Assign one or more Sales Managers to oversee this group. An SM can manage multiple groups within the same team.'
         
         self.helper = FormHelper()
         self.helper.layout = Layout(
@@ -55,6 +59,8 @@ class GroupForm(forms.ModelForm):
                 Column('supervisor', css_class='form-group col-md-6 mb-3'),
                 Column('teamlead', css_class='form-group col-md-6 mb-3'),
             ),
+            HTML('<h6 class="mt-2">Sales Manager Assignment</h6>'),
+            Field('sm_managers'),
             HTML('<br>'),
             Submit('submit', 'Save Group', css_class='btn btn-primary')
         )
@@ -70,7 +76,7 @@ class GroupEditForm(forms.ModelForm):
     
     class Meta:
         model = Group
-        fields = ['name', 'team', 'supervisor', 'teamlead', 'members']
+        fields = ['name', 'team', 'supervisor', 'teamlead', 'sm_managers', 'members']
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -79,6 +85,10 @@ class GroupEditForm(forms.ModelForm):
         self.fields['supervisor'].help_text = 'Select a supervisor or ASM. ASMs can act as temporary supervisors until a permanent supervisor is hired.'
         self.fields['teamlead'].queryset = User.objects.filter(role='teamlead')
         self.fields['teamlead'].required = False
+        self.fields['sm_managers'].queryset = User.objects.filter(role='sm', is_active=True).order_by('first_name', 'last_name')
+        self.fields['sm_managers'].required = False
+        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
+        self.fields['sm_managers'].help_text = 'Assign one or more Sales Managers to oversee this group.'
         
         # Filter available salespeople (exclude those already in other groups)
         if self.instance.pk:
@@ -113,6 +123,8 @@ class GroupEditForm(forms.ModelForm):
                 Column('supervisor', css_class='form-group col-md-6 mb-3'),
                 Column('teamlead', css_class='form-group col-md-6 mb-3'),
             ),
+            HTML('<h6 class="mt-2">Sales Manager Assignment</h6>'),
+            Field('sm_managers'),
             HTML('<h5 class="mt-4">Group Members</h5>'),
             Field('members', css_class='form-check-input'),
             HTML('<br>'),
@@ -123,6 +135,11 @@ class GroupEditForm(forms.ModelForm):
         group = super().save(commit=commit)
         
         if commit:
+            # Handle SM managers M2M — super().save() handles it via ModelForm
+            # but we need to call save_m2m if commit=True since we override save()
+            if hasattr(self, 'save_m2m'):
+                self.save_m2m()
+
             # Get current members
             current_members = set(TeamMembership.objects.filter(group=group).values_list('user_id', flat=True))
             selected_members = self.cleaned_data.get('members', [])

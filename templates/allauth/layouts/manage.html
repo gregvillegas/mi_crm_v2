@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10 col-lg-8">
+        <div class="card shadow-lg">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0 text-center">
+                    <i class="fas fa-user-shield me-2"></i>Account Security
+                </h4>
+            </div>
+            <div class="card-body p-0">
+                <div class="row g-0">
+                    <!-- Sidebar Navigation -->
+                    <div class="col-md-4 border-end bg-light">
+                        <div class="p-4">
+                            <div class="text-center mb-3">
+                                {% if user.profile_picture %}
+                                    <img src="{{ user.profile_picture.url }}" alt="{{ user.get_full_name }}" class="rounded-circle mb-2" style="width:64px;height:64px;object-fit:cover;">
+                                {% else %}
+                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-2" style="width:64px;height:64px;font-size:22px;font-weight:700;">
+                                        {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <h6 class="fw-bold mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                                <small class="text-muted">Manage your profile, password, and MFA settings.</small>
+                            </div>
+                            <hr>
+                            <nav class="nav flex-column">
+                                <a class="nav-link" href="{% url 'account_email' %}">
+                                    <i class="fas fa-envelope me-2"></i>Change Email
+                                </a>
+                                <a class="nav-link" href="{% url 'account_change_password' %}">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </a>
+                                <a class="nav-link" href="{% url 'mfa_index' %}">
+                                    <i class="fas fa-mobile-alt me-2"></i>Two-Factor Authentication
+                                </a>
+                                <a class="nav-link text-danger" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Sign Out
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
+                    <!-- Main Content -->
+                    <div class="col-md-8">
+                        <div class="p-4">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+
+                            {% block body %}{% endblock %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

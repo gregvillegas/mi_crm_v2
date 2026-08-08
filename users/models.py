@@ -86,3 +86,37 @@ class UserActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.method} {self.path} at {self.timestamp}"
+
+
+class FailedLoginAttempt(models.Model):
+    """
+    Audit log for failed login attempts — required for Data Privacy Act (R.A. 10173) compliance.
+    Records every authentication failure including username tried, IP, user agent, and timestamp.
+    """
+    username = models.CharField(max_length=150, help_text='Username or email that was attempted')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    reason = models.CharField(
+        max_length=50,
+        default='invalid_credentials',
+        choices=[
+            ('invalid_credentials', 'Invalid Credentials'),
+            ('account_disabled', 'Account Disabled'),
+            ('mfa_failed', 'MFA Verification Failed'),
+            ('account_locked', 'Account Locked'),
+        ],
+    )
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Failed Login Attempt'
+        verbose_name_plural = 'Failed Login Attempts'
+        indexes = [
+            models.Index(fields=['username', '-timestamp']),
+            models.Index(fields=['ip_address', '-timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+
+    def __str__(self):
+        return f"{self.username} from {self.ip_address} at {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"

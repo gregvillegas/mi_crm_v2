@@ -3,6 +3,7 @@
 # -----------------------------------------------------------------------------
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from core.views import home, logout_view
 from django.contrib.auth import views as auth_views
 from django.conf import settings
@@ -43,8 +44,8 @@ urlpatterns = [
     path('proposals/', include('sales_proposals.urls')), # <-- ADDED
     path('gamification/', include('gamification.urls')), # <-- ADDED
     path('service/', include('customer_service.urls')),
-    # Keep existing login/logout (allauth handles its own URLs separately)
-    path('login/', auth_views.LoginView.as_view(template_name='core/login.html'), name='login'),
+    # Login handled by allauth (supports MFA/TOTP challenge after password)
+    path('login/', RedirectView.as_view(url='/accounts/login/', query_string=True), name='login'),
     path('logout/', logout_view, name='logout'),
     path('accounts/', include('allauth.urls')),  # allauth + mfa URLs
     path('accounts/2fa/', include('allauth.mfa.urls')),  # MFA URLs (TOTP setup, authenticator)

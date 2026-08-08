@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import multi_option_views
 
 urlpatterns = [
     path('', views.proposal_list, name='proposal_list'),
@@ -12,8 +13,10 @@ urlpatterns = [
     path('approvals/tiers/template/', views.approval_tier_template, name='approval_tier_template'),
     path('approvals/tiers/seed-defaults/', views.approval_tier_seed_defaults, name='approval_tier_seed_defaults'),
     path('create/', views.proposal_create, name='proposal_create'),
+    path('create/multi-option/', multi_option_views.multi_option_proposal_create, name='multi_option_proposal_create'),
     path('<int:pk>/', views.proposal_detail, name='proposal_detail'),
     path('<int:pk>/edit/', views.proposal_update, name='proposal_update'),
+    path('<int:pk>/edit/multi-option/', multi_option_views.multi_option_proposal_update, name='multi_option_proposal_update'),
     path('<int:pk>/delete/', views.proposal_delete, name='proposal_delete'),
     path('<int:pk>/pdf/', views.proposal_pdf, name='proposal_pdf'),
     path('<int:pk>/email/', views.proposal_email, name='proposal_email'),

@@ -27,6 +27,7 @@ class ProposalForm(forms.ModelForm):
             'delivery_lead_time',
             'include_bank_details',
             'show_discount',
+            'use_total_price_label',
             'discount_amount',
             # Bank details (editable)
             'php_bank_name','php_account_name','php_account_number','php_account_type','php_branch',
@@ -49,6 +50,7 @@ class ProposalForm(forms.ModelForm):
             'usd_bank_address': 'USD bank address',
             'usd_swift_code': 'USD swift code',
             'show_discount': 'Show discount (PDF)',
+            'use_total_price_label': 'Use "Total Price" column header',
             'discount_amount': 'Discount amount',
         }
         widgets = {

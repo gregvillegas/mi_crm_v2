@@ -34,3 +34,25 @@ class UserActivityLogAdmin(admin.ModelAdmin):
     
     def has_change_permission(self, request, obj=None):
         return False
+
+
+from .models import FailedLoginAttempt
+
+@admin.register(FailedLoginAttempt)
+class FailedLoginAttemptAdmin(admin.ModelAdmin):
+    list_display = ('username', 'ip_address', 'reason', 'timestamp', 'user_agent_short')
+    list_filter = ('reason', 'timestamp')
+    search_fields = ('username', 'ip_address', 'user_agent')
+    readonly_fields = ('username', 'ip_address', 'user_agent', 'timestamp', 'reason')
+    ordering = ('-timestamp',)
+    date_hierarchy = 'timestamp'
+
+    def user_agent_short(self, obj):
+        return obj.user_agent[:80] + '...' if len(obj.user_agent) > 80 else obj.user_agent
+    user_agent_short.short_description = 'User Agent'
+
+    def has_add_permission(self, request):
+        return False  # Log entries are created by signal only
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Audit logs must not be editable

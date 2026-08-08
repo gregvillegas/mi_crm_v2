@@ -164,12 +164,23 @@ def funnel_dashboard(request):
             is_active=True,
             is_closed=False
         )
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         # ASM can see entries from their teams
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
         supervisor_ids = list(Group.objects.filter(team__in=asm_teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+        visible_ids = salespeople_ids + supervisor_ids
+        funnel_entries = SalesFunnel.objects.filter(
+            Q(salesperson_id__in=visible_ids) | Q(salesperson=user),
+            is_active=True,
+            is_closed=False
+        )
+    elif user.role == 'sm':
+        # SM sees only their assigned groups
+        groups = user.sm_groups.all()
+        salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+        supervisor_ids = list(Group.objects.filter(id__in=groups.values_list('id', flat=True), supervisor__isnull=False).values_list('supervisor_id', flat=True))
         visible_ids = salespeople_ids + supervisor_ids
         funnel_entries = SalesFunnel.objects.filter(
             Q(salesperson_id__in=visible_ids) | Q(salesperson=user),
@@ -249,11 +260,17 @@ def funnel_dashboard(request):
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(salesperson_id__in=salespeople_ids, is_closed=True)
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
         supervisor_ids = list(Group.objects.filter(team__in=asm_teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+        visible_ids = salespeople_ids + supervisor_ids
+        closed_deals = SalesFunnel.objects.filter(Q(salesperson_id__in=visible_ids) | Q(salesperson=user), is_closed=True)
+    elif user.role == 'sm':
+        groups = user.sm_groups.all()
+        salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+        supervisor_ids = list(Group.objects.filter(id__in=groups.values_list('id', flat=True), supervisor__isnull=False).values_list('supervisor_id', flat=True))
         visible_ids = salespeople_ids + supervisor_ids
         closed_deals = SalesFunnel.objects.filter(Q(salesperson_id__in=visible_ids) | Q(salesperson=user), is_closed=True)
     elif user.role == 'avp':
@@ -360,11 +377,17 @@ def export_funnel_report(request):
         teamlead_groups = Group.objects.filter(teamlead=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
         qs = SalesFunnel.objects.filter(salesperson_id__in=salespeople_ids, is_active=True, is_closed=False)
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
         salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
         supervisor_ids = list(Group.objects.filter(team__in=asm_teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+        visible_ids = salespeople_ids + supervisor_ids
+        qs = SalesFunnel.objects.filter(Q(salesperson_id__in=visible_ids) | Q(salesperson=user), is_active=True, is_closed=False)
+    elif user.role == 'sm':
+        groups = user.sm_groups.all()
+        salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+        supervisor_ids = list(Group.objects.filter(id__in=groups.values_list('id', flat=True), supervisor__isnull=False).values_list('supervisor_id', flat=True))
         visible_ids = salespeople_ids + supervisor_ids
         qs = SalesFunnel.objects.filter(Q(salesperson_id__in=visible_ids) | Q(salesperson=user), is_active=True, is_closed=False)
     elif user.role == 'avp':
@@ -642,9 +665,16 @@ def deals_history(request):
             salesperson_id__in=salespeople_ids,
             is_closed=True
         )
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
+        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+        closed_deals = SalesFunnel.objects.filter(
+            Q(salesperson_id__in=salespeople_ids) | Q(salesperson=user),
+            is_closed=True
+        )
+    elif user.role == 'sm':
+        groups = user.sm_groups.all()
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         closed_deals = SalesFunnel.objects.filter(
             Q(salesperson_id__in=salespeople_ids) | Q(salesperson=user),
@@ -784,11 +814,16 @@ def import_funnel_entries(request):
             if request.user.role == 'supervisor':
                 groups = Group.objects.filter(supervisor=request.user)
                 allowed_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)) + [request.user.id]
-            elif request.user.role in ['asm', 'sm']:
+            elif request.user.role == 'asm':
                 asm_teams = request.user.asm_teams.all()
                 groups = Group.objects.filter(team__in=asm_teams)
                 sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
                 supervisor_ids = list(Group.objects.filter(team__in=asm_teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+                allowed_ids = sp_ids + supervisor_ids + [request.user.id]
+            elif request.user.role == 'sm':
+                groups = request.user.sm_groups.all()
+                sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+                supervisor_ids = list(Group.objects.filter(id__in=groups.values_list('id', flat=True), supervisor__isnull=False).values_list('supervisor_id', flat=True))
                 allowed_ids = sp_ids + supervisor_ids + [request.user.id]
             elif request.user.role == 'avp':
                 teams = Team.objects.filter(avp=request.user)
@@ -991,11 +1026,16 @@ def import_funnel_entries(request):
         if request.user.role == 'supervisor':
             groups = Group.objects.filter(supervisor=request.user)
             sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)) + [request.user.id]
-        elif request.user.role in ['asm', 'sm']:
+        elif request.user.role == 'asm':
             asm_teams = request.user.asm_teams.all()
             groups = Group.objects.filter(team__in=asm_teams)
             sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
             supervisor_ids = list(Group.objects.filter(team__in=asm_teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+            sp_ids = sp_ids + supervisor_ids + [request.user.id]
+        elif request.user.role == 'sm':
+            groups = request.user.sm_groups.all()
+            sp_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+            supervisor_ids = list(Group.objects.filter(id__in=groups.values_list('id', flat=True), supervisor__isnull=False).values_list('supervisor_id', flat=True))
             sp_ids = sp_ids + supervisor_ids + [request.user.id]
         elif request.user.role == 'avp':
             teams = Team.objects.filter(avp=request.user)

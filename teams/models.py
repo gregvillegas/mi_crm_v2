@@ -35,6 +35,15 @@ class Group(models.Model):
                                 null=True, blank=True,
                                 help_text='Required for regular groups, not used for TSG groups')
     
+    # Sales Managers assigned to oversee this group (subset of a team's groups)
+    sm_managers = models.ManyToManyField(
+        User,
+        related_name='sm_groups',
+        blank=True,
+        limit_choices_to={'role': 'sm'},
+        help_text='Sales Managers responsible for this group. One SM can manage multiple groups across a team.',
+    )
+
     # Teamlead stays the same for all group types
     teamlead = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='led_groups', 
                              blank=True, null=True, limit_choices_to={'role': 'teamlead'})

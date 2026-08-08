@@ -1431,9 +1431,13 @@ def customer_history(request, pk):
         groups = Group.objects.filter(team__in=teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
-    elif user.role in ['asm', 'sm']:
+    elif user.role == 'asm':
         asm_teams = user.asm_teams.all()
         groups = Group.objects.filter(team__in=asm_teams)
+        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
+    elif user.role == 'sm':
+        groups = user.sm_groups.all()
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
     elif user.role == 'supervisor':

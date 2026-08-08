@@ -33,6 +33,12 @@ def get_user_team_ids(user):
     if user.role == 'asm':
         team_ids.update(user.asm_teams.values_list('id', flat=True))
 
+    if user.role == 'sm':
+        # SM is scoped to their explicitly assigned groups only — derive team IDs from those
+        team_ids.update(
+            user.sm_groups.values_list('team_id', flat=True)
+        )
+
     if user.role == 'supervisor':
         team_ids.update(Group.objects.filter(supervisor=user).values_list('team_id', flat=True))
 
@@ -111,13 +117,33 @@ def visible_customers_queryset(user):
         member_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         return Customer.objects.filter(Q(salesperson_id__in=member_ids) | Q(salesperson=user))
 
-    if user.role in {'avp', 'asm', 'sm'}:
+    if user.role == 'avp':
         team_ids = get_user_team_ids(user)
         if not team_ids:
             return Customer.objects.none()
-
         scoped_users = get_team_scoped_users(team_ids, roles=ASSIGNABLE_ROLES)
         return Customer.objects.filter(salesperson_id__in=scoped_users.values_list('id', flat=True))
+
+    if user.role == 'asm':
+        team_ids = get_user_team_ids(user)
+        if not team_ids:
+            return Customer.objects.none()
+        scoped_users = get_team_scoped_users(team_ids, roles=ASSIGNABLE_ROLES)
+        return Customer.objects.filter(salesperson_id__in=scoped_users.values_list('id', flat=True))
+
+    if user.role == 'sm':
+        # SM sees only customers assigned to salespeople in their specifically assigned groups
+        sm_groups = user.sm_groups.all()
+        if not sm_groups.exists():
+            return Customer.objects.none()
+        member_ids = TeamMembership.objects.filter(group__in=sm_groups).values_list('user_id', flat=True)
+        # Also include supervisors of those groups and the SM themselves if they hold customers
+        supervisor_ids = Group.objects.filter(
+            id__in=sm_groups.values_list('id', flat=True),
+            supervisor__isnull=False
+        ).values_list('supervisor_id', flat=True)
+        visible_ids = set(member_ids) | set(supervisor_ids) | {user.id}
+        return Customer.objects.filter(salesperson_id__in=visible_ids)
 
     return Customer.objects.none()
 

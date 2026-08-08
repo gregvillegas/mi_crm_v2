@@ -200,6 +200,11 @@ class FunnelFilterForm(forms.Form):
                 group_qs = groups
                 salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
                 qs = User.objects.filter(id__in=salespeople_ids)
+            elif user.role == 'sm':
+                groups = user.sm_groups.all()
+                group_qs = groups
+                salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+                qs = User.objects.filter(id__in=salespeople_ids)
             elif user.role == 'avp':
                 teams = Team.objects.filter(avp=user)
                 groups = Group.objects.filter(team__in=teams)
