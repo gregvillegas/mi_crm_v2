@@ -111,11 +111,17 @@
                                     <a href="{% url 'proposal_detail' proposal.pk %}" class="btn btn-sm btn-outline-info" title="View">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{% url 'proposal_update' proposal.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                    {% if proposal.is_multi_option %}
+                                        <a href="{% url 'multi_option_proposal_update' proposal.pk %}" class="btn btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'proposal_update' proposal.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    {% endif %}
                                     <a href="{% url 'proposal_pdf' proposal.pk %}" class="btn btn-sm btn-outline-secondary" title="PDF" target="_blank">
-                                        <i class="fas fa-file-pdf"></i>
+                                         <i class="fas fa-file-pdf"></i>
                                     </a>
                                     <a href="{% url 'proposal_email' proposal.pk %}" class="btn btn-sm btn-outline-success" title="Email">
                                         <i class="fas fa-envelope"></i>
@@ -179,9 +185,15 @@
                                 <a href="{% url 'proposal_detail' proposal.pk %}" class="btn btn-sm btn-outline-info" title="View">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                {% if proposal.is_multi_option %}
+                                <a href="{% url 'multi_option_proposal_update' proposal.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% else %}
                                 <a href="{% url 'proposal_update' proposal.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                {% endif %}
                                 <a href="{% url 'proposal_pdf' proposal.pk %}" class="btn btn-sm btn-outline-secondary" title="PDF" target="_blank">
                                     <i class="fas fa-file-pdf"></i>
                                 </a>
