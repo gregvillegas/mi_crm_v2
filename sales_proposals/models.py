@@ -292,11 +292,33 @@ class Proposal(models.Model):
         php_total = self.approval_total_php or 0
         creator = self.created_by
         group = None
+        # 1. Try standard TeamMembership (works for salespeople)
         try:
             if hasattr(creator, 'team_membership'):
                 group = creator.team_membership.group
         except Exception:
             group = None
+        # 2. Fallback for SM: they're linked via Group.sm_managers M2M, not TeamMembership
+        if not group and creator.role == 'sm':
+            try:
+                group = creator.sm_groups.select_related('team').first()
+            except Exception:
+                group = None
+        # 3. Fallback for ASM: linked via Team.asm FK
+        if not group and creator.role == 'asm':
+            try:
+                from teams.models import Team
+                team = Team.objects.filter(asm=creator).first()
+                if team:
+                    group = team.groups.first()
+            except Exception:
+                group = None
+        # 4. Fallback for Supervisor: linked via Group.supervisor FK
+        if not group and creator.role == 'supervisor':
+            try:
+                group = creator.managed_groups.select_related('team').first()
+            except Exception:
+                group = None
         supervisor = None
         asm = None
         avp_or_gm = None
@@ -317,25 +339,55 @@ class Proposal(models.Model):
             tier = ProposalApprovalTier.objects.filter(active=True, min_amount_php__lte=php_total).filter(models.Q(max_amount_php__isnull=True) | models.Q(max_amount_php__gte=php_total)).order_by('order', 'min_amount_php').first()
         except Exception:
             tier = None
+
+        # Role authority level — approvers at or below the creator's level are skipped.
+        # Higher number = higher authority.
+        ROLE_LEVEL = {
+            'salesperson': 1,
+            'teamlead': 2,
+            'supervisor': 3,
+            'asm': 4,
+            'sm': 4,
+            'avp': 5,
+            'vp': 6,
+            'gm': 6,
+            'president': 7,
+            'admin': 7,
+        }
+        creator_level = ROLE_LEVEL.get(creator.role, 0)
+
+        def _approver_outranks_creator(approver):
+            """Only include an approver if their role level is above the creator's."""
+            if not approver:
+                return False
+            return ROLE_LEVEL.get(approver.role, 0) > creator_level
+
         if tier:
             parts = [p.strip() for p in (tier.chain or '').split(',') if p.strip()]
             for role in parts:
-                if role == 'supervisor' and supervisor and supervisor != creator and supervisor not in chain:
+                if role == 'supervisor' and supervisor and supervisor != creator and supervisor not in chain and _approver_outranks_creator(supervisor):
                     chain.append(supervisor)
-                elif role == 'asm' and asm and asm != creator and asm not in chain:
+                elif role == 'asm' and asm and asm != creator and asm not in chain and _approver_outranks_creator(asm):
                     chain.append(asm)
-                elif role in ['avp_or_gm', 'avp', 'gm'] and avp_or_gm and avp_or_gm != creator and avp_or_gm not in chain:
+                elif role in ['avp_or_gm', 'avp', 'gm'] and avp_or_gm and avp_or_gm != creator and avp_or_gm not in chain and _approver_outranks_creator(avp_or_gm):
                     chain.append(avp_or_gm)
         else:
             if php_total >= Decimal('500000'):
-                if supervisor and supervisor != creator:
+                if supervisor and supervisor != creator and _approver_outranks_creator(supervisor):
                     chain.append(supervisor)
             if php_total >= Decimal('1000000'):
-                if asm and asm not in chain and asm != creator:
+                if asm and asm not in chain and asm != creator and _approver_outranks_creator(asm):
                     chain.append(asm)
             if php_total >= Decimal('3000000'):
-                if avp_or_gm and avp_or_gm not in chain and avp_or_gm != creator:
+                if avp_or_gm and avp_or_gm not in chain and avp_or_gm != creator and _approver_outranks_creator(avp_or_gm):
                     chain.append(avp_or_gm)
+
+        # Escalation: if approval is required but all lower-tier approvers were skipped
+        # (creator outranks them), escalate to the next higher authority.
+        if not chain and self.approval_required:
+            if avp_or_gm and avp_or_gm != creator and _approver_outranks_creator(avp_or_gm):
+                chain.append(avp_or_gm)
+
         return [u for u in chain if u]
 
     def ensure_approval_chain(self):
@@ -465,10 +517,14 @@ class ProposalItem(models.Model):
         for delimiter in ('\t', '|'):
             if delimiter in line:
                 parts = [p.strip() for p in line.split(delimiter)]
-                if len(parts) >= 3:
+                # 5 columns: Part Number | Description | Qty | Unit Price | Total Price
+                # 4 columns: Part Number | Description | Qty | Unit Price
+                # 3 columns: Part Number | Description | Qty
+                # In all cases we take the first 3 columns and ignore pricing columns.
+                if len(parts) >= 5:
                     part_number = parts[0]
-                    qty_raw = parts[-1]
-                    description = delimiter.join(parts[1:-1]).strip()
+                    description = parts[1]
+                    qty_raw = parts[2]
                     qty = None
                     if qty_raw:
                         try:
@@ -477,7 +533,37 @@ class ProposalItem(models.Model):
                             qty = None
                     return {
                         'part_number': part_number.strip(),
-                        'description': description,
+                        'description': description.strip(),
+                        'quantity': qty,
+                    }
+                if len(parts) == 4:
+                    part_number = parts[0]
+                    description = parts[1]
+                    qty_raw = parts[2]
+                    qty = None
+                    if qty_raw:
+                        try:
+                            qty = Decimal(str(qty_raw).replace(',', '').strip())
+                        except (InvalidOperation, TypeError):
+                            qty = None
+                    return {
+                        'part_number': part_number.strip(),
+                        'description': description.strip(),
+                        'quantity': qty,
+                    }
+                if len(parts) == 3:
+                    part_number = parts[0]
+                    description = parts[1]
+                    qty_raw = parts[2]
+                    qty = None
+                    if qty_raw:
+                        try:
+                            qty = Decimal(str(qty_raw).replace(',', '').strip())
+                        except (InvalidOperation, TypeError):
+                            qty = None
+                    return {
+                        'part_number': part_number.strip(),
+                        'description': description.strip(),
                         'quantity': qty,
                     }
                 if len(parts) == 2:
@@ -621,3 +707,27 @@ class ProposalApprovalStep(models.Model):
     class Meta:
         ordering = ['level', 'created_at']
         unique_together = ('proposal', 'level')
+
+
+class ProposalEmailLog(models.Model):
+    """Tracks every email send attempt for a proposal — success or failure."""
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('failed', 'Failed'),
+    ]
+
+    proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='email_logs')
+    sent_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='proposal_emails_sent')
+    recipients = models.TextField(help_text='Comma-separated To addresses')
+    cc = models.TextField(blank=True, help_text='Comma-separated CC addresses')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    error_message = models.TextField(blank=True, help_text='Error details if send failed')
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = 'Proposal Email Log'
+        verbose_name_plural = 'Proposal Email Logs'
+
+    def __str__(self):
+        return f"{self.proposal.proposal_number} → {self.recipients} [{self.status}]"

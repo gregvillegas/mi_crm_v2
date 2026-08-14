@@ -98,8 +98,36 @@ def customer_list(request):
             except ValueError:
                 pass
     
+    # Duplicates filter — show only customers with similar/duplicate company names
+    duplicates_filter = request.GET.get('duplicates', '')
+    duplicate_groups = []
+    if duplicates_filter == 'yes' and user.role in ['admin', 'gm', 'vp', 'marketing', 'avp', 'asm', 'sm', 'supervisor']:
+        from collections import defaultdict
+        # Build a map of normalized name → list of customer IDs
+        norm_map = defaultdict(list)
+        for c in customers.only('id', 'company_name'):
+            norm = _normalize_company_name(c.company_name)
+            if norm:
+                norm_map[norm].append(c.id)
+        # Keep only groups with 2+ customers (exact-match after normalization)
+        dup_ids = set()
+        for norm_name, ids in norm_map.items():
+            if len(ids) >= 2:
+                dup_ids.update(ids)
+                duplicate_groups.append({
+                    'normalized_name': norm_name,
+                    'ids': ids,
+                })
+        if dup_ids:
+            customers = customers.filter(id__in=dup_ids)
+        else:
+            customers = customers.none()
+
     # Order by millionaire status first, then by creation date
-    customers = customers.select_related('salesperson').order_by('-is_millionaire_account', '-created_at')
+    if duplicates_filter == 'yes':
+        customers = customers.select_related('salesperson').order_by('company_name')
+    else:
+        customers = customers.select_related('salesperson').order_by('-is_millionaire_account', '-created_at')
     
     # Available salespeople for filter dropdown (active only)
     available_salespeople = assignment_targets_queryset(user)
@@ -128,6 +156,7 @@ def customer_list(request):
             'territory': territory_filter,
             'search': search_query or '',
             'salesperson': salesperson_filter or '',
+            'duplicates': duplicates_filter or '',
             'view': view_mode,
         },
         'stats': {
@@ -136,7 +165,8 @@ def customer_list(request):
             'active_count': customers.filter(is_active=True, auto_inactive_flag=False).count(),
             'inactive_count': customers.filter(models.Q(is_active=False) | models.Q(auto_inactive_flag=True)).count(),
         },
-        'pending_create_count': pending_create_count
+        'pending_create_count': pending_create_count,
+        'duplicate_group_count': len(duplicate_groups),
     }
     
     return render(request, 'customers/customer_list.html', context)

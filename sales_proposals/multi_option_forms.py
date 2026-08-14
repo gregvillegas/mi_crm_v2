@@ -133,7 +133,7 @@ class MultiOptionItemForm(forms.ModelForm):
             'unit_price': forms.TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
             'bundled_items': forms.Textarea(attrs={
                 'rows': 3,
-                'placeholder': 'PART NUMBER | Description | Qty (one per line)',
+                'placeholder': 'Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]).\nPricing columns are ignored.',
             }),
         }
 

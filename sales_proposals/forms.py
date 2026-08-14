@@ -135,7 +135,7 @@ class ProposalItemForm(forms.ModelForm):
             'unit_price': TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
             'bundled_items': Textarea(attrs={
                 'rows': 5,
-                'placeholder': 'Paste 3 columns from Excel (Part Number + Description + Qty), or type:\nB4YT6AV | HP IDS DSC RTX PRO 2000 8GB Ultra 9 285HX 16 inch G1i Base NB PC | 2\n8C9M7AV | No Country of Origin Restriction | 2',
+                'placeholder': 'Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]).\nPricing columns are ignored — only Part Number, Description, and Qty are kept.\nB4YT6AV | HP IDS DSC RTX PRO 2000 8GB Ultra 9 285HX 16 inch G1i Base NB PC | 2\n8C9M7AV | No Country of Origin Restriction | 2',
             }),
         }
 

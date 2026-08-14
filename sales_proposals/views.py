@@ -2,9 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
-from .models import Proposal, ProposalItem, ProposalApprovalStep, ProposalApprovalTier, ProposalChangeLog
+from .models import Proposal, ProposalItem, ProposalApprovalStep, ProposalApprovalTier, ProposalChangeLog, ProposalEmailLog
 from .forms import ProposalForm, ProposalItemFormSet, ProposalApprovalTierForm, ProposalApprovalTierImportForm, ProposalAttachmentFormSet
 import csv
+import smtplib
+import socket
 from decimal import Decimal
 from django.http import FileResponse
 from django.conf import settings
@@ -200,6 +202,11 @@ def proposal_list(request):
                 # Include group supervisors
                 if group.supervisor:
                     member_ids.append(group.supervisor.id)
+                # Include SM managers assigned to this group
+                member_ids.extend(group.sm_managers.values_list('id', flat=True))
+            # Include team-level ASM
+            if team.asm:
+                member_ids.append(team.asm.id)
         
         member_ids.append(request.user.id)
         proposals = Proposal.objects.filter(created_by_id__in=member_ids)
@@ -274,7 +281,7 @@ def proposal_list(request):
     grouped_proposals = []
     show_team_grouping = False
     
-    if request.user.role in ['admin', 'president', 'asm', 'vp', 'avp', 'gm']:
+    if request.user.role in ['admin', 'president', 'asm', 'sm', 'vp', 'avp', 'gm']:
         show_team_grouping = True
         
         # Optimize query by prefetching related team info
@@ -291,6 +298,35 @@ def proposal_list(request):
                         team_name = group.team.name
             except Exception:
                 pass
+            # Fallback for SM: resolve team via sm_groups
+            if team_name == "Unassigned" and proposal.created_by.role == 'sm':
+                try:
+                    sm_group = proposal.created_by.sm_groups.select_related('team').first()
+                    if sm_group and sm_group.team:
+                        team_name = sm_group.team.name
+                except Exception:
+                    pass
+            # Fallback for ASM: resolve team via asm_teams
+            if team_name == "Unassigned" and proposal.created_by.role == 'asm':
+                try:
+                    from teams.models import Team as _Team
+                    asm_team = _Team.objects.filter(asm=proposal.created_by).first()
+                    if asm_team:
+                        team_name = asm_team.name
+                except Exception:
+                    pass
+            # Fallback for Supervisor: resolve team via managed_groups
+            if team_name == "Unassigned" and proposal.created_by.role == 'supervisor':
+                try:
+                    sup_group = proposal.created_by.managed_groups.select_related('team').first()
+                    if sup_group and sup_group.team:
+                        team_name = sup_group.team.name
+                except Exception:
+                    pass
+
+            # For SM viewing their own proposals: label as "On behalf" instead of team name
+            if request.user.role == 'sm' and proposal.created_by_id == request.user.id:
+                team_name = "On behalf"
             
             if team_name not in teams_dict:
                 teams_dict[team_name] = {
@@ -936,11 +972,19 @@ def generate_pdf_buffer(proposal):
     except Exception:
         signature_img = None
     
+    # Determine job title dynamically (same logic as email signature)
+    sig_job_title = ''
+    if getattr(proposal.created_by, 'job_title', ''):
+        sig_job_title = proposal.created_by.get_job_title_display()
+    elif getattr(proposal.created_by, 'role', ''):
+        sig_job_title = proposal.created_by.get_role_display()
+    sig_job_title = sig_job_title or 'Corporate Account Manager'
+
     sig_data = [
         ['', 'Conforme:'],
         [signature_img or '', ''],
         ['__________________________', '__________________________'],
-        [Paragraph(f"<b>{proposal.created_by.get_full_name()}</b><br/>Corporate Account Manager<br/>Mobile #: {proposal.created_by.mobile_number or ''}", styles['NormalSmall']), 
+        [Paragraph(f"<b>{proposal.created_by.get_full_name()}</b><br/>{sig_job_title}<br/>Mobile #: {proposal.created_by.mobile_number or ''}", styles['NormalSmall']), 
          Paragraph("Print Name & Sign<br/>Served as Order if signed by Authorized <br/>Representative", styles['NormalSmall'])]
     ]
     sig_table = Table(sig_data, colWidths=[3.5*inch, 4*inch])
@@ -949,8 +993,8 @@ def generate_pdf_buffer(proposal):
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
         # Place the signature image closer to the line below
         ('VALIGN', (0,1), (0,1), 'BOTTOM'),
-        ('BOTTOMPADDING', (0,1), (-1,1), 6),
-        ('TOPPADDING', (0,2), (-1,2), 2),
+        ('BOTTOMPADDING', (0,1), (-1,1), 0),
+        ('TOPPADDING', (0,2), (-1,2), 0),
     ]))
     closing_elements.append(sig_table)
     
@@ -1104,6 +1148,15 @@ Best regards,"""
             proposal.status = 'sent'
             proposal.save()
             
+            # Log successful send
+            ProposalEmailLog.objects.create(
+                proposal=proposal,
+                sent_by=request.user,
+                recipients=', '.join(to_list),
+                cc=', '.join(cc_list),
+                status='sent',
+            )
+            
             # Log Activity
             log_sales_activity(proposal, request.user)
             
@@ -1115,8 +1168,51 @@ Best regards,"""
             if cc_list:
                 msg += f" (CC: {', '.join(cc_list)})"
             messages.success(request, msg)
+        except smtplib.SMTPRecipientsRefused as e:
+            bad_addrs = ', '.join(e.recipients.keys())
+            error_detail = f"Recipient(s) refused by mail server: {bad_addrs}"
+            ProposalEmailLog.objects.create(
+                proposal=proposal,
+                sent_by=request.user,
+                recipients=', '.join(to_list),
+                cc=', '.join(cc_list),
+                status='failed',
+                error_message=error_detail,
+            )
+            messages.error(request, f"Failed to send — invalid recipient(s): {bad_addrs}")
+        except smtplib.SMTPServerDisconnected:
+            error_detail = "SMTP server disconnected unexpectedly"
+            ProposalEmailLog.objects.create(
+                proposal=proposal,
+                sent_by=request.user,
+                recipients=', '.join(to_list),
+                cc=', '.join(cc_list),
+                status='failed',
+                error_message=error_detail,
+            )
+            messages.error(request, "Email server connection lost. Please try again.")
+        except (socket.timeout, TimeoutError) as e:
+            error_detail = f"Connection timed out: {str(e)}"
+            ProposalEmailLog.objects.create(
+                proposal=proposal,
+                sent_by=request.user,
+                recipients=', '.join(to_list),
+                cc=', '.join(cc_list),
+                status='failed',
+                error_message=error_detail,
+            )
+            messages.error(request, "Email server timed out. Please try again later.")
         except Exception as e:
-            messages.error(request, f"Failed to send email: {str(e)}")
+            error_detail = str(e)
+            ProposalEmailLog.objects.create(
+                proposal=proposal,
+                sent_by=request.user,
+                recipients=', '.join(to_list),
+                cc=', '.join(cc_list),
+                status='failed',
+                error_message=error_detail,
+            )
+            messages.error(request, f"Failed to send email: {error_detail}")
             
         return redirect('proposal_detail', pk=pk)
     

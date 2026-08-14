@@ -157,7 +157,7 @@
                                 <div class="row bundle-items-row mt-2">
                                     <div class="col-md-11 offset-md-1">
                                         {{ form.bundled_items|as_crispy_field }}
-                                        <small class="text-muted">Paste 3 columns directly from Excel, or enter one bundled component per line using <code>PART NUMBER | Description | Qty</code>.</small>
+                                        <small class="text-muted">Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]). Pricing columns are ignored. Or enter one line per component: <code>PART NUMBER | Description | Qty</code>.</small>
                                     </div>
                                 </div>
                             </div>
@@ -227,7 +227,7 @@
                             <div class="row bundle-items-row mt-2">
                                 <div class="col-md-11 offset-md-1">
                                     {{ formset.empty_form.bundled_items|as_crispy_field }}
-                                        <small class="text-muted">Paste 3 columns directly from Excel, or enter one bundled component per line using <code>PART NUMBER | Description | Qty</code>.</small>
+                                        <small class="text-muted">Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]). Pricing columns are ignored. Or enter one line per component: <code>PART NUMBER | Description | Qty</code>.</small>
                                 </div>
                             </div>
                         </div>

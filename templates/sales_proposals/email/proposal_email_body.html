@@ -23,22 +23,22 @@
                     </tr>
                     <tr>
                         <td style="padding:0 30px 24px 30px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding-top:16px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" style="padding-top:16px;">
                                 <tr>
-                                    <td style="width:190px; vertical-align:top; padding-right:24px;">
+                                    <td style="width:100px; vertical-align:top; padding-right:10px;">
                                         {% if signature.anniversary_image_cid %}
-                                        <img src="cid:{{ signature.anniversary_image_cid }}" alt="28 Years in the IT Industry" style="display:block; width:176px; max-width:100%; height:auto; margin-bottom:10px;">
+                                        <img src="cid:{{ signature.anniversary_image_cid }}" alt="28 Years in the IT Industry" width="90" height="90" style="display:block; width:90px; height:90px; max-width:90px; max-height:90px; object-fit:contain; margin-bottom:4px;">
                                         {% endif %}
                                         {% if signature.company_social_links %}
-                                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:4px;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:0;">
                                             <tr>
                                                 {% for item in signature.company_social_links %}
-                                                <td style="padding-right:8px;">
+                                                <td style="padding-right:4px;">
                                                     <a href="{{ item.url }}" title="{{ item.label }}" style="display:inline-block; text-decoration:none;">
                                                         {% if item.icon_cid %}
-                                                        <img src="cid:{{ item.icon_cid }}" alt="{{ item.label }}" style="display:block; width:26px; height:26px; border:0;">
+                                                        <img src="cid:{{ item.icon_cid }}" alt="{{ item.label }}" width="14" height="14" style="display:block; width:14px; height:14px; max-width:14px; max-height:14px; border:0;">
                                                         {% else %}
-                                                        <span style="font-size:12px; line-height:26px; color:#1f2937; text-decoration:none;">{{ item.label }}</span>
+                                                        <span style="font-size:10px; line-height:14px; color:#1f2937; text-decoration:none;">{{ item.label }}</span>
                                                         {% endif %}
                                                     </a>
                                                 </td>
@@ -50,45 +50,42 @@
                                     <td style="vertical-align:top;">
                                         <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
                                             <tr>
-                                                <td style="font-size:17px; line-height:1.15; font-weight:700; color:#111827; text-transform:uppercase; white-space:nowrap; padding:0 12px 0 0;">
+                                                <td style="font-size:12px; line-height:1.15; font-weight:700; color:#111827; text-transform:uppercase; white-space:nowrap; padding:0 8px 0 0;">
                                                     {{ signature.salesperson_name }}
                                                 </td>
                                                 {% if signature.salesperson_job_title %}
-                                                <td style="font-size:13px; line-height:1.2; color:#1f2937; white-space:nowrap; padding:0 0 0 12px; border-left:3px solid #d91f26;">
+                                                <td style="font-size:10px; line-height:1.2; color:#1f2937; white-space:nowrap; padding:0 0 0 8px; border-left:2px solid #d91f26;">
                                                     {{ signature.salesperson_job_title }}
                                                 </td>
                                                 {% endif %}
                                             </tr>
                                         </table>
-                                        {% if signature.salesperson_job_title %}
-                                        <div style="font-size:1px; line-height:6px;">&nbsp;</div>
-                                        {% endif %}
 
-                                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:8px; font-size:12px; line-height:1.45; color:#1f2937;">
+                                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:5px; font-size:10px; line-height:1.4; color:#1f2937;">
                                             {% if signature.salesperson_mobile %}
                                             <tr>
-                                                <td style="padding:0 10px 6px 0; width:20px; font-size:14px; line-height:1; font-weight:700; color:#d91f26; text-align:center;">&#128241;</td>
-                                                <td style="padding:0 0 6px 0;">{{ signature.salesperson_mobile }}</td>
+                                                <td style="padding:0 6px 4px 0; width:14px; font-size:10px; line-height:1; color:#d91f26; text-align:center;">&#128241;</td>
+                                                <td style="padding:0 0 4px 0;">{{ signature.salesperson_mobile }}</td>
                                             </tr>
                                             {% endif %}
                                             <tr>
-                                                <td style="padding:0 10px 6px 0; width:20px; font-size:14px; line-height:1; font-weight:700; color:#d91f26; text-align:center;">&#9993;</td>
-                                                <td style="padding:0 0 6px 0;">
+                                                <td style="padding:0 6px 4px 0; width:14px; font-size:10px; line-height:1; color:#d91f26; text-align:center;">&#9993;</td>
+                                                <td style="padding:0 0 4px 0;">
                                                     <a href="mailto:{{ signature.salesperson_email }}" style="color:#1f2937; text-decoration:none;">{{ signature.salesperson_email }}</a>
                                                 </td>
                                             </tr>
                                             <tr>
-                                                <td style="padding:0 10px 6px 0; width:20px; font-size:14px; line-height:1; font-weight:700; color:#d91f26; text-align:center;">&#9742;</td>
-                                                <td style="padding:0 0 6px 0;">{{ signature.company_office_phone }}</td>
+                                                <td style="padding:0 6px 4px 0; width:14px; font-size:10px; line-height:1; color:#d91f26; text-align:center;">&#9742;</td>
+                                                <td style="padding:0 0 4px 0;">{{ signature.company_office_phone }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding:0 10px 6px 0; width:20px; font-size:14px; line-height:1; font-weight:700; color:#d91f26; text-align:center; vertical-align:top;">&#128205;</td>
-                                                <td style="padding:0 0 6px 0;">{{ signature.company_address }}</td>
+                                                <td style="padding:0 6px 4px 0; width:14px; font-size:10px; line-height:1; color:#d91f26; text-align:center; vertical-align:top;">&#128205;</td>
+                                                <td style="padding:0 0 4px 0;">{{ signature.company_address }}</td>
                                             </tr>
                                             <tr>
-                                                <td style="padding:0 10px 0 0; width:20px; font-size:14px; line-height:1; font-weight:700; color:#d91f26; text-align:center;">
+                                                <td style="padding:0 6px 0 0; width:14px; font-size:10px; line-height:1; color:#d91f26; text-align:center;">
                                                     {% if signature.company_website_icon_cid %}
-                                                    <img src="cid:{{ signature.company_website_icon_cid }}" alt="Website" style="display:block; width:21px; height:21px; margin:0 auto; border:0;">
+                                                    <img src="cid:{{ signature.company_website_icon_cid }}" alt="Website" width="13" height="13" style="display:block; width:13px; height:13px; max-width:13px; max-height:13px; margin:0 auto; border:0;">
                                                     {% else %}
                                                     &#127760;
                                                     {% endif %}
