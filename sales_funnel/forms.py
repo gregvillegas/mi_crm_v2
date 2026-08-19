@@ -154,6 +154,11 @@ class FunnelFilterForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select form-select-sm'})
     )
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm'})
+    )
     min_amount = forms.DecimalField(
         required=False,
         min_value=0,
@@ -234,6 +239,14 @@ class FunnelFilterForm(forms.Form):
         self.fields['group'].empty_label = '-- All Groups --'
         self.fields['salesperson'].queryset = qs.order_by('first_name', 'last_name')
         self.fields['salesperson'].empty_label = '-- All Salespeople --'
+
+        # Team filter queryset — derived from visible groups
+        if group_qs.exists():
+            team_ids = group_qs.values_list('team_id', flat=True).distinct()
+            self.fields['team'].queryset = Team.objects.filter(id__in=team_ids).order_by('name')
+        else:
+            self.fields['team'].queryset = Team.objects.all().order_by('name')
+        self.fields['team'].empty_label = '-- All Teams --'
 
 
 class BulkUpdateStageForm(forms.Form):

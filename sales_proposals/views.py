@@ -558,28 +558,37 @@ def generate_pdf_buffer(proposal):
         # Note: prioritized order. Liberation Sans is preferred on Linux as it supports the Peso sign (₱).
         # We check for Liberation Sans *before* Arial to avoid loading old Arial versions that lack the symbol.
         arial_paths = [
-            # Bundled with project
+            # Bundled with project (PRIORITY — ensures same output on all platforms)
             os.path.join(settings.BASE_DIR, 'core/static/core/fonts/DejaVuSans.ttf'),
-            os.path.join(settings.BASE_DIR, 'core/static/core/fonts/LiberationSans-Regular.ttf'),
+            os.path.join(settings.BASE_DIR, 'DejaVuSans.ttf'),
             # Ubuntu/Debian (System)
-            '/usr/share/fonts/truetype/dejavu/DejavuSans.ttf',
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', 
-            # Arial - macOS
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+            # Bundled Liberation/Arial
+            os.path.join(settings.BASE_DIR, 'core/static/core/fonts/LiberationSans-Regular.ttf'),
             os.path.join(settings.BASE_DIR, 'core/static/core/fonts/Arial.ttf'),
-            '/System/Library/Fonts/Supplemental/Arial.ttf', # macOS
-            '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf', # Ubuntu/Debian (Often old version without Peso sign)
-            '/usr/share/fonts/truetype/msttcorefonts/arial.ttf', # Ubuntu/Debian (lowercase)
-            '/usr/share/fonts/TTF/Arial.ttf', # Arch/Manjaro
+            # Arial - macOS
+            '/System/Library/Fonts/Supplemental/Arial.ttf',
+            '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+            '/usr/share/fonts/truetype/msttcorefonts/arial.ttf',
+            '/usr/share/fonts/TTF/Arial.ttf',
         ]
         
         arial_bold_paths = [
+            # Bundled with project (PRIORITY — ensures same output on all platforms)
+            os.path.join(settings.BASE_DIR, 'core/static/core/fonts/DejaVuSans-Bold.ttf'),
+            os.path.join(settings.BASE_DIR, 'DejaVuSans-Bold.ttf'),
+            # Ubuntu Systems
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+            # Bundled Liberation/Arial Bold
             os.path.join(settings.BASE_DIR, 'core/static/core/fonts/LiberationSans-Bold.ttf'),
-            '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', # Ubuntu/Debian (System)
             os.path.join(settings.BASE_DIR, 'core/static/core/fonts/Arial_Bold.ttf'),
-            '/System/Library/Fonts/Supplemental/Arial Bold.ttf', # macOS
-            '/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf', # Ubuntu/Debian
-            '/usr/share/fonts/truetype/msttcorefonts/arialbd.ttf', # Ubuntu/Debian (lowercase)
-            '/usr/share/fonts/TTF/Arialbd.ttf', # Arch/Manjaro
+            # Arial Bold - macOS
+            '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+            '/usr/share/fonts/truetype/msttcorefonts/Arial_Bold.ttf',
+            '/usr/share/fonts/truetype/msttcorefonts/arialbd.ttf',
+            '/usr/share/fonts/TTF/Arialbd.ttf',
         ]
         
         # Find first existing Arial font
@@ -720,7 +729,7 @@ def generate_pdf_buffer(proposal):
     
     # --- ITEMS TABLE ---
     currency_symbol = '₱' if proposal.currency == 'PHP' else '$'
-    price_col_header = "TOTAL PRICE" if proposal.use_total_price_label else "EXTENDED PRICE"
+    price_col_header = "TOTAL PRICE"
 
     if proposal.is_multi_option:
         # ===============================================================
@@ -775,7 +784,7 @@ def generate_pdf_buffer(proposal):
                 '',
             ])
 
-            col_widths = [0.45*inch, 1.1*inch, 2.4*inch, 0.5*inch, 1.0*inch, 1.1*inch, 0.95*inch]
+            col_widths = [0.55*inch, 1.1*inch, 2.1*inch, 0.5*inch, 1.05*inch, 1.25*inch, 0.95*inch]
             gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
             gt_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
@@ -820,8 +829,8 @@ def generate_pdf_buffer(proposal):
                     styles['TableText'],
                 ),
                 Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
-                Paragraph(f"{currency_symbol} {item.unit_price:,.2f}", styles['TableTextRight']),
-                Paragraph(f"{currency_symbol} {item.amount:,.2f}", styles['TableTextRight']),
+                Paragraph(f"{currency_symbol}&nbsp;{item.unit_price:,.2f}", styles['TableTextRight']),
+                Paragraph(f"{currency_symbol}&nbsp;{item.amount:,.2f}", styles['TableTextRight']),
                 Paragraph(item.warranty or proposal.warranty, styles['TableText'])
             ])
             for component in item.bundle_components:
@@ -846,7 +855,7 @@ def generate_pdf_buffer(proposal):
             table_data.append([
                 '', '', '', '', 
                 Paragraph("Subtotal", styles['TableText']), 
-                Paragraph(f"{currency_symbol} {proposal.subtotal:,.2f}", styles['TableTextRight']), 
+                Paragraph(f"{currency_symbol}&nbsp;{proposal.subtotal:,.2f}", styles['TableTextRight']), 
                 ''
             ])
 
@@ -854,7 +863,7 @@ def generate_pdf_buffer(proposal):
                 table_data.append([
                     '', '', '', '',
                     Paragraph("Discount", styles['TableText']),
-                    Paragraph(f"-{currency_symbol} {proposal.discount_amount:,.2f}", styles['TableTextRight']),
+                    Paragraph(f"-{currency_symbol}&nbsp;{proposal.discount_amount:,.2f}", styles['TableTextRight']),
                     ''
                 ])
 
@@ -862,12 +871,12 @@ def generate_pdf_buffer(proposal):
             table_data.append([
                 '', '', '', '', 
                 Paragraph("Grand Total", styles['TableHeader']), 
-                Paragraph(f"{currency_symbol} {proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
+                Paragraph(f"{currency_symbol}&nbsp;{proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
                 ''
             ])
     
         # Tighter widths to improve print margins and reduce empty space in TOTAL PRICE/WARRANTY
-        col_widths = [0.45*inch, 1.1*inch, 2.4*inch, 0.5*inch, 1.0*inch, 1.1*inch, 0.95*inch]
+        col_widths = [0.55*inch, 1.1*inch, 2.1*inch, 0.5*inch, 1.05*inch, 1.25*inch, 0.95*inch]
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
     
         # Styling
@@ -883,9 +892,9 @@ def generate_pdf_buffer(proposal):
         ]
         if not proposal.has_optional_items:
             table_style.extend([
-                ('BACKGROUND', (4,-1), (5,-1), MIC_RED),
-                ('TEXTCOLOR', (4,-1), (5,-1), colors.white),
-                ('GRID', (4,-1), (5,-1), 1, MIC_RED),
+                ('BACKGROUND', (4,-1), (6,-1), MIC_RED),
+                ('TEXTCOLOR', (4,-1), (6,-1), colors.white),
+                ('GRID', (4,-1), (6,-1), 1, MIC_RED),
             ])
         t.setStyle(TableStyle(table_style))
         elements.append(t)

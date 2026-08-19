@@ -215,6 +215,7 @@ def funnel_dashboard(request):
         brand = filter_form.cleaned_data.get('brand')
         salesperson = filter_form.cleaned_data.get('salesperson')
         group = filter_form.cleaned_data.get('group')
+        team = filter_form.cleaned_data.get('team')
         min_amount = filter_form.cleaned_data.get('min_amount')
         date_from = filter_form.cleaned_data.get('date_from')
         date_to = filter_form.cleaned_data.get('date_to')
@@ -223,6 +224,8 @@ def funnel_dashboard(request):
             funnel_entries = funnel_entries.filter(stage=stage)
         if brand:
             funnel_entries = funnel_entries.filter(brand__icontains=brand.strip())
+        if team:
+            funnel_entries = funnel_entries.filter(salesperson__team_membership__group__team=team)
         if group:
             funnel_entries = funnel_entries.filter(salesperson__team_membership__group=group)
         if salesperson:
@@ -235,13 +238,11 @@ def funnel_dashboard(request):
             funnel_entries = funnel_entries.filter(date_created__lte=date_to)
 
     today = timezone.localdate()
-    week_start = today - timedelta(days=today.weekday())
-    week_end = week_start + timedelta(days=7)
     
-    # Organize entries by stage
+    # Organize entries by stage (show all active entries in each stage)
     quoted_entries = list(
         funnel_entries
-        .filter(stage='quoted', date_created__gte=week_start, date_created__lt=week_end)
+        .filter(stage='quoted')
         .select_related('salesperson', 'customer', 'proposal')
     )
     closable_entries = list(funnel_entries.filter(stage='closable').select_related('salesperson', 'customer', 'proposal'))
@@ -365,6 +366,10 @@ def funnel_dashboard(request):
 @login_required
 @user_passes_test(is_manager)
 def export_funnel_report(request):
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
     user = request.user
     if user.role == 'salesperson':
         return redirect('sales_funnel:dashboard')
@@ -407,6 +412,7 @@ def export_funnel_report(request):
         brand = form.cleaned_data.get('brand')
         salesperson = form.cleaned_data.get('salesperson')
         group = form.cleaned_data.get('group')
+        team = form.cleaned_data.get('team')
         min_amount = form.cleaned_data.get('min_amount')
         date_from = form.cleaned_data.get('date_from')
         date_to = form.cleaned_data.get('date_to')
@@ -414,6 +420,8 @@ def export_funnel_report(request):
             qs = qs.filter(stage=stage)
         if brand:
             qs = qs.filter(brand__icontains=brand.strip())
+        if team:
+            qs = qs.filter(salesperson__team_membership__group__team=team)
         if group:
             qs = qs.filter(salesperson__team_membership__group=group)
         if salesperson:
@@ -425,28 +433,139 @@ def export_funnel_report(request):
         if date_to:
             qs = qs.filter(date_created__lte=date_to)
 
-    response = HttpResponse(content_type='text/csv')
-    filename = f"funnel_export_{timezone.now().strftime('%Y%m%d')}.csv"
+    # Build Excel workbook grouped by stage
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    STAGE_ORDER = [
+        ('quoted', 'PINK', 'FF69B4'),
+        ('closable', 'YELLOW', 'FFD700'),
+        ('project', 'GREEN', '28A745'),
+        ('services', 'BLUE', '007BFF'),
+    ]
+
+    header_font = Font(bold=True, color='FFFFFF', size=10)
+    header_border = Border(
+        bottom=Side(style='thin'),
+        top=Side(style='thin'),
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+    )
+    data_border = Border(
+        bottom=Side(style='thin', color='DDDDDD'),
+        left=Side(style='thin', color='DDDDDD'),
+        right=Side(style='thin', color='DDDDDD'),
+    )
+    headers = ['Group', 'Date', 'Company', 'Brand', 'Requirement', 'SRP (₱)', 'Cost (₱)', 'Profit (₱)', 'AM', 'Expected Close', 'Probability', 'Notes']
+
+    for stage_key, stage_label, stage_color in STAGE_ORDER:
+        entries = list(qs.filter(stage=stage_key).select_related('salesperson', 'salesperson__team_membership__group', 'customer').order_by('-date_created'))
+        ws = wb.create_sheet(title=stage_label)
+
+        # Header row
+        header_fill = PatternFill(start_color=stage_color, end_color=stage_color, fill_type='solid')
+        for col_idx, h in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col_idx, value=h)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+            cell.border = header_border
+
+        # Data rows
+        for row_idx, e in enumerate(entries, 2):
+            # Resolve group name
+            group_name = ''
+            try:
+                if e.salesperson and hasattr(e.salesperson, 'team_membership'):
+                    group_name = e.salesperson.team_membership.group.name
+            except Exception:
+                pass
+            # AM initials (3-letter code)
+            am_initials = ''
+            if e.salesperson:
+                am_initials = (e.salesperson.initials or '').upper()
+                if not am_initials:
+                    parts = [e.salesperson.first_name, e.salesperson.last_name]
+                    am_initials = ''.join((p[:1] or '').upper() for p in parts if p)
+                    if not am_initials:
+                        am_initials = e.salesperson.username[:3].upper()
+            row_data = [
+                group_name,
+                e.date_created.strftime('%Y-%m-%d'),
+                e.company_name,
+                e.brand or '',
+                e.requirement_description or '',
+                float(e.retail),
+                float(e.cost),
+                float(e.profit),
+                am_initials,
+                e.expected_close_date.strftime('%Y-%m-%d') if e.expected_close_date else '',
+                e.probability,
+                e.notes or '',
+            ]
+            for col_idx, val in enumerate(row_data, 1):
+                cell = ws.cell(row=row_idx, column=col_idx, value=val)
+                cell.border = data_border
+                if col_idx in (6, 7, 8):  # Currency columns (SRP, Cost, Profit)
+                    cell.number_format = '#,##0.00'
+
+        # Auto-width columns
+        for col_idx in range(1, len(headers) + 1):
+            col_letter = get_column_letter(col_idx)
+            max_len = len(headers[col_idx - 1])
+            for row in ws.iter_rows(min_row=2, min_col=col_idx, max_col=col_idx):
+                for cell in row:
+                    if cell.value:
+                        max_len = max(max_len, min(len(str(cell.value)), 40))
+            ws.column_dimensions[col_letter].width = max_len + 3
+
+        # Summary row
+        if entries:
+            summary_row = len(entries) + 2
+            ws.cell(row=summary_row, column=5, value='TOTAL').font = Font(bold=True)
+            ws.cell(row=summary_row, column=6, value=float(sum(e.retail for e in entries))).font = Font(bold=True)
+            ws.cell(row=summary_row, column=6).number_format = '#,##0.00'
+            ws.cell(row=summary_row, column=7, value=float(sum(e.cost for e in entries))).font = Font(bold=True)
+            ws.cell(row=summary_row, column=7).number_format = '#,##0.00'
+            ws.cell(row=summary_row, column=8, value=float(sum(e.profit for e in entries))).font = Font(bold=True)
+            ws.cell(row=summary_row, column=8).number_format = '#,##0.00'
+
+    # If no sheets were created (all empty), add a placeholder
+    if not wb.sheetnames:
+        ws = wb.create_sheet(title='No Data')
+        ws.cell(row=1, column=1, value='No funnel entries found for the selected filters.')
+
+    # Write response
+    from io import BytesIO
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    # Build filename with team name prefix
+    team_name_prefix = ''
+    if user.role == 'avp':
+        team_obj = user.managed_teams.first()
+        if team_obj:
+            team_name_prefix = team_obj.name.upper().replace(' ', '_') + '_'
+    elif user.role == 'asm':
+        team_obj = user.asm_teams.first()
+        if team_obj:
+            team_name_prefix = team_obj.name.upper().replace(' ', '_') + '_'
+    elif user.role == 'sm':
+        sm_group = user.sm_groups.select_related('team').first()
+        if sm_group and sm_group.team:
+            team_name_prefix = sm_group.team.name.upper().replace(' ', '_') + '_'
+    elif user.role == 'supervisor':
+        sup_group = user.managed_groups.select_related('team').first()
+        if sup_group and sup_group.team:
+            team_name_prefix = sup_group.team.name.upper().replace(' ', '_') + '_'
+
+    filename = f"{team_name_prefix}SALES_FUNNEL_{timezone.now().strftime('%Y%m%d')}.xlsx"
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    writer = csv.writer(response)
-    writer.writerow([
-        'Date', 'Company', 'Brand', 'Stage', 'SRP', 'Cost', 'Profit', 'Account Manager', 'Customer', 'Expected Close', 'Probability', 'Notes'
-    ])
-    for e in qs.select_related('salesperson', 'customer').order_by('-date_created'):
-        writer.writerow([
-            e.date_created.strftime('%Y-%m-%d'),
-            e.company_name,
-            e.brand or '',
-            e.get_stage_display(),
-            f"{e.retail}",
-            f"{e.cost}",
-            f"{e.profit}",
-            e.salesperson.username,
-            e.customer.full_name if e.customer else '',
-            e.expected_close_date.strftime('%Y-%m-%d') if e.expected_close_date else '',
-            e.probability,
-            e.notes,
-        ])
     return response
 
 

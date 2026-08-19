@@ -57,3 +57,4 @@ Thumbs.db
 db_backup.json
 db_full_backup.json
 seed_backup_*.json
+recycle/

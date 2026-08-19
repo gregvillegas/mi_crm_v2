@@ -197,6 +197,10 @@
                 {{ filter_form.group }}
             </div>
             <div class="col-md-3">
+                <label class="form-label">Team</label>
+                {{ filter_form.team }}
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Min Amount (₱)</label>
                 {{ filter_form.min_amount }}
             </div>
@@ -215,9 +219,9 @@
                 <a href="{% url 'sales_funnel:dashboard' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-times"></i> Clear
                 </a>
-                {% if not can_add %}
+                {% if not can_add or user.role == 'avp' or user.role == 'sm' or user.role == 'asm' or user.role == 'supervisor' %}
                 <button type="button" class="btn btn-outline-success" onclick="exportFunnel()">
-                    <i class="fas fa-file-export"></i> Export CSV
+                    <i class="fas fa-file-export"></i> Export Excel
                 </button>
                 {% endif %}
             </div>

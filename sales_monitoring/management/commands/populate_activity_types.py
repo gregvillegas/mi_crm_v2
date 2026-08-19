@@ -22,44 +22,72 @@ class Command(BaseCommand):
             },
             {
                 'name': 'Email',
-                'description': 'Email communications and follow-ups',
+                'description': 'Email communications and follow-ups with customers.',
                 'icon': 'fas fa-envelope',
                 'color': 'info',
                 'requires_customer': True,
             },
             {
-                'name': 'Proposal',
-                'description': 'Creating and sending sales proposals',
+                'name': 'Proposals',
+                'description': 'Creating, revising, and sending formal sales proposals and quotations.',
                 'icon': 'fas fa-file-contract',
                 'color': 'warning',
                 'requires_customer': True,
             },
             {
-                'name': 'Task',
-                'description': 'Administrative and preparatory tasks',
-                'icon': 'fas fa-clipboard-check',
-                'color': 'secondary',
-                'requires_customer': False,
-            },
-            {
-                'name': 'Demo',
-                'description': 'Product demonstrations and presentations',
+                'name': 'Product Demo',
+                'description': 'Product demonstrations, technical presentations, and proof-of-concept showcases.',
                 'icon': 'fas fa-desktop',
                 'color': 'purple',
                 'requires_customer': True,
             },
             {
-                'name': 'Follow-up',
-                'description': 'Follow-up activities after initial contact',
-                'icon': 'fas fa-redo',
+                'name': 'Site Visit',
+                'description': 'On-site customer visits for assessment, delivery, installation, or relationship building.',
+                'icon': 'fas fa-building',
                 'color': 'dark',
                 'requires_customer': True,
             },
             {
-                'name': 'Research',
-                'description': 'Customer and market research activities',
-                'icon': 'fas fa-search',
-                'color': 'light',
+                'name': 'Follow-up',
+                'description': 'Follow-up activities after initial contact, proposal submission, or post-sale check-in.',
+                'icon': 'fas fa-redo',
+                'color': 'secondary',
+                'requires_customer': True,
+            },
+            {
+                'name': 'Negotiation',
+                'description': 'Price negotiation, contract terms discussion, and deal-closing conversations.',
+                'icon': 'fas fa-comments-dollar',
+                'color': 'danger',
+                'requires_customer': True,
+            },
+            {
+                'name': 'Technical Consultation',
+                'description': 'Technical requirement gathering, solution design, and pre-sales engineering support.',
+                'icon': 'fas fa-cogs',
+                'color': 'info',
+                'requires_customer': True,
+            },
+            {
+                'name': 'Lead Generation',
+                'description': 'Prospecting, cold outreach, event attendance, and networking for new business.',
+                'icon': 'fas fa-user-plus',
+                'color': 'success',
+                'requires_customer': False,
+            },
+            {
+                'name': 'Training',
+                'description': 'Product training, vendor certification sessions, or internal knowledge sharing.',
+                'icon': 'fas fa-chalkboard-teacher',
+                'color': 'warning',
+                'requires_customer': False,
+            },
+            {
+                'name': 'Internal Task',
+                'description': 'Administrative work, report preparation, CRM updates, and team coordination.',
+                'icon': 'fas fa-clipboard-check',
+                'color': 'secondary',
                 'requires_customer': False,
             },
         ]
@@ -73,13 +101,13 @@ class Command(BaseCommand):
             if created:
                 created_count += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f'Created activity type: {activity_type.name}')
+                    self.style.SUCCESS(f'  + Created: {activity_type.name}')
                 )
             else:
                 self.stdout.write(
-                    self.style.WARNING(f'Activity type already exists: {activity_type.name}')
+                    self.style.WARNING(f'  ✓ Already exists: {activity_type.name}')
                 )
 
         self.stdout.write(
-            self.style.SUCCESS(f'Successfully created {created_count} new activity types')
+            self.style.SUCCESS(f'\nDone. Created {created_count} new activity types. Total: {ActivityType.objects.count()}')
         )

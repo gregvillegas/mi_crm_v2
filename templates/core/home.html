@@ -7,7 +7,8 @@
     <p class="text-muted">Logged in as: <strong>{{ user.get_full_name|default:user.username }}</strong> ({% if user.job_title %}{{ user.get_job_title_display }}{% elif user.role in 'president,gm,vp' %}Executive{% else %}{{ user.get_role_display }}{% endif %})</p>
 </div>
 
-<!-- Gamification Widget -->
+<!-- Gamification Widget (salesperson only) -->
+{% if user.role == 'salesperson' %}
 <div class="row mb-4">
     <div class="col-md-12">
         <div class="card shadow-sm border-warning">
@@ -68,6 +69,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if show_funnel %}
 <!-- Sales Funnel Overview -->
