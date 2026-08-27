@@ -22,6 +22,10 @@ class GroupAdmin(admin.ModelAdmin):
             'fields': ('supervisor', 'teamlead'),
             'description': 'For TSG groups, leave supervisor empty - they are managed by the team Technical Manager.'
         }),
+        ('Approval Settings', {
+            'fields': ('requires_sm_approval',),
+            'description': 'Controls whether proposals from this group require SM approval before AVP.'
+        }),
     )
     
     def get_manager_display(self, obj):

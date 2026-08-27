@@ -44,6 +44,14 @@ class Group(models.Model):
         help_text='Sales Managers responsible for this group. One SM can manage multiple groups across a team.',
     )
 
+    # Whether this group requires SM/ASM approval in the proposal approval chain.
+    # If False: approval goes Supervisor → AVP (2 levels)
+    # If True: approval goes Supervisor → SM → AVP (3 levels)
+    requires_sm_approval = models.BooleanField(
+        default=False,
+        help_text='If checked, proposals from this group require SM approval before AVP.',
+    )
+
     # Teamlead stays the same for all group types
     teamlead = models.ForeignKey(User, on_delete=models.SET_NULL, related_name='led_groups', 
                              blank=True, null=True, limit_choices_to={'role': 'teamlead'})

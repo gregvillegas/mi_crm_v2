@@ -253,10 +253,11 @@
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th>Company</th>
-                            <th style="width: 180px;">Ref #</th>
-                            {% if can_add %}<th class="text-center" style="width: 100px;">AM</th>{% endif %}
+                            <th style="width: 80px;">Date</th>
+                            <th style="width: 280px;">Company</th>
+                            <th style="width: 140px;">Notes</th>
+                            <th style="width: 150px;">Ref #</th>
+                            {% if can_add %}<th class="text-center" style="width: 60px;">AM</th>{% endif %}
                             <th class="text-center" style="width: 140px;">SRP</th>
                             <th class="text-center" style="width: 140px;">Profit</th>
                             {% if not can_add %}<th class="text-center" style="width: 160px;">Account Manager</th>{% endif %}
@@ -267,16 +268,17 @@
                         <tr>
                             <td><strong class="small">{{ entry.date_created|date:"M d" }}</strong></td>
                             <td>
-                                <div class="fw-semibold text-primary">
+                                <div class="fw-semibold text-primary" title="{{ entry.company_name }}">
                                     {% if entry.proposal %}
-                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-primary">{{ entry.company_name }}</a>
+                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-primary">{{ entry.company_name|truncatechars:30 }}</a>
                                     {% else %}
-                                        {{ entry.company_name }}
+                                        {{ entry.company_name|truncatechars:30 }}
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small">{{ entry.requirement_description|truncatechars:60 }}</div>
+                                <div class="text-muted small" title="{{ entry.requirement_description }}">{{ entry.requirement_description|truncatechars:40 }}</div>
                                 
                             </td>
+                            <td class="small text-muted editable-notes" data-entry-id="{{ entry.id }}" data-full-notes="{{ entry.notes|default:"" }}" style="cursor:pointer;" title="{{ entry.notes|default:"double-click to add" }}">{% if entry.notes %}{{ entry.notes|truncatechars:15 }}{% else %}<span class="text-muted fst-italic">double-click to add</span>{% endif %}</td>
                             <td class="small">
                                 {% if entry.proposal %}
                                     {{ entry.proposal.reference_number|default:entry.proposal.proposal_number }}
@@ -308,7 +310,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">No PINK entries</td>
+                            <td colspan="7" class="text-center text-muted py-3">No PINK entries</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -413,10 +415,11 @@
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th>Company</th>
-                            <th style="width: 180px;">Ref #</th>
-                            {% if can_add %}<th class="text-center" style="width: 100px;">AM</th>{% endif %}
+                            <th style="width: 80px;">Date</th>
+                            <th style="width: 280px;">Company</th>
+                            <th style="width: 140px;">Notes</th>
+                            <th style="width: 150px;">Ref #</th>
+                            {% if can_add %}<th class="text-center" style="width: 60px;">AM</th>{% endif %}
                             <th class="text-center" style="width: 140px;">SRP</th>
                             <th class="text-center" style="width: 140px;">Profit</th>
                             {% if not can_add %}<th class="text-center" style="width: 160px;">Account Manager</th>{% endif %}
@@ -427,16 +430,17 @@
                         <tr>
                             <td><strong class="small">{{ entry.date_created|date:"M d" }}</strong></td>
                             <td>
-                                <div class="fw-semibold text-warning">
+                                <div class="fw-semibold text-warning" title="{{ entry.company_name }}">
                                     {% if entry.proposal %}
-                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-warning">{{ entry.company_name }}</a>
+                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-warning">{{ entry.company_name|truncatechars:30 }}</a>
                                     {% else %}
-                                        {{ entry.company_name }}
+                                        {{ entry.company_name|truncatechars:30 }}
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small">{{ entry.requirement_description|truncatechars:60 }}</div>
+                                <div class="text-muted small" title="{{ entry.requirement_description }}">{{ entry.requirement_description|truncatechars:40 }}</div>
                                 
                             </td>
+                            <td class="small text-muted editable-notes" data-entry-id="{{ entry.id }}" data-full-notes="{{ entry.notes|default:"" }}" style="cursor:pointer;" title="{{ entry.notes|default:"double-click to add" }}">{% if entry.notes %}{{ entry.notes|truncatechars:15 }}{% else %}<span class="text-muted fst-italic">double-click to add</span>{% endif %}</td>
                             <td class="small">
                                 {% if entry.proposal %}
                                     {{ entry.proposal.reference_number|default:entry.proposal.proposal_number }}
@@ -467,7 +471,7 @@
                             {% endif %}
                         </tr>
                         {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">No YELLOW entries</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-3">No YELLOW entries</td></tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
@@ -569,10 +573,11 @@
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th>Company</th>
-                            <th style="width: 180px;">Ref #</th>
-                            {% if can_add %}<th class="text-center" style="width: 100px;">AM</th>{% endif %}
+                            <th style="width: 80px;">Date</th>
+                            <th style="width: 280px;">Company</th>
+                            <th style="width: 140px;">Notes</th>
+                            <th style="width: 150px;">Ref #</th>
+                            {% if can_add %}<th class="text-center" style="width: 60px;">AM</th>{% endif %}
                             <th class="text-center" style="width: 140px;">SRP</th>
                             <th class="text-center" style="width: 140px;">Profit</th>
                             {% if not can_add %}<th class="text-center" style="width: 160px;">Account Manager</th>{% endif %}
@@ -583,16 +588,17 @@
                         <tr>
                             <td><strong class="small">{{ entry.date_created|date:"M d" }}</strong></td>
                             <td>
-                                <div class="fw-semibold text-success">
+                                <div class="fw-semibold text-success" title="{{ entry.company_name }}">
                                     {% if entry.proposal %}
-                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-success">{{ entry.company_name }}</a>
+                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-success">{{ entry.company_name|truncatechars:30 }}</a>
                                     {% else %}
-                                        {{ entry.company_name }}
+                                        {{ entry.company_name|truncatechars:30 }}
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small">{{ entry.requirement_description|truncatechars:60 }}</div>
+                                <div class="text-muted small" title="{{ entry.requirement_description }}">{{ entry.requirement_description|truncatechars:40 }}</div>
                                 
                             </td>
+                            <td class="small text-muted editable-notes" data-entry-id="{{ entry.id }}" data-full-notes="{{ entry.notes|default:"" }}" style="cursor:pointer;" title="{{ entry.notes|default:"double-click to add" }}">{% if entry.notes %}{{ entry.notes|truncatechars:15 }}{% else %}<span class="text-muted fst-italic">double-click to add</span>{% endif %}</td>
                             <td class="small">
                                 {% if entry.proposal %}
                                     {{ entry.proposal.reference_number|default:entry.proposal.proposal_number }}
@@ -623,7 +629,7 @@
                             {% endif %}
                         </tr>
                         {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">No GREEN entries</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-3">No GREEN entries</td></tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
@@ -727,10 +733,11 @@
                 <table class="table table-sm table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 100px;">Date</th>
-                            <th>Company</th>
-                            <th style="width: 180px;">Ref #</th>
-                            {% if can_add %}<th class="text-center" style="width: 100px;">AM</th>{% endif %}
+                            <th style="width: 80px;">Date</th>
+                            <th style="width: 280px;">Company</th>
+                            <th style="width: 140px;">Notes</th>
+                            <th style="width: 150px;">Ref #</th>
+                            {% if can_add %}<th class="text-center" style="width: 60px;">AM</th>{% endif %}
                             <th class="text-center" style="width: 140px;">SRP</th>
                             <th class="text-center" style="width: 140px;">Profit</th>
                             {% if not can_add %}<th class="text-center" style="width: 160px;">Account Manager</th>{% endif %}
@@ -741,14 +748,14 @@
                         <tr>
                             <td><strong class="small">{{ entry.date_created|date:"M d" }}</strong></td>
                             <td>
-                                <div class="fw-semibold text-primary">
+                                <div class="fw-semibold text-primary" title="{{ entry.company_name }}">
                                     {% if entry.proposal %}
-                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-primary">{{ entry.company_name }}</a>
+                                        <a href="{% url 'proposal_detail' entry.proposal.pk %}" class="text-decoration-none text-primary">{{ entry.company_name|truncatechars:30 }}</a>
                                     {% else %}
-                                        {{ entry.company_name }}
+                                        {{ entry.company_name|truncatechars:30 }}
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small">{{ entry.requirement_description|truncatechars:60 }}</div>
+                                <div class="text-muted small" title="{{ entry.requirement_description }}">{{ entry.requirement_description|truncatechars:40 }}</div>
                                 <!--{% if can_add %}
                                 <div class="mt-1">
                                     {% if entry.salesperson.initials %}
@@ -760,6 +767,7 @@
                                 </div>
                                 {% endif %} -->
                             </td>
+                            <td class="small text-muted editable-notes" data-entry-id="{{ entry.id }}" data-full-notes="{{ entry.notes|default:"" }}" style="cursor:pointer;" title="{{ entry.notes|default:"double-click to add" }}">{% if entry.notes %}{{ entry.notes|truncatechars:15 }}{% else %}<span class="text-muted fst-italic">double-click to add</span>{% endif %}</td>
                             <td class="small">
                                 {% if entry.proposal %}
                                     {{ entry.proposal.reference_number|default:entry.proposal.proposal_number }}
@@ -790,7 +798,7 @@
                             {% endif %}
                         </tr>
                         {% empty %}
-                        <tr><td colspan="6" class="text-center text-muted py-3">No BLUE entries</td></tr>
+                        <tr><td colspan="7" class="text-center text-muted py-3">No BLUE entries</td></tr>
                         {% endfor %}
                     </tbody>
                     <tfoot>
@@ -977,6 +985,66 @@ function setViewMode(mode) {
     url.searchParams.set('view', mode);
     window.location.href = url.toString();
 }
+
+// Inline-editable Notes: double-click to edit, blur/Enter to save
+document.addEventListener('dblclick', function(e) {
+    const cell = e.target.closest('.editable-notes');
+    if (!cell || cell.querySelector('textarea')) return;
+
+    const entryId = cell.dataset.entryId;
+    const currentText = cell.dataset.fullNotes || '';
+
+    // Replace cell content with textarea
+    const textarea = document.createElement('textarea');
+    textarea.className = 'form-control form-control-sm';
+    textarea.style.cssText = 'font-size: 12px; min-height: 60px; resize: vertical;';
+    textarea.value = currentText;
+    cell.innerHTML = '';
+    cell.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    function saveNotes() {
+        const newNotes = textarea.value.trim();
+        // Save via AJAX
+        fetch(`/funnel/update-notes/${entryId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({notes: newNotes})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                cell.dataset.fullNotes = data.notes;
+                const display = data.notes.length > 15 ? data.notes.substring(0, 12) + '...' : data.notes;
+                cell.innerHTML = `<span title="${data.notes.replace(/"/g, '&quot;')}">${display || '<span class=\"text-muted fst-italic\">double-click to add</span>'}</span>`;
+            } else {
+                showAlert('danger', data.message || 'Failed to save notes');
+                cell.innerHTML = `<span title="${currentText}">${currentText.length > 15 ? currentText.substring(0, 12) + '...' : currentText}</span>`;
+            }
+        })
+        .catch(() => {
+            showAlert('danger', 'Network error saving notes');
+            cell.innerHTML = `<span title="${currentText}">${currentText.length > 15 ? currentText.substring(0, 12) + '...' : currentText}</span>`;
+        });
+    }
+
+    textarea.addEventListener('blur', saveNotes);
+    textarea.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter' && !ev.shiftKey) {
+            ev.preventDefault();
+            textarea.blur();
+        }
+        if (ev.key === 'Escape') {
+            // Cancel edit
+            const display = currentText.length > 15 ? currentText.substring(0, 12) + '...' : currentText;
+            cell.innerHTML = `<span title="${currentText}">${display || '<span class=\"text-muted fst-italic\">double-click to add</span>'}</span>`;
+        }
+    });
+});
 </script>
 
 {% csrf_token %}

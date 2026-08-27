@@ -784,7 +784,7 @@ def generate_pdf_buffer(proposal):
                 '',
             ])
 
-            col_widths = [0.55*inch, 1.1*inch, 2.1*inch, 0.5*inch, 1.05*inch, 1.25*inch, 0.95*inch]
+            col_widths = [0.55*inch, 1.1*inch, 2.05*inch, 0.5*inch, 1.05*inch, 1.3*inch, 0.95*inch]
             gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
             gt_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
@@ -793,10 +793,10 @@ def generate_pdf_buffer(proposal):
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('GRID', (0, 0), (-1, -2), 1, colors.black),
                 ('ALIGN', (2, 1), (2, -2), 'LEFT'),
-                # Total Investment row styling (yellow background)
-                ('BACKGROUND', (4, -1), (5, -1), colors.HexColor('#FFC107')),
-                ('TEXTCOLOR', (4, -1), (5, -1), colors.black),
-                ('GRID', (4, -1), (5, -1), 1, colors.HexColor('#FFC107')),
+                # Total Investment row styling (red background, white text)
+                ('BACKGROUND', (4, -1), (5, -1), MIC_RED),
+                ('TEXTCOLOR', (4, -1), (5, -1), colors.white),
+                ('GRID', (4, -1), (5, -1), 1, MIC_RED),
             ]
             gt.setStyle(TableStyle(gt_style))
             elements.append(gt)
@@ -829,8 +829,8 @@ def generate_pdf_buffer(proposal):
                     styles['TableText'],
                 ),
                 Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
-                Paragraph(f"{currency_symbol}&nbsp;{item.unit_price:,.2f}", styles['TableTextRight']),
-                Paragraph(f"{currency_symbol}&nbsp;{item.amount:,.2f}", styles['TableTextRight']),
+                Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
+                Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
                 Paragraph(item.warranty or proposal.warranty, styles['TableText'])
             ])
             for component in item.bundle_components:
@@ -855,7 +855,7 @@ def generate_pdf_buffer(proposal):
             table_data.append([
                 '', '', '', '', 
                 Paragraph("Subtotal", styles['TableText']), 
-                Paragraph(f"{currency_symbol}&nbsp;{proposal.subtotal:,.2f}", styles['TableTextRight']), 
+                Paragraph(f"{currency_symbol}{proposal.subtotal:,.2f}", styles['TableTextRight']), 
                 ''
             ])
 
@@ -863,7 +863,7 @@ def generate_pdf_buffer(proposal):
                 table_data.append([
                     '', '', '', '',
                     Paragraph("Discount", styles['TableText']),
-                    Paragraph(f"-{currency_symbol}&nbsp;{proposal.discount_amount:,.2f}", styles['TableTextRight']),
+                    Paragraph(f"-{currency_symbol}{proposal.discount_amount:,.2f}", styles['TableTextRight']),
                     ''
                 ])
 
@@ -871,12 +871,12 @@ def generate_pdf_buffer(proposal):
             table_data.append([
                 '', '', '', '', 
                 Paragraph("Grand Total", styles['TableHeader']), 
-                Paragraph(f"{currency_symbol}&nbsp;{proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
+                Paragraph(f"{currency_symbol}{proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
                 ''
             ])
     
         # Tighter widths to improve print margins and reduce empty space in TOTAL PRICE/WARRANTY
-        col_widths = [0.55*inch, 1.1*inch, 2.1*inch, 0.5*inch, 1.05*inch, 1.25*inch, 0.95*inch]
+        col_widths = [0.55*inch, 1.1*inch, 2.05*inch, 0.5*inch, 1.05*inch, 1.3*inch, 0.95*inch]
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
     
         # Styling

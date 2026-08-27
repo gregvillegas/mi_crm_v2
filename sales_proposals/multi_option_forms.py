@@ -108,10 +108,10 @@ OptionGroupFormSet = inlineformset_factory(
     Proposal,
     ProposalOptionGroup,
     form=ProposalOptionGroupForm,
-    extra=2,  # Start with 2 option groups
+    extra=0,
     can_delete=True,
-    min_num=1,
-    validate_min=True,
+    min_num=0,
+    validate_min=False,
 )
 
 

@@ -456,7 +456,7 @@ def export_funnel_report(request):
         left=Side(style='thin', color='DDDDDD'),
         right=Side(style='thin', color='DDDDDD'),
     )
-    headers = ['Group', 'Date', 'Company', 'Brand', 'Requirement', 'SRP (₱)', 'Cost (₱)', 'Profit (₱)', 'AM', 'Expected Close', 'Probability', 'Notes']
+    headers = ['GROUP', 'AE', 'COMPANY NAME', 'REQUIREMENT', 'PRODUCT COST', 'REVENUE', 'PROFIT', '% MARGIN', 'OPPORTUNITY STARTED', 'PROBABILITY OF WIN', 'TIME FRAME', 'WEEK ACTIVITY REPORT']
 
     for stage_key, stage_label, stage_color in STAGE_ORDER:
         entries = list(qs.filter(stage=stage_key).select_related('salesperson', 'salesperson__team_membership__group', 'customer').order_by('-date_created'))
@@ -480,7 +480,7 @@ def export_funnel_report(request):
                     group_name = e.salesperson.team_membership.group.name
             except Exception:
                 pass
-            # AM initials (3-letter code)
+            # AE initials (3-letter code)
             am_initials = ''
             if e.salesperson:
                 am_initials = (e.salesperson.initials or '').upper()
@@ -489,25 +489,32 @@ def export_funnel_report(request):
                     am_initials = ''.join((p[:1] or '').upper() for p in parts if p)
                     if not am_initials:
                         am_initials = e.salesperson.username[:3].upper()
+            # % Margin calculation
+            revenue = float(e.retail)
+            profit = float(e.profit)
+            margin_pct = (profit / revenue * 100) if revenue > 0 else 0
+
             row_data = [
                 group_name,
-                e.date_created.strftime('%Y-%m-%d'),
-                e.company_name,
-                e.brand or '',
-                e.requirement_description or '',
-                float(e.retail),
-                float(e.cost),
-                float(e.profit),
                 am_initials,
-                e.expected_close_date.strftime('%Y-%m-%d') if e.expected_close_date else '',
+                e.company_name,
+                e.requirement_description or '',
+                float(e.cost),
+                revenue,
+                profit,
+                round(margin_pct, 2),
+                e.date_created.strftime('%Y-%m-%d'),
                 e.probability,
+                e.expected_close_date.strftime('%Y-%m-%d') if e.expected_close_date else '',
                 e.notes or '',
             ]
             for col_idx, val in enumerate(row_data, 1):
                 cell = ws.cell(row=row_idx, column=col_idx, value=val)
                 cell.border = data_border
-                if col_idx in (6, 7, 8):  # Currency columns (SRP, Cost, Profit)
+                if col_idx in (5, 6, 7):  # Currency columns (Product Cost, Revenue, Profit)
                     cell.number_format = '#,##0.00'
+                elif col_idx == 8:  # % Margin
+                    cell.number_format = '0.00"%"'
 
         # Auto-width columns
         for col_idx in range(1, len(headers) + 1):
@@ -522,13 +529,19 @@ def export_funnel_report(request):
         # Summary row
         if entries:
             summary_row = len(entries) + 2
-            ws.cell(row=summary_row, column=5, value='TOTAL').font = Font(bold=True)
+            ws.cell(row=summary_row, column=4, value='TOTAL').font = Font(bold=True)
+            ws.cell(row=summary_row, column=5, value=float(sum(e.cost for e in entries))).font = Font(bold=True)
+            ws.cell(row=summary_row, column=5).number_format = '#,##0.00'
             ws.cell(row=summary_row, column=6, value=float(sum(e.retail for e in entries))).font = Font(bold=True)
             ws.cell(row=summary_row, column=6).number_format = '#,##0.00'
-            ws.cell(row=summary_row, column=7, value=float(sum(e.cost for e in entries))).font = Font(bold=True)
+            ws.cell(row=summary_row, column=7, value=float(sum(e.profit for e in entries))).font = Font(bold=True)
             ws.cell(row=summary_row, column=7).number_format = '#,##0.00'
-            ws.cell(row=summary_row, column=8, value=float(sum(e.profit for e in entries))).font = Font(bold=True)
-            ws.cell(row=summary_row, column=8).number_format = '#,##0.00'
+            # Average margin
+            total_revenue = float(sum(e.retail for e in entries))
+            total_profit = float(sum(e.profit for e in entries))
+            avg_margin = (total_profit / total_revenue * 100) if total_revenue > 0 else 0
+            ws.cell(row=summary_row, column=8, value=round(avg_margin, 2)).font = Font(bold=True)
+            ws.cell(row=summary_row, column=8).number_format = '0.00"%"'
 
     # If no sheets were created (all empty), add a placeholder
     if not wb.sheetnames:
@@ -699,6 +712,37 @@ def update_entry_stage(request, entry_id):
             })
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'})
+
+
+@login_required
+@user_passes_test(can_access_funnel)
+def update_entry_notes(request, entry_id):
+    """AJAX endpoint to update funnel entry notes inline."""
+    if request.method == 'POST':
+        entry = get_object_or_404(SalesFunnel, id=entry_id)
+
+        # Permission: salesperson can only edit their own entries;
+        # managers/execs can edit any entry they can see.
+        if request.user.role == 'salesperson' and entry.salesperson != request.user:
+            return JsonResponse({'success': False, 'message': 'Permission denied'}, status=403)
+
+        import json
+        try:
+            body = json.loads(request.body)
+            new_notes = body.get('notes', '').strip()
+        except (json.JSONDecodeError, AttributeError):
+            new_notes = request.POST.get('notes', '').strip()
+
+        entry.notes = new_notes
+        entry.save(update_fields=['notes'])
+
+        return JsonResponse({
+            'success': True,
+            'notes': entry.notes,
+            'notes_truncated': (entry.notes[:12] + '...') if len(entry.notes) > 15 else entry.notes,
+        })
+
+    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
 
 @login_required

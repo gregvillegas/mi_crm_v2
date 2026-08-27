@@ -19,6 +19,7 @@ urlpatterns = [
     
     # AJAX endpoints
     path('update-stage/<int:entry_id>/', views.update_entry_stage, name='update_stage'),
+    path('update-notes/<int:entry_id>/', views.update_entry_notes, name='update_notes'),
     path('close/<int:entry_id>/', views.close_entry, name='close_entry'),
     
     # History and statistics

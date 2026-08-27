@@ -70,9 +70,9 @@ def multi_option_proposal_create(request):
                             option_group=group,
                             part_number=item_data.get('part_number', ''),
                             description=item_data.get('description', ''),
-                            quantity=Decimal(str(item_data.get('quantity', '1') or '1')),
-                            unit_cost=Decimal(str(item_data.get('unit_cost', '0') or '0')),
-                            unit_price=Decimal(str(item_data.get('unit_price', '0') or '0')),
+                            quantity=Decimal(str(item_data.get('quantity', '1') or '1').replace(',', '')),
+                            unit_cost=Decimal(str(item_data.get('unit_cost', '0') or '0').replace(',', '')),
+                            unit_price=Decimal(str(item_data.get('unit_price', '0') or '0').replace(',', '')),
                             warranty=item_data.get('warranty', ''),
                             is_bundle=item_data.get('is_bundle', False),
                             bundled_items=item_data.get('bundled_items', ''),
@@ -100,7 +100,15 @@ def multi_option_proposal_create(request):
         if customer:
             initial_data['customer'] = customer
         form = MultiOptionProposalForm(initial=initial_data, user=request.user)
-        group_formset = OptionGroupFormSet(prefix='groups')
+        group_formset = OptionGroupFormSet(
+            prefix='groups',
+            initial=[
+                {'name': 'OPTION 1'},
+                {'name': 'OPTION 2'},
+            ],
+        )
+        # Override TOTAL_FORMS to show the 2 initial groups
+        group_formset.extra = 2
         attach_formset = MultiOptionAttachmentFormSet(prefix='attachments')
 
     return render(request, 'sales_proposals/multi_option_form.html', {

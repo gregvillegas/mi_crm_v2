@@ -26,7 +26,7 @@ class Customer(models.Model):
     INDUSTRY_CHOICES = [
 		('agriculture','Agriculture & Agribusiness'),
 		('automotive','Automotive'),
-		('business','Business Process Outsourcing (BPO)'),
+		('business','BPO'),
 		('construction','Construction & Engineering'),
 		('defense','Defense & Security'),
 		('digital','Digital Services / IT Services'),
@@ -48,7 +48,7 @@ class Customer(models.Model):
 		('transportation','Transportation & Logistics'),
 		('utilities','Utilities <Water, Gas, Electricity>'),
 		('wholesale','Wholesale & Distribution'),
-		('others','Others <or anything not covered>'),
+		('others','Others'),
     ]
     
     TERRITORY_CHOICES = [
@@ -61,6 +61,7 @@ class Customer(models.Model):
 		('marikina','Marikina'),
 		('muntinlupa','Muntinlupa'),
 		('navotas','Navotas'),
+        ('novaliches','Novaliches'),
 		('paranaque','Parañaque'),
 		('pasay','Pasay'),
 		('pasig','Pasig'),
@@ -75,13 +76,17 @@ class Customer(models.Model):
         ('rizal','Rizal'),
         ('bicol','Bicol'),
         ('nuevaecija','Nueva Ecija'),
+        ('tarlac','Tarlac'),
+        ('pampanga','Pampanga'),
         ('baguio','Baguio'),
+        ('cebu','Cebu'),
         ('calabarzon','Calabarzon'),
 		('outsidencr','Outside NCR'),
+        ('overseas','Overseas'),
     ]
     
     # Basic Information
-    company_name = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=255)
     contact_person_name = models.CharField(max_length=100)
     contact_person_position = models.CharField(
         max_length=100, 
@@ -89,7 +94,7 @@ class Customer(models.Model):
         help_text="Contact person's job title or position"
     )
     email = models.EmailField()
-    phone_number = models.CharField(max_length=20, blank=True)
+    phone_number = models.CharField(max_length=100, blank=True)
     address = models.TextField(blank=True)
     
     # Business Information
@@ -248,11 +253,11 @@ class CustomerCreateRequest(models.Model):
         ('rejected', 'Rejected'),
     ]
     # Proposed customer fields
-    company_name = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=255)
     contact_person_name = models.CharField(max_length=100)
     contact_person_position = models.CharField(max_length=100, blank=True)
     email = models.EmailField()
-    phone_number = models.CharField(max_length=20, blank=True)
+    phone_number = models.CharField(max_length=100, blank=True)
     address = models.TextField(blank=True)
     industry = models.CharField(max_length=50, blank=True)
     territory = models.CharField(max_length=50, blank=True)

@@ -412,8 +412,14 @@ def approve_customer_request(request, pk):
         return redirect('customer_list')
     req = get_object_or_404(CustomerCreateRequest, pk=pk)
     if request.method == 'POST':
+        if req.status != 'pending':
+            messages.warning(request, f'This request has already been {req.get_status_display().lower()} by {req.reviewed_by.get_full_name() if req.reviewed_by else "another user"}.')
+            return redirect('customer_create_requests')
         customer = req.approve(request.user)
-        messages.success(request, f'Request approved. Customer "{customer.company_name}" created.')
+        if customer:
+            messages.success(request, f'Request approved. Customer "{customer.company_name}" created.')
+        else:
+            messages.warning(request, 'This request was already processed by another user.')
     return redirect('customer_create_requests')
 
 @login_required
@@ -476,12 +482,18 @@ def is_admin(user):
 
 def _decode_csv_upload(csv_file):
     raw = csv_file.read()
-    for encoding in ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']:
+    for encoding in ['utf-8-sig', 'utf-8', 'mac_roman', 'cp437', 'cp1252', 'latin-1']:
         try:
-            return raw.decode(encoding)
-        except UnicodeDecodeError:
+            decoded = raw.decode(encoding)
+            # Verify Filipino characters decoded properly
+            import re
+            if re.search(r'para[^\w\s]aque', decoded.lower()):
+                continue  # Garbled ñ — try next encoding
+            return decoded
+        except (UnicodeDecodeError, ValueError):
             continue
-    return None
+    # Last resort: latin-1 always succeeds (accepts any byte)
+    return raw.decode('latin-1')
 
 
 def _normalize_csv_row(row):
@@ -510,8 +522,12 @@ def _map_customer_choice(raw_value, choices):
     if not value:
         return ''
 
+    import unicodedata
+
     def _normalize_choice_text(text):
         normalized = str(text).strip().lower()
+        # Normalize unicode (handles combining characters, different ñ representations)
+        normalized = unicodedata.normalize('NFC', normalized)
         if normalized.endswith(' city'):
             normalized = normalized[:-5]
         normalized = normalized.replace('&', 'and')
@@ -675,11 +691,20 @@ def import_customers(request):
             
             # Try decoding with different encodings
             decoded_file = None
-            for encoding in ['utf-8', 'cp1252', 'latin-1']:
+            for encoding in ['utf-8', 'utf-8-sig', 'mac_roman', 'cp437', 'cp1252', 'latin-1']:
                 try:
                     decoded_file = content.decode(encoding)
+                    # Verify ñ/Ñ characters decoded properly (sanity check for Filipino territory names)
+                    if 'ñ' in decoded_file.lower() or 'paranaque' in decoded_file.lower() or 'parañaque' in decoded_file.lower():
+                        break
+                    # If file has Para + garbled char + aque, wrong encoding — try next
+                    if 'para' in decoded_file.lower() and 'aque' in decoded_file.lower():
+                        # Check if ñ decoded correctly between para and aque
+                        import re
+                        if re.search(r'para[^\w\s]aque', decoded_file.lower()):
+                            continue  # Garbled ñ — try next encoding
                     break
-                except UnicodeDecodeError:
+                except (UnicodeDecodeError, ValueError):
                     continue
             
             if decoded_file is None:

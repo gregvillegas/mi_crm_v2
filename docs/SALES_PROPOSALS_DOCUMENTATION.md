@@ -410,11 +410,17 @@ If a tier is found (e.g., `chain = "supervisor,asm,avp_or_gm"`):
 
 **Fallback if no tier matches:**
 
-| Amount Threshold | Potential Approver | Added only if... |
-|---|---|---|
-| ≥ ₱500,000 | Supervisor | ...outranks creator |
-| ≥ ₱1,000,000 | ASM | ...outranks creator |
-| ≥ ₱3,000,000 | AVP/GM | ...outranks creator |
+| Condition | Approvers Added (subject to role hierarchy) |
+|---|---|
+| ≥ ₱500,000 | Supervisor + SM (if `requires_sm_approval`) + AVP |
+
+All approvers are filtered by the role hierarchy check — only those who outrank the creator are included.
+
+**Example with `requires_sm_approval = False` (2-level):**
+- ≥ ₱500K → Supervisor + AVP
+
+**Example with `requires_sm_approval = True` (3-level):**
+- ≥ ₱500K → Supervisor + SM + AVP
 
 #### Step 5: Escalation (Empty Chain Safety Net)
 
@@ -424,15 +430,15 @@ This prevents proposals from being stuck in "Pending — Awaiting chain generati
 
 ### Example Scenarios
 
-| Creator | Amount | Approvers in Chain | Reason |
-|---|---|---|---|
-| Salesperson (L1) | ₱600K | Supervisor | Standard: ≥₱500K tier |
-| Salesperson (L1) | ₱2.7M | Supervisor, ASM | ≥₱500K + ≥₱1M tiers |
-| Salesperson (L1) | ₱5M | Supervisor, ASM, AVP | All three tiers |
-| **SM (L4)** | **₱2.7M** | **AVP only** | Supervisor (L3) skipped, ASM (L4) skipped → escalation to AVP (L5) |
-| SM (L4) | ₱600K | AVP only | Supervisor skipped → escalation |
-| Supervisor (L3) | ₱2.7M | ASM, AVP | Supervisor can't approve own, ASM outranks (L4) |
-| AVP (L5) | ₱5M | VP/GM | Only higher authority qualifies |
+| Creator | Amount | Group Setting | Approvers in Chain | Reason |
+|---|---|---|---|---|
+| Salesperson (L1) | ₱600K | `requires_sm_approval=False` | Supervisor, AVP | 2-level |
+| Salesperson (L1) | ₱600K | `requires_sm_approval=True` | Supervisor, SM, AVP | 3-level |
+| Salesperson (L1) | ₱2.7M | `requires_sm_approval=True` | Supervisor, SM, AVP | Same — single threshold |
+| **SM (L4)** | **₱2.7M** | Any | **AVP only** | Supervisor + SM skipped (outranked) → escalation to AVP |
+| Supervisor (L3) | ₱600K | `requires_sm_approval=True` | SM, AVP | Supervisor skipped (is creator) |
+| Supervisor (L3) | ₱600K | `requires_sm_approval=False` | AVP | SM skipped (not required), Supervisor skipped (creator) |
+| AVP (L5) | ₱5M | Any | VP/GM (if configured) | All lower roles skipped |
 
 ### Approval Step Execution
 
@@ -466,11 +472,9 @@ Executives can manage tiers via:
 
 | Tier Name | Range | Chain |
 |---|---|---|
-| Standard (₱500K–₱1M) | ₱500,000 – ₱999,999 | supervisor |
-| Large (₱1M–₱3M) | ₱1,000,000 – ₱2,999,999 | supervisor, asm |
-| Enterprise (₱3M+) | ₱3,000,000 – unlimited | supervisor, asm, avp_or_gm |
+| Standard (₱500K+) | ₱500,000 – unlimited | supervisor, asm, avp_or_gm |
 
-> **Note:** Even with a tier that lists `supervisor, asm`, if the creator outranks those roles, they are automatically skipped and the system escalates to the next higher authority.
+> **Note:** The `asm` role in the chain is only activated when the creator's group has `requires_sm_approval=True`. If unchecked, the SM step is automatically skipped regardless of what the tier chain string says. Approvers who are outranked by the creator are also automatically excluded.
 
 ---
 

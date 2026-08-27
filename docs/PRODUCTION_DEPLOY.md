@@ -60,7 +60,7 @@ Keep `db_backup.json` safe — you will upload it to the server and import it in
 
 ---
 
-## 3. Server Prerequisites
+## 3. Server Prerequisites-
 
 SSH into your Ubuntu 22.04 server and run:
 
@@ -200,30 +200,70 @@ source venv/bin/activate
 # Step 1: Create all tables from Django migrations
 python manage.py migrate --noinput
 
-# Step 2: Load the SQLite data dump into MariaDB
+# Step 2: Fix column lengths (SQLite doesn't enforce max_length, MariaDB does)
+# Some existing data exceeds the original field limits. Widen them before loading:
+python manage.py dbshell
+```
+
+Run these SQL commands inside the MariaDB shell:
+
+```sql
+ALTER TABLE customers_customer MODIFY company_name VARCHAR(255);
+ALTER TABLE customers_customer MODIFY phone_number VARCHAR(100);
+ALTER TABLE customers_customercreaterequest MODIFY company_name VARCHAR(255);
+ALTER TABLE customers_customercreaterequest MODIFY phone_number VARCHAR(100);
+EXIT;
+```
+
+> **Why?** SQLite doesn't enforce `CharField(max_length=...)` limits — it happily stores any length string. MariaDB enforces them strictly. If `loaddata` fails with `"Data too long for column X"`, widen that column using `ALTER TABLE ... MODIFY column_name VARCHAR(new_length);` and retry.
+
+```bash
+# Step 3: Load the SQLite data dump into MariaDB
 python manage.py loaddata db_backup.json
 
-# Step 3: Verify the import
+# Step 4: Verify the import
 python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
 print(f'Users imported: {User.objects.count()}')
 from customers.models import Customer
 print(f'Customers imported: {Customer.objects.count()}')
+from sales_proposals.models import Proposal
+print(f'Proposals imported: {Proposal.objects.count()}')
+from sales_funnel.models import SalesFunnel
+print(f'Funnel entries imported: {SalesFunnel.objects.count()}')
 "
 ```
 
-> **If `loaddata` fails with integrity errors**, the most common cause is content types or site IDs being out of sync. Run:
+> **If `loaddata` fails with "Data too long" errors**, identify the field from the error message and widen it:
 > ```bash
-> python manage.py migrate --run-syncdb
-> python manage.py loaddata db_backup.json
+> python manage.py dbshell
 > ```
-> If it still fails, add `--exclude=contenttypes --exclude=auth.permission` to your `dumpdata` (already done in Step 2) and ensure the backup was created without those tables.
+> ```sql
+> -- Example: if 'contact_person_name' is too long
+> ALTER TABLE customers_customer MODIFY contact_person_name VARCHAR(255);
+> EXIT;
+> ```
+> Then retry `python manage.py loaddata db_backup.json`.
+
+> **If `loaddata` fails with integrity errors** (content types or permissions), the backup should already exclude those. If not, re-export from SQLite:
+> ```bash
+> python manage.py dumpdata \
+>   --natural-foreign --natural-primary \
+>   --exclude=contenttypes --exclude=auth.permission \
+>   --indent=2 -o db_backup.json
+> ```
 
 Collect static files:
 
 ```bash
 python manage.py collectstatic --noinput
+```
+
+Seed activity types (if not already in the backup):
+
+```bash
+python manage.py populate_activity_types
 ```
 
 ---

@@ -327,8 +327,18 @@ class Proposal(models.Model):
                 supervisor = group.get_manager()
             except Exception:
                 supervisor = None
+            # Resolve SM/ASM: only include SM in the chain if the group
+            # explicitly requires SM approval (requires_sm_approval flag).
+            # This separates visibility (sm_managers M2M) from approval authority.
             try:
-                asm = group.team.asm if group.team else None
+                if getattr(group, 'requires_sm_approval', False):
+                    sm_for_group = group.sm_managers.first()
+                    if sm_for_group:
+                        asm = sm_for_group
+                    elif group.team and group.team.asm:
+                        asm = group.team.asm
+                else:
+                    asm = None  # 2-level: skip SM, go straight to AVP
             except Exception:
                 asm = None
             try:
@@ -372,14 +382,14 @@ class Proposal(models.Model):
                 elif role in ['avp_or_gm', 'avp', 'gm'] and avp_or_gm and avp_or_gm != creator and avp_or_gm not in chain and _approver_outranks_creator(avp_or_gm):
                     chain.append(avp_or_gm)
         else:
+            # Single threshold: ≥ ₱500,000 triggers approval.
+            # Chain: Supervisor → SM (if group requires it) → AVP
             if php_total >= Decimal('500000'):
                 if supervisor and supervisor != creator and _approver_outranks_creator(supervisor):
                     chain.append(supervisor)
-            if php_total >= Decimal('1000000'):
-                if asm and asm not in chain and asm != creator and _approver_outranks_creator(asm):
+                if asm and asm != creator and asm not in chain and _approver_outranks_creator(asm):
                     chain.append(asm)
-            if php_total >= Decimal('3000000'):
-                if avp_or_gm and avp_or_gm not in chain and avp_or_gm != creator and _approver_outranks_creator(avp_or_gm):
+                if avp_or_gm and avp_or_gm != creator and avp_or_gm not in chain and _approver_outranks_creator(avp_or_gm):
                     chain.append(avp_or_gm)
 
         # Escalation: if approval is required but all lower-tier approvers were skipped
