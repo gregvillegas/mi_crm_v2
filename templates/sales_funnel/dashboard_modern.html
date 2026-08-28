@@ -176,7 +176,73 @@
         </div>
     </div>
 
-    <!-- Stage Table -->
+    {% if view_mode == 'card' %}
+    <!-- CARD VIEW -->
+    <div class="crm-card-body" style="padding: 0;">
+        {% for entry in stage.entries %}
+        <div style="padding: var(--space-4) var(--space-5); border-bottom: var(--border-width) solid var(--color-border); display: grid; grid-template-columns: 70px 1fr auto auto auto auto; gap: var(--space-4); align-items: center;">
+            <!-- Date -->
+            <div style="text-align: center;">
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Date</div>
+                <div style="font-weight: var(--font-weight-bold); font-size: var(--font-size-sm);">{{ entry.date_created|date:"M d" }}</div>
+            </div>
+            <!-- Company + Description -->
+            <div>
+                <div style="font-weight: var(--font-weight-semibold); color: {{ stage.color }};" title="{{ entry.company_name }}">
+                    {% if entry.proposal %}<a href="{% url 'proposal_detail' entry.proposal.pk %}" style="color: {{ stage.color }}; text-decoration: none;">{{ entry.company_name|truncatechars:35 }}</a>{% else %}{{ entry.company_name|truncatechars:35 }}{% endif %}
+                </div>
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ entry.requirement_description|truncatechars:50 }}</div>
+                {% if entry.customer %}<i class="fas fa-user" style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;"></i>{% endif %}
+            </div>
+            <!-- SRP -->
+            <div style="text-align: center;">
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">SRP</div>
+                <div style="font-weight: var(--font-weight-bold); color: var(--color-success-600);">₱{{ entry.display_retail|floatformat:2|intcomma }}</div>
+            </div>
+            <!-- Profit -->
+            <div style="text-align: center;">
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Profit</div>
+                <div style="font-weight: var(--font-weight-bold); color: {% if entry.profit > 0 %}var(--color-success-600){% else %}var(--color-danger-600){% endif %};">₱{{ entry.profit|floatformat:2|intcomma }}</div>
+            </div>
+            <!-- AM -->
+            <div style="text-align: center;">
+                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Account Manager</div>
+                <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px; padding: 3px 8px;">{{ entry.salesperson.initials|default:entry.salesperson.username|slice:":3"|upper }}</span>
+                <div style="font-size: 10px; color: var(--color-text-muted);">@{{ entry.salesperson.username }}</div>
+            </div>
+            <!-- Actions -->
+            <div style="display: flex; gap: 4px;">
+                {% if stage.key == 'closable' %}
+                <button class="crm-btn crm-btn-success crm-btn-icon crm-btn-sm" title="Mark as Won" onclick="closeEntry({{ entry.id }}, true)"><i class="fas fa-check"></i></button>
+                <button class="crm-btn crm-btn-danger crm-btn-icon crm-btn-sm" title="Mark as Lost" onclick="closeEntry({{ entry.id }}, false)"><i class="fas fa-times"></i></button>
+                <a href="{% url 'sales_funnel:edit_entry' entry.id %}" class="crm-btn crm-btn-secondary crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                {% elif stage.key == 'project' %}
+                <button class="crm-btn crm-btn-secondary crm-btn-icon crm-btn-sm" title="Move back to Closable" onclick="moveEntry({{ entry.id }}, 'closable')"><i class="fas fa-arrow-left"></i></button>
+                <a href="{% url 'sales_funnel:edit_entry' entry.id %}" class="crm-btn crm-btn-secondary crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                <button class="crm-btn crm-btn-danger crm-btn-icon crm-btn-sm" title="Delete" onclick="deleteEntry({{ entry.id }})"><i class="fas fa-trash"></i></button>
+                {% else %}
+                <button class="crm-btn crm-btn-success crm-btn-icon crm-btn-sm" title="Move to Closable" onclick="moveEntry({{ entry.id }}, 'closable')"><i class="fas fa-arrow-right"></i></button>
+                <a href="{% url 'sales_funnel:edit_entry' entry.id %}" class="crm-btn crm-btn-secondary crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                <button class="crm-btn crm-btn-danger crm-btn-icon crm-btn-sm" title="Delete" onclick="deleteEntry({{ entry.id }})"><i class="fas fa-trash"></i></button>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="crm-empty-state" style="padding: var(--space-6);">
+            <i class="fas fa-inbox"></i>
+            <p style="margin: 0;">No {{ stage.label }} entries</p>
+        </div>
+        {% endfor %}
+        {% if stage.entries %}
+        <div style="padding: var(--space-3) var(--space-5); background: var(--color-bg-secondary); display: flex; justify-content: flex-end; gap: var(--space-6);">
+            <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-bold);">₱{{ stage.total_retail|floatformat:2|intcomma }}</span>
+            <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-success-600);">₱{{ stage.total_profit|floatformat:2|intcomma }}</span>
+        </div>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <!-- TABLE VIEW -->
     <div style="overflow-x: auto;">
         <table class="crm-table">
             <thead>
@@ -240,6 +306,7 @@
             {% endif %}
         </table>
     </div>
+    {% endif %}
 </div>
 {% endfor %}
 
@@ -248,8 +315,53 @@
 function setViewMode(mode) {
     const url = new URL(window.location.href);
     url.searchParams.set('view', mode);
-    url.searchParams.set('ui', 'modern');
     window.location.href = url.toString();
+}
+
+function moveEntry(entryId, newStage) {
+    if (confirm('Move this entry to ' + newStage + ' stage?')) {
+        fetch('/funnel/update-stage/' + entryId + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'stage=' + newStage
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { showAlert('success', data.message); location.reload(); }
+            else { showAlert('danger', data.message); }
+        })
+        .catch(() => showAlert('danger', 'Error moving entry.'));
+    }
+}
+
+function deleteEntry(entryId) {
+    if (confirm('Delete this funnel entry? This cannot be undone.')) {
+        fetch('/funnel/delete/' + entryId + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        })
+        .then(r => { location.reload(); })
+        .catch(() => showAlert('danger', 'Error deleting entry.'));
+    }
+}
+
+function closeEntry(entryId, won) {
+    var status = won ? 'won' : 'lost';
+    if (confirm('Mark this deal as ' + status + '?')) {
+        fetch('/funnel/close/' + entryId + '/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: 'won=' + won
+        })
+        .then(r => { location.reload(); })
+        .catch(() => showAlert('danger', 'Error closing entry.'));
+    }
 }
 
 function exportFunnel() {
