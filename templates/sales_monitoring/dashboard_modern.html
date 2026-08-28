@@ -1,0 +1,139 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Sales Monitoring — MiCRM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <h2><i class="fas fa-chart-line" style="color: var(--color-brand-600);"></i> Sales Monitoring</h2>
+    <div class="crm-actions">
+        <a href="{% url 'sales_monitoring:create_activity' %}" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-plus"></i> Log Activity</a>
+        {% if user.role in 'supervisor,asm,teamlead,avp,admin,president,gm,vp' %}
+        <a href="{% url 'sales_monitoring:activity_reports' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-clipboard-list"></i> Reports</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-brand-600);">{{ stats.total_activities }}</div>
+        <div class="kpi-label">Total Activities</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-success-600);">{{ stats.completed_today }}</div>
+        <div class="kpi-label">Completed Today</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-danger-600);">{{ stats.overdue_activities }}</div>
+        <div class="kpi-label">Overdue</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-warning-600);">{{ stats.pending_review }}</div>
+        <div class="kpi-label">Pending Review</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-info-600);">{{ stats.this_week_activities }}</div>
+        <div class="kpi-label">This Week</div>
+    </div></div>
+</div>
+
+<!-- Activity Type Breakdown -->
+{% if activity_breakdown %}
+<div class="crm-card" style="margin-bottom: var(--space-6);">
+    <div class="crm-card-header">
+        <h5>Activity Breakdown</h5>
+    </div>
+    <div class="crm-card-body-compact">
+        <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);">
+            {% for item in activity_breakdown %}
+            <div style="display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--color-bg-secondary); border-radius: var(--radius-md);">
+                <i class="{{ item.activity_type__icon }}" style="color: var(--color-brand-600);"></i>
+                <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">{{ item.activity_type__name }}</span>
+                <span class="crm-badge crm-badge-brand">{{ item.count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Activities Table -->
+<div class="crm-card">
+    <div class="crm-card-header">
+        <h5>Recent Activities</h5>
+        <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ stats.total_activities }} total</span>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Customer</th>
+                    {% if user.role != 'salesperson' %}<th style="width: 70px;">AM</th>{% endif %}
+                    <th style="width: 90px;">Status</th>
+                    <th style="width: 80px;">Priority</th>
+                    <th style="width: 60px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activities %}
+                <tr>
+                    <td style="white-space: nowrap; font-size: var(--font-size-xs);">{{ activity.scheduled_start|date:"M d" }}</td>
+                    <td>
+                        <a href="{% url 'sales_monitoring:activity_detail' activity.pk %}" style="font-weight: var(--font-weight-medium); color: var(--color-brand-600); text-decoration: none;">{{ activity.title|truncatechars:40 }}</a>
+                    </td>
+                    <td>
+                        <span style="font-size: var(--font-size-xs); color: var(--color-text-secondary);">
+                            <i class="{{ activity.activity_type.icon }}"></i> {{ activity.activity_type.name }}
+                        </span>
+                    </td>
+                    <td style="font-size: var(--font-size-xs);" title="{{ activity.customer.company_name }}">{{ activity.customer.company_name|default:"—"|truncatechars:25 }}</td>
+                    {% if user.role != 'salesperson' %}
+                    <td>
+                        <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px;">{{ activity.salesperson.initials|default:activity.salesperson.username|slice:":3"|upper }}</span>
+                    </td>
+                    {% endif %}
+                    <td>
+                        <span class="crm-badge {% if activity.status == 'completed' %}crm-badge-success{% elif activity.status == 'in_progress' %}crm-badge-info{% elif activity.status == 'cancelled' %}crm-badge-danger{% else %}crm-badge-neutral{% endif %}">
+                            {{ activity.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="crm-badge {% if activity.priority == 'urgent' %}crm-badge-danger{% elif activity.priority == 'high' %}crm-badge-warning{% else %}crm-badge-neutral{% endif %}">
+                            {{ activity.get_priority_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'sales_monitoring:activity_detail' activity.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="View"><i class="fas fa-eye"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if user.role != 'salesperson' %}8{% else %}7{% endif %}">
+                        <div class="crm-empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h4>No activities found</h4>
+                            <p>Log a new activity to get started.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if activities.has_other_pages %}
+    <div class="crm-card-footer" style="justify-content: center; gap: var(--space-2);">
+        {% if activities.has_previous %}
+        <a href="?ui=modern&page={{ activities.previous_page_number }}" class="crm-btn crm-btn-ghost crm-btn-sm"><i class="fas fa-chevron-left"></i> Prev</a>
+        {% endif %}
+        <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); padding: 0 var(--space-2);">Page {{ activities.number }} of {{ activities.paginator.num_pages }}</span>
+        {% if activities.has_next %}
+        <a href="?ui=modern&page={{ activities.next_page_number }}" class="crm-btn crm-btn-ghost crm-btn-sm">Next <i class="fas fa-chevron-right"></i></a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

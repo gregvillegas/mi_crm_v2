@@ -335,7 +335,9 @@ def supervisor_dashboard(request):
         'salespeople': salespeople,
     }
     
-    return render(request, 'sales_monitoring/supervisor_dashboard.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_monitoring/supervisor_dashboard.html', context)
+    return render(request, 'sales_monitoring/dashboard_modern.html', context)
 
 @login_required
 def salesperson_dashboard(request):
@@ -419,7 +421,9 @@ def salesperson_dashboard(request):
         'stats': stats,
     }
     
-    return render(request, 'sales_monitoring/salesperson_dashboard.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_monitoring/salesperson_dashboard.html', context)
+    return render(request, 'sales_monitoring/dashboard_modern.html', context)
 
 @login_required
 def salesperson_activity_list(request):
@@ -628,7 +632,9 @@ def avp_dashboard(request):
         'supervisor_achievements': supervisor_achievements,
     }
     
-    return render(request, 'sales_monitoring/avp_dashboard.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_monitoring/avp_dashboard.html', context)
+    return render(request, 'sales_monitoring/dashboard_modern.html', context)
 
 
 @login_required
@@ -890,7 +896,9 @@ def admin_dashboard(request):
         'activity_breakdown': activity_breakdown,
     }
     
-    return render(request, 'sales_monitoring/admin_dashboard.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_monitoring/admin_dashboard.html', context)
+    return render(request, 'sales_monitoring/dashboard_modern.html', context)
 
 @login_required
 def create_activity(request):

@@ -169,7 +169,9 @@ def customer_list(request):
         'duplicate_group_count': len(duplicate_groups),
     }
     
-    return render(request, 'customers/customer_list.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'customers/customer_list.html', context)
+    return render(request, 'customers/customer_list_modern.html', context)
 
 @login_required
 def customer_contacts(request, pk):

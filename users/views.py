@@ -140,7 +140,9 @@ def user_management(request):
         'total_users': paginator.count,
     }
     
-    return render(request, 'users/user_management.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'users/user_management.html', context)
+    return render(request, 'users/user_management_modern.html', context)
 
 
 @login_required

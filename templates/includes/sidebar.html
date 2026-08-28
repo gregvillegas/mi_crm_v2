@@ -1,0 +1,109 @@
+{% load static %}
+<!-- Sidebar -->
+<aside class="crm-sidebar" id="crmSidebar">
+    <!-- Logo -->
+    <div class="crm-sidebar-header">
+        <img src="{% static 'core/images/logo.png' %}" alt="MiCRM" class="crm-logo-icon">
+        <span class="crm-logo-text">MiCRM</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="crm-sidebar-nav" aria-label="Main navigation">
+        {% if user.is_authenticated %}
+
+        <!-- Main -->
+        <div class="crm-nav-section">Main</div>
+        <a href="{% url 'home' %}" class="crm-nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}" title="Home">
+            <i class="fas fa-home"></i>
+            <span class="crm-nav-label">Home</span>
+        </a>
+
+        {% if user.role in 'avp,admin,president,gm,vp,salesperson,supervisor,teamlead,asm,marketing' %}
+        <a href="{% url 'customer_list' %}" class="crm-nav-item" title="Customers">
+            <i class="fas fa-users"></i>
+            <span class="crm-nav-label">Customers</span>
+        </a>
+        {% endif %}
+
+        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
+        <a href="{% url 'lead_generation:dashboard' %}" class="crm-nav-item" title="Leads">
+            <i class="fas fa-user-plus"></i>
+            <span class="crm-nav-label">Leads</span>
+        </a>
+        {% endif %}
+
+        <!-- Sales -->
+        <div class="crm-nav-section">Sales</div>
+        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+        <a href="{% url 'sales_funnel:dashboard' %}" class="crm-nav-item" title="Sales Funnel">
+            <i class="fas fa-filter"></i>
+            <span class="crm-nav-label">Sales Funnel</span>
+        </a>
+        <a href="{% url 'proposal_list' %}" class="crm-nav-item" title="Proposals">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <span class="crm-nav-label">Proposals</span>
+        </a>
+        {% endif %}
+
+        {% if user.role in 'salesperson,avp,supervisor,teamlead,asm,admin,president,gm,vp' %}
+        <a href="{% url 'sales_monitoring:dashboard' %}" class="crm-nav-item" title="Monitoring">
+            <i class="fas fa-chart-line"></i>
+            <span class="crm-nav-label">Monitoring</span>
+        </a>
+        {% endif %}
+
+        <!-- Communication -->
+        <div class="crm-nav-section">Communication</div>
+        <a href="{% url 'mass_mailing:campaign_list' %}" class="crm-nav-item" title="Mass Mailing">
+            <i class="fas fa-paper-plane"></i>
+            <span class="crm-nav-label">Mass Mailing</span>
+        </a>
+
+        <!-- Management -->
+        {% if user.role in 'admin,president,gm,vp,avp,asm' %}
+        <div class="crm-nav-section">Management</div>
+        <a href="{% url 'team_list' %}" class="crm-nav-item" title="Teams">
+            <i class="fas fa-sitemap"></i>
+            <span class="crm-nav-label">Teams</span>
+        </a>
+        {% if user.role == 'avp' %}
+        <a href="{% url 'quota_management' %}" class="crm-nav-item" title="Quotas">
+            <i class="fas fa-chart-pie"></i>
+            <span class="crm-nav-label">Quotas</span>
+        </a>
+        {% endif %}
+        {% if user.role in 'admin,president,gm,vp,avp' %}
+        <a href="{% url 'missions_list' %}" class="crm-nav-item" title="Missions">
+            <i class="fas fa-list-check"></i>
+            <span class="crm-nav-label">Missions</span>
+        </a>
+        {% endif %}
+        {% if user.role == 'admin' %}
+        <a href="{% url 'user_management' %}" class="crm-nav-item" title="Users">
+            <i class="fas fa-users-cog"></i>
+            <span class="crm-nav-label">Users</span>
+        </a>
+        {% endif %}
+        {% endif %}
+
+        <!-- Files -->
+        <div class="crm-nav-section">Files</div>
+        <a href="{% url 'all_files' %}" class="crm-nav-item" title="Group Files">
+            <i class="fas fa-folder-open"></i>
+            <span class="crm-nav-label">Group Files</span>
+        </a>
+        <a href="{% url 'quick_upload' %}" class="crm-nav-item" title="Upload">
+            <i class="fas fa-upload"></i>
+            <span class="crm-nav-label">Quick Upload</span>
+        </a>
+
+        {% endif %}
+    </nav>
+
+    <!-- Collapse Toggle -->
+    <div class="crm-sidebar-footer">
+        <button class="crm-sidebar-toggle" id="sidebarToggle" title="Toggle sidebar" aria-label="Toggle sidebar">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+</aside>

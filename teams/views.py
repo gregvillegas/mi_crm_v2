@@ -33,7 +33,9 @@ def team_list(request):
         teams = Team.objects.filter(tech_manager=request.user)
     else:
         teams = Team.objects.all()
-    return render(request, 'teams/team_list.html', {'teams': teams})
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'teams/team_list.html', {'teams': teams})
+    return render(request, 'teams/team_list_modern.html', {'teams': teams})
 
 @login_required
 @user_passes_test(can_manage_teams)

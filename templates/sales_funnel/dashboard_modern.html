@@ -1,0 +1,320 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Sales Funnel — MiCRM{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Override Bootstrap form widgets within the modern funnel dashboard */
+#funnelFilterForm .form-select,
+#funnelFilterForm .form-control {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+#funnelFilterForm .form-select:focus,
+#funnelFilterForm .form-control:focus {
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 0 2px var(--color-brand-100);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <h2><i class="fas fa-chart-line" style="color: var(--color-brand-600);"></i> Sales Funnel</h2>
+    <div class="crm-actions">
+        {% if can_add %}
+        <a href="{% url 'sales_funnel:add_entry' %}" class="crm-btn crm-btn-primary crm-btn-sm">
+            <i class="fas fa-plus"></i> Add Entry
+        </a>
+        {% endif %}
+        {% if can_import %}
+        <a href="{% url 'sales_funnel:import_entries' %}" class="crm-btn crm-btn-secondary crm-btn-sm">
+            <i class="fas fa-file-import"></i> Import
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- KPI Cards Row -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+    <a href="{% url 'sales_funnel:dashboard' %}" class="crm-card" style="text-decoration: none; transition: transform var(--transition-fast);">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-info-600);">{{ stats.total_entries }}</div>
+            <div class="kpi-label">Active Entries</div>
+        </div>
+    </a>
+    <a href="{% url 'sales_funnel:deals_history' %}?outcome=won" class="crm-card" style="text-decoration: none;">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-success-600);">{{ stats.won_count }}</div>
+            <div class="kpi-label">Won Deals</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-success-600); margin-top: var(--space-1);">₱{{ stats.won_value|floatformat:0|intcomma }}</div>
+        </div>
+    </a>
+    <a href="{% url 'sales_funnel:deals_history' %}?outcome=lost" class="crm-card" style="text-decoration: none;">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-danger-600);">{{ stats.lost_count }}</div>
+            <div class="kpi-label">Lost Deals</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-danger-600); margin-top: var(--space-1);">₱{{ stats.lost_value|floatformat:0|intcomma }}</div>
+        </div>
+    </a>
+    <a href="{% url 'sales_funnel:deals_history' %}" class="crm-card" style="text-decoration: none;">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-brand-600);">{{ stats.win_rate|floatformat:1 }}%</div>
+            <div class="kpi-label">Win Rate</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: var(--space-1);">{{ stats.total_closed }} closed</div>
+        </div>
+    </a>
+    <div class="crm-card">
+        <div class="crm-card-kpi">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-2); text-align: center;">
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--color-stage-pink); font-weight: var(--font-weight-semibold);">PINK</div>
+                    <div style="font-weight: var(--font-weight-bold);">{{ stats.quoted_count }}</div>
+                </div>
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--color-stage-yellow); font-weight: var(--font-weight-semibold);">YLW</div>
+                    <div style="font-weight: var(--font-weight-bold);">{{ stats.closable_count }}</div>
+                </div>
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--color-stage-green); font-weight: var(--font-weight-semibold);">GRN</div>
+                    <div style="font-weight: var(--font-weight-bold);">{{ stats.project_count }}</div>
+                </div>
+                <div>
+                    <div style="font-size: var(--font-size-xs); color: var(--color-stage-blue); font-weight: var(--font-weight-semibold);">BLU</div>
+                    <div style="font-weight: var(--font-weight-bold);">{{ stats.services_count }}</div>
+                </div>
+            </div>
+            <div class="kpi-label" style="margin-top: var(--space-2);">Pipeline Stages</div>
+        </div>
+    </div>
+</div>
+
+<!-- View Toggle + Actions -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); flex-wrap: wrap; gap: var(--space-2);">
+    <div style="display: flex; gap: 2px; background: var(--color-bg-secondary); border-radius: var(--radius-md); padding: 2px;">
+        <button type="button" class="crm-btn crm-btn-sm {% if view_mode == 'card' %}crm-btn-primary{% else %}crm-btn-ghost{% endif %}" onclick="setViewMode('card')">
+            <i class="fas fa-grip-horizontal"></i> Card
+        </button>
+        <button type="button" class="crm-btn crm-btn-sm {% if view_mode == 'table' %}crm-btn-primary{% else %}crm-btn-ghost{% endif %}" onclick="setViewMode('table')">
+            <i class="fas fa-table"></i> Table
+        </button>
+    </div>
+    <div style="display: flex; gap: var(--space-2);">
+        <a href="{% url 'sales_funnel:deals_history' %}" class="crm-btn crm-btn-secondary crm-btn-sm">
+            <i class="fas fa-chart-line"></i> Deals History
+        </a>
+        {% if not can_add or user.role == 'avp' or user.role == 'sm' or user.role == 'asm' or user.role == 'supervisor' %}
+        <button type="button" class="crm-btn crm-btn-success crm-btn-sm" onclick="exportFunnel()">
+            <i class="fas fa-file-export"></i> Export Excel
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="crm-card" style="margin-bottom: var(--space-6);">
+    <div class="crm-card-body-compact">
+        <form id="funnelFilterForm" method="get" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); align-items: end;">
+            <input type="hidden" name="ui" value="modern">
+            <div>
+                <label class="crm-label">Stage</label>
+                {{ filter_form.stage }}
+            </div>
+            <div>
+                <label class="crm-label">Brand</label>
+                {{ filter_form.brand }}
+            </div>
+            <div>
+                <label class="crm-label">Account Manager</label>
+                {{ filter_form.salesperson }}
+            </div>
+            <div>
+                <label class="crm-label">Group</label>
+                {{ filter_form.group }}
+            </div>
+            <div>
+                <label class="crm-label">Team</label>
+                {{ filter_form.team }}
+            </div>
+            <div>
+                <label class="crm-label">Min Amount</label>
+                {{ filter_form.min_amount }}
+            </div>
+            <div>
+                <label class="crm-label">Date From</label>
+                {{ filter_form.date_from }}
+            </div>
+            <div>
+                <label class="crm-label">Date To</label>
+                {{ filter_form.date_to }}
+            </div>
+            <div style="display: flex; gap: var(--space-2); align-items: end; padding-bottom: 2px;">
+                <button type="submit" class="crm-btn crm-btn-primary crm-btn-sm">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+                <a href="{% url 'sales_funnel:dashboard' %}?ui=modern" class="crm-btn crm-btn-ghost crm-btn-sm">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Stage Sections -->
+{% for stage in stages %}
+<div class="crm-card" style="margin-bottom: var(--space-5); overflow: visible;">
+    <!-- Stage Header -->
+    <div style="background: {{ stage.color }}; padding: var(--space-3) var(--space-5); border-radius: var(--radius-xl) var(--radius-xl) 0 0;">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <i class="{{ stage.icon }}" style="color: white; font-size: var(--font-size-md);"></i>
+            <span style="color: white; font-weight: var(--font-weight-bold); font-size: var(--font-size-md);">{{ stage.label }}</span>
+        </div>
+    </div>
+
+    <!-- Stage Table -->
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Date</th>
+                    <th style="width: 280px;">Company</th>
+                    <th style="width: 140px;">Notes</th>
+                    <th style="width: 150px;">Ref #</th>
+                    <th style="width: 60px; text-align: center;">AM</th>
+                    <th style="text-align: right; width: 130px;">SRP</th>
+                    <th style="text-align: right; width: 120px;">Profit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in stage.entries %}
+                <tr>
+                    <td style="white-space: nowrap; font-weight: var(--font-weight-medium);">{{ entry.date_created|date:"M d" }}</td>
+                    <td>
+                        <div style="font-weight: var(--font-weight-medium);" title="{{ entry.company_name }}">
+                            {% if entry.proposal %}
+                            <a href="{% url 'proposal_detail' entry.proposal.pk %}" style="color: {{ stage.color }}; text-decoration: none;">{{ entry.company_name|truncatechars:30 }}</a>
+                            {% else %}
+                            <span style="color: {{ stage.color }};">{{ entry.company_name|truncatechars:30 }}</span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);" title="{{ entry.requirement_description }}">{{ entry.requirement_description|truncatechars:40 }}</div>
+                    </td>
+                    <td class="editable-notes" data-entry-id="{{ entry.id }}" data-full-notes="{{ entry.notes|default:"" }}" style="cursor: pointer; font-size: var(--font-size-xs); color: var(--color-text-secondary);" title="{{ entry.notes|default:"double-click to add" }}">
+                        {% if entry.notes %}{{ entry.notes|truncatechars:15 }}{% else %}<span style="color: var(--color-text-muted); font-style: italic;">double-click</span>{% endif %}
+                    </td>
+                    <td style="font-size: var(--font-size-xs); font-family: var(--font-family-mono);">
+                        {% if entry.proposal %}{{ entry.proposal.reference_number|default:entry.proposal.proposal_number }}{% else %}-{% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px; padding: 3px 8px;">
+                            {{ entry.salesperson.initials|default:entry.salesperson.username|slice:":3"|upper }}
+                        </span>
+                    </td>
+                    <td style="text-align: right; font-weight: var(--font-weight-medium); white-space: nowrap;">₱{{ entry.display_retail|floatformat:2|intcomma }}</td>
+                    <td style="text-align: right; white-space: nowrap; color: {% if entry.profit > 0 %}var(--color-success-600){% else %}var(--color-danger-600){% endif %};">₱{{ entry.profit|floatformat:2|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="crm-empty-state" style="padding: var(--space-6);">
+                            <i class="fas fa-inbox"></i>
+                            <p style="margin: 0;">No {{ stage.label }} entries</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            {% if stage.entries %}
+            <tfoot>
+                <tr style="background: var(--color-bg-secondary);">
+                    <td colspan="5" style="font-weight: var(--font-weight-semibold); text-align: right; padding-right: var(--space-4);">Total</td>
+                    <td style="text-align: right; font-weight: var(--font-weight-bold); white-space: nowrap;">₱{{ stage.total_retail|floatformat:2|intcomma }}</td>
+                    <td style="text-align: right; font-weight: var(--font-weight-bold); white-space: nowrap; color: var(--color-success-600);">₱{{ stage.total_profit|floatformat:2|intcomma }}</td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endfor %}
+
+<!-- JavaScript -->
+<script>
+function setViewMode(mode) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('view', mode);
+    url.searchParams.set('ui', 'modern');
+    window.location.href = url.toString();
+}
+
+function exportFunnel() {
+    const form = document.getElementById('funnelFilterForm');
+    const params = new URLSearchParams(new FormData(form));
+    window.location = '{% url "sales_funnel:export" %}?' + params.toString();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
+    alertDiv.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1050;min-width:280px;border-radius:var(--radius-lg);font-size:var(--font-size-sm);box-shadow:var(--shadow-lg);';
+    alertDiv.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    document.body.appendChild(alertDiv);
+    setTimeout(() => { if (alertDiv.parentNode) alertDiv.remove(); }, 4000);
+}
+
+// Inline-editable Notes
+document.addEventListener('dblclick', function(e) {
+    const cell = e.target.closest('.editable-notes');
+    if (!cell || cell.querySelector('textarea')) return;
+    const entryId = cell.dataset.entryId;
+    const currentText = cell.dataset.fullNotes || '';
+    const textarea = document.createElement('textarea');
+    textarea.className = 'crm-input crm-input-sm';
+    textarea.style.cssText = 'min-height:50px;resize:vertical;';
+    textarea.value = currentText;
+    cell.innerHTML = '';
+    cell.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+
+    function saveNotes() {
+        const newNotes = textarea.value.trim();
+        fetch('/funnel/update-notes/' + entryId + '/', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value, 'Content-Type': 'application/json'},
+            body: JSON.stringify({notes: newNotes})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                cell.dataset.fullNotes = data.notes;
+                const display = data.notes.length > 15 ? data.notes.substring(0, 12) + '...' : data.notes;
+                cell.innerHTML = display || '<span style="color:var(--color-text-muted);font-style:italic;">double-click</span>';
+                cell.title = data.notes || 'double-click to add';
+            } else {
+                showAlert('danger', data.message || 'Failed to save');
+                cell.innerHTML = currentText ? currentText.substring(0, 12) + (currentText.length > 15 ? '...' : '') : '<span style="color:var(--color-text-muted);font-style:italic;">double-click</span>';
+            }
+        })
+        .catch(() => {
+            showAlert('danger', 'Network error');
+            cell.innerHTML = currentText || '<span style="color:var(--color-text-muted);font-style:italic;">double-click</span>';
+        });
+    }
+    textarea.addEventListener('blur', saveNotes);
+    textarea.addEventListener('keydown', function(ev) {
+        if (ev.key === 'Enter' && !ev.shiftKey) { ev.preventDefault(); textarea.blur(); }
+        if (ev.key === 'Escape') {
+            const d = currentText.length > 15 ? currentText.substring(0, 12) + '...' : currentText;
+            cell.innerHTML = d || '<span style="color:var(--color-text-muted);font-style:italic;">double-click</span>';
+        }
+    });
+});
+</script>
+{% csrf_token %}
+{% endblock %}

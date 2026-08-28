@@ -4,7 +4,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
-from core.views import home, logout_view
+from core.views import home, home_modern, logout_view
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
@@ -33,7 +33,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(router.urls)),
     path('api/v1/api-token-auth/', CustomAuthToken.as_view()),
-    path('', home, name='home'),
+    path('', home_modern, name='home'),
+    path('classic/', home, name='home_classic'),
     path('customers/', include('customers.urls')),
     path('users/', include('users.urls')), # <-- ADDED
     path('teams/', include('teams.urls')), # <-- ADDED

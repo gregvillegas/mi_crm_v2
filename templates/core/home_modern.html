@@ -1,0 +1,229 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Home — MiCRM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <div>
+        <h2 style="font-size: var(--font-size-2xl); margin-bottom: var(--space-1);">Welcome back, {{ user.first_name|default:user.username }}</h2>
+        <p style="color: var(--color-text-secondary); margin: 0; font-size: var(--font-size-sm);">
+            {% if user.job_title %}{{ user.get_job_title_display }}{% elif user.role in 'president,gm,vp' %}Executive{% else %}{{ user.get_role_display }}{% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Gamification Widget (salesperson only) -->
+{% if user.role == 'salesperson' %}
+<div class="crm-card" style="margin-bottom: var(--space-6); border-left: 3px solid var(--color-warning-600);">
+    <div class="crm-card-header">
+        <h5><i class="fas fa-gamepad" style="color: var(--color-warning-600);"></i> Active Missions</h5>
+        <a href="{% url 'leaderboard' %}" class="crm-btn crm-btn-ghost crm-btn-sm">
+            <i class="fas fa-trophy"></i> Leaderboard
+        </a>
+    </div>
+    <div class="crm-card-body" style="padding: var(--space-4);">
+        <div style="display: flex; gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2);">
+            {% for progress in my_missions %}
+            <div style="min-width: 240px; flex-shrink: 0;">
+                <div class="crm-card {% if progress.is_completed %}{% endif %}" style="height: 100%; {% if progress.is_completed %}border-color: var(--color-success-600);{% endif %}">
+                    <div class="crm-card-body-compact">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--space-2);">
+                            <span style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-sm);">{{ progress.mission.title }}</span>
+                            <span class="crm-badge crm-badge-brand">+{{ progress.mission.reward_points }} pts</span>
+                        </div>
+                        <span class="crm-badge crm-badge-neutral" style="margin-bottom: var(--space-2);">
+                            {{ progress.mission.get_mission_type_display }}
+                        </span>
+                        <p style="font-size: var(--font-size-xs); color: var(--color-text-secondary); margin: var(--space-2) 0;">{{ progress.mission.description }}</p>
+                        <div style="background: var(--color-bg-secondary); border-radius: var(--radius-full); height: 6px; overflow: hidden;">
+                            <div style="height: 100%; background: {% if progress.is_completed %}var(--color-success-600){% else %}var(--color-brand-500){% endif %}; width: {% widthratio progress.current_count progress.mission.target_count 100 %}%; border-radius: var(--radius-full); transition: width 0.3s;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-muted);">
+                            <span>{{ progress.current_count }} / {{ progress.mission.target_count }}</span>
+                            {% if progress.is_completed %}<span style="color: var(--color-success-600);"><i class="fas fa-check-circle"></i> Done</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p style="color: var(--color-text-muted); font-size: var(--font-size-sm); margin: 0;">No active missions today.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if show_funnel %}
+<!-- Sales Funnel Overview -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+    <h3 style="font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); margin: 0;">
+        <i class="fas fa-chart-line" style="color: var(--color-brand-600);"></i> Sales Funnel Overview
+    </h3>
+    <div style="display: flex; gap: var(--space-2);">
+        {% if can_add_funnel %}
+        <a href="{% url 'sales_funnel:add_entry' %}" class="crm-btn crm-btn-primary crm-btn-sm">
+            <i class="fas fa-plus"></i> Add Entry
+        </a>
+        {% endif %}
+        <a href="{% url 'sales_funnel:dashboard' %}" class="crm-btn crm-btn-secondary crm-btn-sm">
+            <i class="fas fa-eye"></i> View Full Funnel
+        </a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+    <div class="crm-card">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-info-600);">{{ funnel_stats.total_entries }}</div>
+            <div class="kpi-label">Total Active</div>
+        </div>
+    </div>
+    <div class="crm-card">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-stage-pink);">{{ funnel_stats.quoted_count }}</div>
+            <div class="kpi-label">Newly Quoted</div>
+        </div>
+    </div>
+    <div class="crm-card">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-stage-yellow);">{{ funnel_stats.closable_count }}</div>
+            <div class="kpi-label">Closable</div>
+        </div>
+    </div>
+    <div class="crm-card">
+        <div class="crm-card-kpi">
+            <div class="kpi-value" style="color: var(--color-stage-green);">{{ funnel_stats.project_count }}</div>
+            <div class="kpi-label">Project Based</div>
+        </div>
+    </div>
+</div>
+
+<!-- Total Pipeline Value -->
+<div class="crm-card" style="margin-bottom: var(--space-6); text-align: center; padding: var(--space-8) var(--space-6);">
+    <div style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-success-600); margin-bottom: var(--space-2);">
+        <i class="fas fa-money-bill-wave"></i> Total Pipeline Value
+    </div>
+    <div style="font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); color: var(--color-success-700);">
+        ₱{{ funnel_stats.total_value|floatformat:0|intcomma }}
+    </div>
+    <div style="width: 120px; height: 2px; background: var(--color-success-100); margin: var(--space-3) auto;"></div>
+    <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">Combined retail value of all active funnel entries</div>
+</div>
+
+<!-- Recent Entries Table -->
+{% if recent_funnel_entries %}
+<div class="crm-card">
+    <div class="crm-card-header">
+        <h5><i class="fas fa-clock" style="color: var(--color-text-muted);"></i> Recent Entries</h5>
+    </div>
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Company</th>
+                    <th>Stage</th>
+                    <th style="text-align: right;">Retail</th>
+                    <th style="text-align: right;">Profit</th>
+                    {% if user.role != 'salesperson' %}<th>AM</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in recent_funnel_entries %}
+                <tr>
+                    <td style="white-space: nowrap;">{{ entry.date_created|date:"M d" }}</td>
+                    <td>
+                        <div style="font-weight: var(--font-weight-medium);">{{ entry.company_name|truncatechars:30 }}</div>
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ entry.requirement_description|truncatechars:40 }}</div>
+                    </td>
+                    <td>
+                        <span class="crm-badge crm-badge-solid crm-badge-{% if entry.stage == 'quoted' %}danger{% elif entry.stage == 'closable' %}warning{% elif entry.stage == 'project' %}success{% else %}brand{% endif %}">
+                            {{ entry.get_stage_display }}
+                        </span>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">₱{{ entry.retail|floatformat:0|intcomma }}</td>
+                    <td style="text-align: right; white-space: nowrap; color: {% if entry.profit > 0 %}var(--color-success-600){% else %}var(--color-danger-600){% endif %};">
+                        ₱{{ entry.profit|floatformat:0|intcomma }}
+                    </td>
+                    {% if user.role != 'salesperson' %}
+                    <td>
+                        <span class="crm-badge crm-badge-solid crm-badge-brand">
+                            {{ entry.salesperson.initials|default:entry.salesperson.username|slice:":3"|upper }}
+                        </span>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+{% if user.role == 'admin' and active_users is not None %}
+<!-- Active Users Widget -->
+<div class="crm-card" style="margin-top: var(--space-6);">
+    <div class="crm-card-header">
+        <div style="display: flex; align-items: center; gap: var(--space-2);">
+            <span style="width: 8px; height: 8px; background: var(--color-success-600); border-radius: 50%; box-shadow: 0 0 0 3px rgba(22,163,74,0.2);"></span>
+            <h5 style="margin: 0;">Active Users</h5>
+            <span class="crm-badge crm-badge-success">{{ active_users_count }}</span>
+        </div>
+        <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);"><i class="fas fa-clock"></i> Last {{ online_threshold_minutes }} min</span>
+    </div>
+    {% if active_users %}
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th style="width: 120px;">Role</th>
+                    <th style="width: 130px;">Last Seen</th>
+                    <th style="width: 100px;">Time Ago</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in active_users %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: var(--space-2);">
+                            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: var(--color-brand-600); color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: var(--font-weight-bold); flex-shrink: 0;">
+                                {% if u.profile_picture %}<img src="{{ u.profile_picture.url }}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">{% else %}{{ u.first_name|first|upper }}{{ u.last_name|first|upper }}{% endif %}
+                            </div>
+                            <div>
+                                <div style="font-weight: var(--font-weight-medium);">{{ u.get_full_name|default:u.username }}</div>
+                                <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="crm-badge {% if u.role == 'admin' %}crm-badge-danger{% elif u.role in 'president,gm,vp' %}crm-badge-brand{% elif u.role == 'avp' %}crm-badge-warning{% elif u.role in 'asm,sm,supervisor' %}crm-badge-info{% else %}crm-badge-neutral{% endif %}">
+                            {{ u.get_role_display }}
+                        </span>
+                    </td>
+                    <td style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ u.last_activity|date:"M d, H:i" }}</td>
+                    <td>
+                        <span style="font-size: var(--font-size-xs); color: var(--color-success-600); font-weight: var(--font-weight-medium);">
+                            <i class="fas fa-circle" style="font-size: 6px; vertical-align: middle;"></i> {{ u.last_activity|timesince }} ago
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="crm-card-footer">
+        <a href="{% url 'user_management' %}?ui=modern" class="crm-btn crm-btn-ghost crm-btn-sm"><i class="fas fa-users-cog"></i> Manage Users</a>
+    </div>
+    {% else %}
+    <div class="crm-card-body" style="text-align: center; padding: var(--space-8);">
+        <i class="fas fa-user-clock" style="font-size: 2rem; color: var(--color-text-muted); margin-bottom: var(--space-3); display: block;"></i>
+        <p style="font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0;">No other users active in the last {{ online_threshold_minutes }} minutes.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

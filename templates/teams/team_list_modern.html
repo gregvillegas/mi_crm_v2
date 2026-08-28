@@ -1,0 +1,54 @@
+{% extends 'base_modern.html' %}
+{% block title %}Teams — MiCRM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <h2><i class="fas fa-sitemap" style="color: var(--color-brand-600);"></i> Teams</h2>
+    <div class="crm-actions">
+        {% if user.role in 'admin,president,gm,vp' %}
+        <a href="{% url 'create_team' %}" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-plus"></i> Create Team</a>
+        {% endif %}
+        <a href="{% url 'group_list' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-layer-group"></i> All Groups</a>
+    </div>
+</div>
+
+<!-- Team Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: var(--space-5);">
+    {% for team in teams %}
+    <div class="crm-card" style="transition: transform var(--transition-fast);">
+        <div class="crm-card-header" style="border-bottom: 3px solid var(--color-brand-500);">
+            <h5 style="margin: 0; font-size: var(--font-size-lg);">{{ team.name }}</h5>
+            <span class="crm-badge crm-badge-brand">{{ team.groups.count }} group{{ team.groups.count|pluralize }}</span>
+        </div>
+        <div class="crm-card-body">
+            <div style="display: grid; gap: var(--space-3);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">AVP</span>
+                    <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">{% if team.avp %}{{ team.avp.get_full_name|default:team.avp.username }}{% else %}<span style="color: var(--color-text-muted);">—</span>{% endif %}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">ASM</span>
+                    <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">{% if team.asm %}{{ team.asm.get_full_name|default:team.asm.username }}{% else %}<span style="color: var(--color-text-muted);">—</span>{% endif %}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Tech Manager</span>
+                    <span style="font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">{% if team.tech_manager %}{{ team.tech_manager.get_full_name|default:team.tech_manager.username }}{% else %}<span style="color: var(--color-text-muted);">—</span>{% endif %}</span>
+                </div>
+            </div>
+        </div>
+        <div class="crm-card-footer">
+            <a href="{% url 'team_groups' team.pk %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-layer-group"></i> View Groups</a>
+        </div>
+    </div>
+    {% empty %}
+    <div class="crm-card" style="grid-column: 1 / -1;">
+        <div class="crm-empty-state">
+            <i class="fas fa-sitemap"></i>
+            <h4>No teams found</h4>
+            <p>Create your first team to organize your salespeople.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

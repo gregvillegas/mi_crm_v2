@@ -359,8 +359,38 @@ def funnel_dashboard(request):
         'show_actions': view_mode != 'table',
         'brand_suggestions': brand_suggestions,
     }
-    
-    return render(request, 'sales_funnel/dashboard.html', context)
+
+    # Modern UI variant (classic fallback via ?ui=classic)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_funnel/dashboard.html', context)
+
+    context['stages'] = [
+        {
+            'key': 'quoted', 'label': 'PINK', 'icon': 'fas fa-quote-left',
+            'color': 'hsl(340, 82%, 46%)', 'entries': quoted_entries,
+            'total_retail': sum(e.display_retail for e in quoted_entries),
+            'total_profit': sum(e.profit for e in quoted_entries),
+        },
+        {
+            'key': 'closable', 'label': 'YELLOW', 'icon': 'fas fa-handshake',
+            'color': 'hsl(38, 92%, 45%)', 'entries': closable_entries,
+            'total_retail': sum(e.display_retail for e in closable_entries),
+            'total_profit': sum(e.profit for e in closable_entries),
+        },
+        {
+            'key': 'project', 'label': 'GREEN', 'icon': 'fas fa-project-diagram',
+            'color': 'hsl(142, 71%, 35%)', 'entries': project_entries,
+            'total_retail': sum(e.display_retail for e in project_entries),
+            'total_profit': sum(e.profit for e in project_entries),
+        },
+        {
+            'key': 'services', 'label': 'BLUE', 'icon': 'fas fa-tools',
+            'color': 'hsl(217, 91%, 50%)', 'entries': services_entries,
+            'total_retail': sum(e.display_retail for e in services_entries),
+            'total_profit': sum(e.profit for e in services_entries),
+        },
+    ]
+    return render(request, 'sales_funnel/dashboard_modern.html', context)
 
 
 @login_required

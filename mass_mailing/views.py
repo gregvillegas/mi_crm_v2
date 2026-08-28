@@ -210,7 +210,9 @@ def get_allowed_campaigns(user):
 @login_required
 def campaign_list(request):
     campaigns = get_allowed_campaigns(request.user).order_by('-created_at')
-    return render(request, 'mass_mailing/campaign_list.html', {'campaigns': campaigns})
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'mass_mailing/campaign_list.html', {'campaigns': campaigns})
+    return render(request, 'mass_mailing/campaign_list_modern.html', {'campaigns': campaigns})
 
 
 @login_required

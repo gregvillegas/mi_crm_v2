@@ -1,0 +1,200 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Proposals — MiCRM{% endblock %}
+
+{% block extra_css %}
+<style>
+.proposal-filter-form .form-select {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+}
+.proposal-filter-form .form-select:focus {
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 0 2px var(--color-brand-100);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <div style="display: flex; align-items: baseline; gap: var(--space-4);">
+        <h2><i class="fas fa-file-invoice-dollar" style="color: var(--color-brand-600);"></i> Sales Proposals</h2>
+        {% if not show_team_grouping %}
+        <span style="font-size: var(--font-size-sm); color: var(--color-text-secondary); font-weight: var(--font-weight-medium);">
+            Total: <strong style="color: var(--color-text-primary);">₱{{ total_proposals_value|floatformat:2|intcomma }}</strong>
+        </span>
+        {% endif %}
+    </div>
+    <div class="crm-actions">
+        {% if user.role != 'salesperson' %}
+        <a href="{% url 'approvals_inbox' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-inbox"></i> Approvals</a>
+        <a href="{% url 'approval_tier_list' %}" class="crm-btn crm-btn-ghost crm-btn-sm"><i class="fas fa-sliders-h"></i> Tiers</a>
+        {% endif %}
+        <a href="{% url 'proposal_create' %}" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-plus"></i> New Proposal</a>
+        <a href="{% url 'multi_option_proposal_create' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-layer-group"></i> Multi-Option</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div style="display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-5); flex-wrap: wrap;" class="proposal-filter-form">
+    <form style="display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap;" method="get">
+        <input type="hidden" name="ui" value="modern">
+        {% if user.role != 'salesperson' and salespeople %}
+        <select name="salesperson" class="form-select" onchange="this.form.submit()" style="min-width: 170px;">
+            <option value="">All Salespeople</option>
+            {% for sp in salespeople %}
+            <option value="{{ sp.id }}" {% if selected_salesperson == sp.id %}selected{% endif %}>{{ sp.get_full_name }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <select name="month" class="form-select" onchange="this.form.submit()" style="min-width: 130px;">
+            <option value="">All Months</option>
+            {% for month in proposal_months %}
+            <option value="{{ month|date:'Y-m' }}" {% if selected_month == month|date:'Y-m' %}selected{% endif %}>{{ month|date:'M Y' }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- Grouped Proposals (Executive/Manager view) -->
+{% if show_team_grouping %}
+    {% for group in grouped_proposals %}
+    <div class="crm-card" style="margin-bottom: var(--space-5);">
+        <!-- Group Header -->
+        <div style="background: var(--color-bg-secondary); padding: var(--space-3) var(--space-5); border-bottom: var(--border-width) solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+                <i class="fas fa-users" style="color: var(--color-text-muted);"></i>
+                <span style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-md);">{{ group.name }}</span>
+                <span class="crm-badge crm-badge-neutral">{{ group.proposals|length }}</span>
+            </div>
+            <div style="font-size: var(--font-size-sm);">
+                <span style="color: var(--color-text-secondary);">Investment:</span>
+                <strong style="color: var(--color-text-primary);">₱{{ group.total_investment|floatformat:2|intcomma }}</strong>
+            </div>
+        </div>
+        <!-- Table -->
+        <div style="overflow-x: auto;">
+            <table class="crm-table">
+                <thead>
+                    <tr>
+                        <th>Proposal #</th>
+                        <th>Subject</th>
+                        <th>Customer</th>
+                        <th>Date</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th style="width: 60px; text-align: center;">AM</th>
+                        <th style="width: 80px;">Status</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for proposal in group.proposals %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'proposal_detail' proposal.pk %}" style="font-weight: var(--font-weight-medium); color: var(--color-brand-600); text-decoration: none; font-size: var(--font-size-xs); font-family: var(--font-family-mono);">{{ proposal.proposal_number }}</a>
+                        </td>
+                        <td style="max-width: 200px;" title="{{ proposal.subject }}">{{ proposal.subject|truncatechars:35 }}</td>
+                        <td style="max-width: 180px;" title="{{ proposal.customer.company_name }}">{{ proposal.customer.company_name|truncatechars:28 }}</td>
+                        <td style="white-space: nowrap; font-size: var(--font-size-xs);">{{ proposal.date|date:"m/d/y" }}</td>
+                        <td style="text-align: right; white-space: nowrap; font-weight: var(--font-weight-medium);">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.quoted_total_amount|intcomma }}</td>
+                        <td style="text-align: center;">
+                            <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px; padding: 2px 6px;">{{ proposal.created_by.initials|default:proposal.created_by.username|slice:":3"|upper }}</span>
+                        </td>
+                        <td>
+                            <span class="crm-badge {% if proposal.status == 'accepted' %}crm-badge-success{% elif proposal.status == 'sent' %}crm-badge-info{% elif proposal.status == 'declined' %}crm-badge-danger{% else %}crm-badge-neutral{% endif %}">{{ proposal.get_status_display }}</span>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 3px;">
+                                <a href="{% url 'proposal_detail' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="View"><i class="fas fa-eye"></i></a>
+                                {% if proposal.is_multi_option %}
+                                <a href="{% url 'multi_option_proposal_update' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                                {% else %}
+                                <a href="{% url 'proposal_update' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                                {% endif %}
+                                <a href="{% url 'proposal_pdf' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>
+                                <a href="{% url 'proposal_email' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Email"><i class="fas fa-envelope"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% empty %}
+    <div class="crm-card">
+        <div class="crm-empty-state">
+            <i class="fas fa-file-invoice"></i>
+            <h4>No proposals found</h4>
+            <p>Create a new proposal to get started.</p>
+        </div>
+    </div>
+    {% endfor %}
+
+{% else %}
+<!-- Flat Table (Salesperson view) -->
+<div class="crm-card">
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Proposal #</th>
+                    <th>Subject</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th style="text-align: right;">Amount</th>
+                    <th style="width: 60px; text-align: center;">AM</th>
+                    <th style="width: 80px;">Status</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proposal in proposals %}
+                <tr>
+                    <td>
+                        <a href="{% url 'proposal_detail' proposal.pk %}" style="font-weight: var(--font-weight-medium); color: var(--color-brand-600); text-decoration: none; font-size: var(--font-size-xs); font-family: var(--font-family-mono);">{{ proposal.proposal_number }}</a>
+                    </td>
+                    <td title="{{ proposal.subject }}">{{ proposal.subject|truncatechars:40 }}</td>
+                    <td title="{{ proposal.customer.company_name }}">{{ proposal.customer.company_name|truncatechars:30 }}</td>
+                    <td style="white-space: nowrap; font-size: var(--font-size-xs);">{{ proposal.date|date:"m/d/y" }}</td>
+                    <td style="text-align: right; white-space: nowrap; font-weight: var(--font-weight-medium);">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.quoted_total_amount|intcomma }}</td>
+                    <td style="text-align: center;">
+                        <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px; padding: 2px 6px;">{{ proposal.created_by.initials|default:proposal.created_by.username|slice:":3"|upper }}</span>
+                    </td>
+                    <td>
+                        <span class="crm-badge {% if proposal.status == 'accepted' %}crm-badge-success{% elif proposal.status == 'sent' %}crm-badge-info{% elif proposal.status == 'declined' %}crm-badge-danger{% else %}crm-badge-neutral{% endif %}">{{ proposal.get_status_display }}</span>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 3px;">
+                            <a href="{% url 'proposal_detail' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="View"><i class="fas fa-eye"></i></a>
+                            {% if proposal.is_multi_option %}
+                            <a href="{% url 'multi_option_proposal_update' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                            {% else %}
+                            <a href="{% url 'proposal_update' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                            {% endif %}
+                            <a href="{% url 'proposal_pdf' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="PDF" target="_blank"><i class="fas fa-file-pdf"></i></a>
+                            <a href="{% url 'proposal_email' proposal.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Email"><i class="fas fa-envelope"></i></a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="crm-empty-state">
+                            <i class="fas fa-file-invoice"></i>
+                            <h4>No proposals found</h4>
+                            <p>Create a new proposal to get started.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

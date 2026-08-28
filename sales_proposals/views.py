@@ -359,7 +359,9 @@ def proposal_list(request):
         'grouped_proposals': grouped_proposals
     }
     
-    return render(request, 'sales_proposals/proposal_list.html', context)
+    if request.GET.get('ui') == 'classic':
+        return render(request, 'sales_proposals/proposal_list.html', context)
+    return render(request, 'sales_proposals/proposal_list_modern.html', context)
 
 @login_required
 def proposal_create(request):

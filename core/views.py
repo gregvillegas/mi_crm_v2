@@ -150,6 +150,79 @@ def home(request):
 
     return render(request, 'core/home.html', context)
 
+
+@login_required
+def home_modern(request):
+    """Modern UI variant of the home page — same data, new layout shell."""
+    user = request.user
+    context = {'user': user}
+
+    today = timezone.now().date()
+    week_start = get_current_week_start(today)
+    generate_daily_missions(user)
+    generate_weekly_missions(user)
+    my_missions = UserMissionProgress.objects.filter(user=user).filter(
+        Q(mission__mission_type='daily', date_assigned=today) |
+        Q(mission__mission_type='weekly', date_assigned=week_start)
+    ).select_related('mission').order_by('mission__mission_type', 'mission__title')
+    context['my_missions'] = my_missions
+
+    if user.role in ['salesperson', 'supervisor', 'teamlead', 'asm', 'avp', 'admin', 'president', 'gm', 'vp']:
+        if user.role == 'salesperson':
+            funnel_entries = SalesFunnel.objects.filter(salesperson=user, is_active=True, is_closed=False)
+        elif user.role == 'supervisor':
+            groups = Group.objects.filter(supervisor=user)
+            salespeople_ids = list(TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True))
+            salespeople_ids.append(user.id)
+            funnel_entries = SalesFunnel.objects.filter(salesperson_id__in=salespeople_ids, is_active=True, is_closed=False)
+        elif user.role == 'avp':
+            teams = Team.objects.filter(avp=user)
+            grps = Group.objects.filter(team__in=teams)
+            salespeople_ids = list(TeamMembership.objects.filter(group__in=grps).values_list('user_id', flat=True))
+            asm_ids = list(teams.exclude(asm__isnull=True).values_list('asm_id', flat=True))
+            supervisor_ids = list(Group.objects.filter(team__in=teams, supervisor__isnull=False).values_list('supervisor_id', flat=True))
+            sm_ids = list(grps.values_list('sm_managers__id', flat=True))
+            visible_ids = salespeople_ids + asm_ids + supervisor_ids + [i for i in sm_ids if i]
+            funnel_entries = SalesFunnel.objects.filter(Q(salesperson_id__in=visible_ids) | Q(salesperson=user), is_active=True, is_closed=False)
+        else:
+            funnel_entries = SalesFunnel.objects.filter(is_active=True, is_closed=False)
+
+        from django.db.models import Sum
+        funnel_stats = {
+            'quoted_count': funnel_entries.filter(stage='quoted').count(),
+            'closable_count': funnel_entries.filter(stage='closable').count(),
+            'project_count': funnel_entries.filter(stage='project').count(),
+            'total_value': funnel_entries.aggregate(Sum('retail'))['retail__sum'] or 0,
+            'total_entries': funnel_entries.count(),
+        }
+        recent_entries = funnel_entries.select_related('salesperson', 'customer').order_by('-date_created')[:5]
+        context.update({
+            'funnel_stats': funnel_stats,
+            'recent_funnel_entries': recent_entries,
+            'show_funnel': True,
+            'can_add_funnel': user.role in ['salesperson', 'supervisor', 'asm', 'avp'],
+        })
+
+    # Active Users Widget (admin-only)
+    if user.role == 'admin':
+        threshold_minutes = getattr(settings, 'ONLINE_THRESHOLD_MINUTES', 15)
+        cutoff = timezone.now() - timedelta(minutes=threshold_minutes)
+        active_users = (
+            User.objects
+            .filter(last_activity__gte=cutoff, is_active=True)
+            .exclude(pk=user.pk)
+            .select_related()
+            .order_by('-last_activity')
+        )
+        context.update({
+            'active_users': active_users,
+            'active_users_count': active_users.count(),
+            'online_threshold_minutes': threshold_minutes,
+        })
+
+    return render(request, 'core/home_modern.html', context)
+
+
 def logout_view(request):
     logout(request)
     messages.success(request, 'You have been successfully logged out.')

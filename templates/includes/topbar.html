@@ -1,0 +1,86 @@
+{% load static %}
+<!-- Topbar -->
+<header class="crm-topbar">
+    <!-- Mobile menu toggle -->
+    <button class="crm-topbar-icon-btn d-md-none" id="mobileMenuToggle" aria-label="Open menu">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Search -->
+    <div class="crm-topbar-search d-none d-md-block">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search customers, proposals, leads..." aria-label="Global search">
+    </div>
+
+    <!-- Right Actions -->
+    <div class="crm-topbar-actions">
+        <!-- Notifications -->
+        {% if user.is_authenticated %}
+        <div class="dropdown">
+            <button class="crm-topbar-icon-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications">
+                <i class="fas fa-bell"></i>
+                {% with total_notification_count=customer_request_notification_count|add:proposal_approval_notification_count %}
+                {% if total_notification_count %}
+                <span class="crm-badge-count">{{ total_notification_count }}</span>
+                {% endif %}
+                {% endwith %}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow" style="width: 340px; max-width: 90vw;">
+                {% if proposal_approval_notifications %}
+                <li><h6 class="dropdown-header">Pending Approvals</h6></li>
+                {% for item in proposal_approval_notifications %}
+                <li>
+                    <a class="dropdown-item" href="{{ item.url }}">
+                        <div class="fw-semibold small">{{ item.title }}</div>
+                        <div class="small" style="color: var(--color-text-muted);">{{ item.message }}</div>
+                    </a>
+                </li>
+                {% endfor %}
+                {% endif %}
+                {% if customer_request_notifications %}
+                <li><h6 class="dropdown-header">Customer Requests</h6></li>
+                {% for item in customer_request_notifications %}
+                <li>
+                    <a class="dropdown-item" href="{% url item.url_name %}">
+                        <div class="fw-semibold small">{{ item.title }}</div>
+                        <div class="small" style="color: var(--color-text-muted);">{{ item.message }}</div>
+                    </a>
+                </li>
+                {% endfor %}
+                {% endif %}
+                {% if not customer_request_notifications and not proposal_approval_notifications %}
+                <li><span class="dropdown-item-text small" style="color: var(--color-text-muted);">No new notifications</span></li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Profile -->
+        <div class="dropdown">
+            <a href="#" class="crm-topbar-profile" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="crm-avatar">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="{{ user.username }}">
+                    {% else %}
+                        {{ user.initials|default:user.username|make_list|first|upper }}
+                    {% endif %}
+                </div>
+                <div class="crm-profile-info d-none d-lg-flex">
+                    <span class="crm-profile-name">{{ user.get_full_name|default:user.username }}</span>
+                    <span class="crm-profile-role">{% if user.job_title %}{{ user.get_job_title_display }}{% else %}{{ user.get_role_display }}{% endif %}</span>
+                </div>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+                <li><h6 class="dropdown-header">{{ user.get_full_name|default:user.username }}</h6></li>
+                <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2"></i>My Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'leaderboard' %}"><i class="fas fa-trophy me-2"></i>Leaderboard</a></li>
+                <li><a class="dropdown-item" href="{% url 'badges' %}"><i class="fas fa-medal me-2"></i>My Badges</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="{% url 'account_change_password' %}"><i class="fas fa-key me-2"></i>Change Password</a></li>
+                <li><a class="dropdown-item" href="{% url 'mfa_index' %}"><i class="fas fa-shield-alt me-2"></i>MFA Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</header>

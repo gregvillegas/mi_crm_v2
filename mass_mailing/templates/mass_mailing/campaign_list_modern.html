@@ -1,0 +1,84 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Mass Mailing — MiCRM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <h2><i class="fas fa-paper-plane" style="color: var(--color-brand-600);"></i> Mass Mailing</h2>
+    <div class="crm-actions">
+        {% if request.user.role == 'admin' or request.user.role == 'marketing' %}
+        <a href="{% url 'mass_mailing:media_library' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-photo-video"></i> Media Library</a>
+        {% endif %}
+        <a href="{% url 'mass_mailing:campaign_create' %}" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-plus"></i> New Campaign</a>
+    </div>
+</div>
+
+<!-- Campaign Table -->
+<div class="crm-card">
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Campaign</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 140px;">Scheduled</th>
+                    <th style="width: 90px; text-align: center;">Recipients</th>
+                    <th style="width: 180px;">Progress</th>
+                    <th style="width: 60px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for campaign in campaigns %}
+                <tr>
+                    <td>
+                        <div style="font-weight: var(--font-weight-medium);">{{ campaign.name }}</div>
+                        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ campaign.subject|truncatechars:50 }}</div>
+                    </td>
+                    <td>
+                        <span class="crm-badge {% if campaign.status == 'completed' %}crm-badge-success{% elif campaign.status == 'sending' %}crm-badge-warning{% elif campaign.status == 'scheduled' %}crm-badge-info{% elif campaign.status == 'cancelled' %}crm-badge-danger{% else %}crm-badge-neutral{% endif %}">
+                            {{ campaign.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="font-size: var(--font-size-xs); white-space: nowrap;">
+                        {% if campaign.scheduled_for %}{{ campaign.scheduled_for|date:"M d, Y H:i" }}{% else %}<span style="color: var(--color-text-muted);">—</span>{% endif %}
+                    </td>
+                    <td style="text-align: center; font-weight: var(--font-weight-semibold);">{{ campaign.total_recipients }}</td>
+                    <td>
+                        {% if campaign.total_recipients > 0 %}
+                        {% widthratio campaign.sent_count campaign.total_recipients 100 as percent %}
+                        <div style="display: flex; align-items: center; gap: var(--space-2);">
+                            <div style="flex: 1; background: var(--color-bg-secondary); border-radius: var(--radius-full); height: 6px; overflow: hidden;">
+                                <div style="height: 100%; width: {{ percent }}%; background: {% if percent == '100' %}var(--color-success-600){% else %}var(--color-brand-500){% endif %}; border-radius: var(--radius-full);"></div>
+                            </div>
+                            <span style="font-size: var(--font-size-xs); color: var(--color-text-muted); min-width: 32px;">{{ percent }}%</span>
+                        </div>
+                        <div style="font-size: 10px; color: var(--color-text-muted); margin-top: 2px;">
+                            <span style="color: var(--color-success-600);">{{ campaign.sent_count }} sent</span>
+                            {% if campaign.failed_count %} · <span style="color: var(--color-danger-600);">{{ campaign.failed_count }} failed</span>{% endif %}
+                        </div>
+                        {% else %}
+                        <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">No recipients</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'mass_mailing:campaign_detail' campaign.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="View"><i class="fas fa-eye"></i></a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="crm-empty-state">
+                            <i class="fas fa-paper-plane"></i>
+                            <h4>No campaigns yet</h4>
+                            <p>Create your first email campaign to reach your customers.</p>
+                            <a href="{% url 'mass_mailing:campaign_create' %}" class="crm-btn crm-btn-primary crm-btn-sm" style="margin-top: var(--space-3);"><i class="fas fa-plus"></i> Create Campaign</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

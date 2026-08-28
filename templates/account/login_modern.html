@@ -1,0 +1,217 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — MiCRM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'core/css/design-tokens.css' %}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-family-sans);
+            background: var(--color-bg-page);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-6);
+            -webkit-font-smoothing: antialiased;
+        }
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: var(--space-8);
+        }
+        .login-logo img {
+            height: 48px;
+            margin-bottom: var(--space-3);
+        }
+        .login-logo h1 {
+            font-size: var(--font-size-xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-text-primary);
+            letter-spacing: var(--letter-spacing-tight);
+        }
+        .login-logo p {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-muted);
+            margin-top: var(--space-1);
+        }
+        .login-card {
+            background: var(--color-bg-primary);
+            border: var(--border-width) solid var(--color-border);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            padding: var(--space-8) var(--space-6);
+        }
+        .login-card h2 {
+            font-size: var(--font-size-lg);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-primary);
+            text-align: center;
+            margin-bottom: var(--space-6);
+        }
+        .form-group {
+            margin-bottom: var(--space-5);
+        }
+        .form-group label {
+            display: block;
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            margin-bottom: var(--space-2);
+        }
+        .form-group input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-base);
+            color: var(--color-text-primary);
+            background: var(--color-bg-primary);
+            border: var(--border-width) solid var(--color-border);
+            border-radius: var(--radius-md);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--color-brand-500);
+            box-shadow: 0 0 0 3px var(--color-brand-50);
+        }
+        .form-group input::placeholder {
+            color: var(--color-text-muted);
+        }
+        .form-group .error {
+            font-size: var(--font-size-xs);
+            color: var(--color-danger-600);
+            margin-top: var(--space-1);
+        }
+        .login-btn {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-text-inverse);
+            background: var(--color-brand-600);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+        .login-btn:hover {
+            background: var(--color-brand-700);
+        }
+        .login-btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 3px var(--color-brand-100);
+        }
+        .login-footer {
+            text-align: center;
+            margin-top: var(--space-4);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+        }
+        .alert {
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--space-4);
+        }
+        .alert-danger {
+            background: var(--color-danger-50);
+            color: var(--color-danger-700);
+            border: 1px solid var(--color-danger-100);
+        }
+        .alert-success {
+            background: var(--color-success-50);
+            color: var(--color-success-700);
+            border: 1px solid var(--color-success-100);
+        }
+        .alert-info {
+            background: var(--color-info-50);
+            color: var(--color-info-600);
+            border: 1px solid var(--color-info-100);
+        }
+        .page-footer {
+            margin-top: var(--space-8);
+            font-size: var(--font-size-xs);
+            color: var(--color-text-muted);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <!-- Logo -->
+        <div class="login-logo">
+            <img src="{% static 'core/images/logo.png' %}" alt="Micro Image">
+            <h1>MiCRM</h1>
+            <p>Customer Relationship Management</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card">
+            <h2>Sign in to your account</h2>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+            </div>
+            {% endif %}
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <form method="post" action="{% url 'account_login' %}">
+                {% csrf_token %}
+
+                {% for field in form.visible_fields %}
+                <div class="form-group">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <input
+                        type="{% if 'password' in field.name %}password{% elif 'email' in field.name %}email{% else %}text{% endif %}"
+                        name="{{ field.html_name }}"
+                        id="{{ field.id_for_label }}"
+                        {% if field.value %}value="{{ field.value }}"{% endif %}
+                        {% if forloop.first %}autofocus{% endif %}
+                        placeholder="{% if 'password' in field.name %}Enter your password{% else %}Enter your username{% endif %}"
+                        required
+                    >
+                    {% if field.errors %}
+                    <div class="error">{% for error in field.errors %}{{ error }}{% endfor %}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {{ redirect_field }}
+
+                <button type="submit" class="login-btn">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <i class="fas fa-shield-alt"></i> Secured with Two-Factor Authentication
+            </div>
+        </div>
+    </div>
+
+    <div class="page-footer">
+        &copy; <script>document.write(new Date().getFullYear())</script> Micro Image International Corp. | <span id="yrs"></span> years in the IT Industry
+    </div>
+    <script>document.getElementById('yrs').textContent = new Date().getFullYear() - 1997;</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+{% extends 'base_modern.html' %}
+{% load humanize %}
+{% block title %}Customers — MiCRM{% endblock %}
+
+{% block extra_css %}
+<style>
+#customerFilterForm .form-select,
+#customerFilterForm .form-control {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-sm);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+#customerFilterForm .form-select:focus,
+#customerFilterForm .form-control:focus {
+    border-color: var(--color-brand-500);
+    box-shadow: 0 0 0 2px var(--color-brand-100);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="crm-page-header">
+    <h2><i class="fas fa-users" style="color: var(--color-brand-600);"></i> Customers</h2>
+    <div class="crm-actions">
+        {% if user.role in 'admin,vp,gm,marketing' %}
+        <a href="{% url 'export_customers' %}" class="crm-btn crm-btn-success crm-btn-sm"><i class="fas fa-download"></i> Export</a>
+        <a href="{% url 'import_customers' %}" class="crm-btn crm-btn-secondary crm-btn-sm"><i class="fas fa-upload"></i> Import</a>
+        {% endif %}
+        {% if user.role in 'admin,vp,gm,avp,marketing' %}
+        <a href="{% url 'customer_create_requests' %}" class="crm-btn crm-btn-secondary crm-btn-sm">
+            <i class="fas fa-user-check"></i> Pending
+            {% if pending_create_count %}<span class="crm-badge crm-badge-solid crm-badge-danger" style="margin-left:4px;">{{ pending_create_count }}</span>{% endif %}
+        </a>
+        {% endif %}
+        <a href="{% url 'create_customer' %}" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-plus"></i> Add Customer</a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-brand-600);">{{ stats.total }}</div>
+        <div class="kpi-label">Total</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-danger-600);">{{ stats.inactive_count }}</div>
+        <div class="kpi-label">Inactive</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-warning-600);">{{ stats.millionaire_count }}</div>
+        <div class="kpi-label">Millionaire</div>
+    </div></div>
+    <div class="crm-card"><div class="crm-card-kpi">
+        <div class="kpi-value" style="color: var(--color-success-600);">{{ stats.active_count }}</div>
+        <div class="kpi-label">Active</div>
+    </div></div>
+</div>
+
+<!-- Filters -->
+<div class="crm-card" style="margin-bottom: var(--space-5);">
+    <div class="crm-card-body-compact">
+        <form id="customerFilterForm" method="get" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: var(--space-3); align-items: end;">
+            <input type="hidden" name="ui" value="modern">
+            <div>
+                <label class="crm-label">Search</label>
+                <input type="text" class="form-control" name="search" placeholder="Company, contact, email..." value="{{ current_filters.search }}">
+            </div>
+            <div>
+                <label class="crm-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div>
+                <label class="crm-label">Millionaire</label>
+                <select class="form-select" name="millionaire">
+                    <option value="">All</option>
+                    <option value="yes" {% if current_filters.millionaire == 'yes' %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if current_filters.millionaire == 'no' %}selected{% endif %}>No</option>
+                </select>
+            </div>
+            <div>
+                <label class="crm-label">Industry</label>
+                <select class="form-select" name="industry">
+                    <option value="">All</option>
+                    {% for val, name in industry_choices %}
+                    <option value="{{ val }}" {% if current_filters.industry == val %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="crm-label">Territory</label>
+                <select class="form-select" name="territory">
+                    <option value="">All</option>
+                    {% for val, name in territory_choices %}
+                    <option value="{{ val }}" {% if current_filters.territory == val %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="crm-label">Account Manager</label>
+                <select class="form-select" name="salesperson">
+                    <option value="">All</option>
+                    <option value="unassigned" {% if current_filters.salesperson == 'unassigned' %}selected{% endif %}>Unassigned</option>
+                    {% for sp in available_salespeople %}
+                    <option value="{{ sp.id }}" {% if current_filters.salesperson|add:'0' == sp.id|add:'0' %}selected{% endif %}>{{ sp.initials|default:sp.username|slice:":3"|upper }} — {{ sp.get_full_name|default:sp.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if user.role != 'salesperson' %}
+            <div>
+                <label class="crm-label">Duplicates</label>
+                <select class="form-select" name="duplicates">
+                    <option value="">All</option>
+                    <option value="yes" {% if current_filters.duplicates == 'yes' %}selected{% endif %}>Duplicates Only</option>
+                </select>
+            </div>
+            {% endif %}
+            <div style="display: flex; gap: var(--space-2); padding-bottom: 2px;">
+                <button type="submit" class="crm-btn crm-btn-primary crm-btn-sm"><i class="fas fa-filter"></i> Filter</button>
+                <a href="{% url 'customer_list' %}?ui=modern" class="crm-btn crm-btn-ghost crm-btn-sm"><i class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if current_filters.duplicates == 'yes' %}
+<div style="background: var(--color-warning-50); border: 1px solid var(--color-warning-100); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4); font-size: var(--font-size-sm); color: var(--color-warning-700);">
+    <i class="fas fa-exclamation-triangle"></i> <strong>Duplicate Detection</strong> — {{ duplicate_group_count }} group{{ duplicate_group_count|pluralize }} with similar names.
+</div>
+{% endif %}
+
+<!-- Customer Table -->
+<div class="crm-card">
+    <div style="overflow-x: auto;">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th style="width: 100px;">Status</th>
+                    <th style="width: 80px;">AM</th>
+                    <th style="width: 140px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>
+                        <a href="{% url 'customer_detail' customer.pk %}" style="font-weight: var(--font-weight-medium); color: var(--color-brand-600); text-decoration: none;">{{ customer.company_name|truncatechars:40 }}</a>
+                        {% if customer.is_millionaire_account %}<span class="crm-badge crm-badge-warning" style="margin-left: 4px;">Millionaire</span>{% endif %}
+                    </td>
+                    <td>
+                        <div style="font-weight: var(--font-weight-medium);">{{ customer.contact_person_name }}</div>
+                        {% if customer.contact_person_position %}<div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">{{ customer.contact_person_position }}</div>{% endif %}
+                    </td>
+                    <td>
+                        <span class="crm-badge {% if customer.is_effectively_active %}crm-badge-success{% else %}crm-badge-danger{% endif %}">
+                            {% if customer.is_effectively_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if customer.salesperson %}
+                        <span class="crm-badge crm-badge-solid crm-badge-brand" style="font-size: 10px;">{{ customer.salesperson.initials|default:customer.salesperson.username|slice:":3"|upper }}</span>
+                        {% else %}
+                        <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 4px;">
+                            <a href="{% url 'customer_detail' customer.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="View"><i class="fas fa-eye"></i></a>
+                            {% if user.role in 'admin,gm,vp' %}
+                            <a href="{% url 'edit_customer' customer.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Edit"><i class="fas fa-edit"></i></a>
+                            {% endif %}
+                            {% if user.role in 'admin,gm,vp,avp,asm,supervisor' %}
+                            <a href="{% url 'transfer_customer' customer.pk %}" class="crm-btn crm-btn-ghost crm-btn-icon crm-btn-sm" title="Transfer"><i class="fas fa-exchange-alt"></i></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="crm-empty-state">
+                            <i class="fas fa-users"></i>
+                            <h4>No customers found</h4>
+                            <p>Try adjusting your filters or add a new customer.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
