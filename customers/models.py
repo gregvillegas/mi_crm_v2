@@ -622,3 +622,43 @@ class CustomerContact(models.Model):
         # Ensure only one primary
         if self.is_primary:
             CustomerContact.objects.filter(customer=self.customer).exclude(id=self.id).update(is_primary=False)
+
+
+class DataExportLog(models.Model):
+    """
+    Audit log for personal data exports — required for Data Privacy Act (R.A. 10173)
+    compliance. Records who exported customer data, when, and how much.
+    """
+    EXPORT_TYPE_CHOICES = [
+        ('customers', 'Customers'),
+        ('customers_with_contacts', 'Customers + Contacts'),
+        ('delinquents', 'Delinquent Accounts'),
+        ('sales_funnel', 'Sales Funnel'),
+        ('other', 'Other'),
+    ]
+
+    exported_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='data_exports',
+        help_text='The user who performed the export',
+    )
+    export_type = models.CharField(max_length=40, choices=EXPORT_TYPE_CHOICES, default='customers')
+    record_count = models.PositiveIntegerField(default=0, help_text='Number of records exported')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    exported_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-exported_at']
+        verbose_name = 'Data Export Log'
+        verbose_name_plural = 'Data Export Logs'
+        indexes = [
+            models.Index(fields=['-exported_at']),
+            models.Index(fields=['exported_by', '-exported_at']),
+        ]
+
+    def __str__(self):
+        who = self.exported_by.username if self.exported_by else 'Unknown'
+        return f"{who} exported {self.record_count} {self.get_export_type_display()} on {self.exported_at:%Y-%m-%d %H:%M}"

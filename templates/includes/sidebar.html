@@ -25,6 +25,11 @@
         </a>
         {% endif %}
 
+        <a href="{% url 'delinquent_list' %}" class="crm-nav-item" title="Delinquent Accounts">
+            <i class="fas fa-user-times"></i>
+            <span class="crm-nav-label">Delinquent</span>
+        </a>
+
         {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
         <a href="{% url 'lead_generation:dashboard' %}" class="crm-nav-item" title="Leads">
             <i class="fas fa-user-plus"></i>

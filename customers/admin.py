@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Customer, CustomerHistory, CustomerBackup, DelinquencyRecord, DelinquentCustomer, CustomerContact
+from .models import Customer, CustomerHistory, CustomerBackup, DelinquencyRecord, DelinquentCustomer, CustomerContact, DataExportLog
 
 @admin.register(CustomerHistory)
 class CustomerHistoryAdmin(admin.ModelAdmin):
@@ -58,3 +58,18 @@ class DelinquencyRecordAdmin(admin.ModelAdmin):
     list_display = ('customer', 'tin_number', 'status', 'partner_name', 'date_delivered', 'salesperson', 'updated_at')
     list_filter = ('status', 'salesperson')
     search_fields = ('customer__company_name', 'salesperson__username', 'tin_number', 'remarks')
+
+@admin.register(DataExportLog)
+class DataExportLogAdmin(admin.ModelAdmin):
+    list_display = ('exported_by', 'export_type', 'record_count', 'ip_address', 'exported_at')
+    list_filter = ('export_type', 'exported_at', 'exported_by')
+    search_fields = ('exported_by__username', 'ip_address')
+    readonly_fields = ('exported_by', 'export_type', 'record_count', 'ip_address', 'user_agent', 'exported_at')
+    date_hierarchy = 'exported_at'
+    ordering = ('-exported_at',)
+
+    def has_add_permission(self, request):
+        return False  # Logs are created programmatically only
+
+    def has_change_permission(self, request, obj=None):
+        return False  # Read-only audit trail

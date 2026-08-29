@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.db import models, transaction
 from django.db.models import Sum
 from django.utils import timezone
-from .models import Customer, CustomerBackup, CustomerHistory, DelinquencyRecord, CustomerNote, CustomerContact, CustomerCreateRequest
+from .models import Customer, CustomerBackup, CustomerHistory, DelinquencyRecord, CustomerNote, CustomerContact, CustomerCreateRequest, DataExportLog
 from .forms import CustomerForm, CustomerContactFormSet, SalespersonCustomerForm, SalespersonCustomerUpdateForm
 from .permissions import (
     can_edit_customer as perms_can_edit_customer,
@@ -585,6 +585,51 @@ def _customer_with_contacts_header():
     return header
 
 
+def _client_ip(request):
+    """Best-effort extraction of the client IP address."""
+    xff = request.META.get('HTTP_X_FORWARDED_FOR')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR')
+
+
+def _write_privacy_notice(writer, request, record_count, export_type_label):
+    """
+    Write a Data Privacy Act (R.A. 10173) compliance notice as the first rows
+    of an exported CSV, followed by a blank separator row.
+    """
+    who = request.user.get_full_name() or request.user.username
+    now_str = timezone.now().strftime('%Y-%m-%d %H:%M:%S %Z')
+    writer.writerow(['DATA PRIVACY NOTICE — CONFIDENTIAL'])
+    writer.writerow([
+        'This file contains personal information protected under the Data Privacy Act of 2012 (R.A. 10173).'
+    ])
+    writer.writerow([
+        'Handle with care. Do not share, copy, or store outside authorized systems. '
+        'Unauthorized disclosure may result in administrative, civil, or criminal liability.'
+    ])
+    writer.writerow([f'Exported by: {who}'])
+    writer.writerow([f'Export date/time: {now_str}'])
+    writer.writerow([f'Export type: {export_type_label}'])
+    writer.writerow([f'Records exported: {record_count}'])
+    writer.writerow([])  # blank separator row
+
+
+def _log_data_export(request, export_type, record_count):
+    """Record an export event in the DataExportLog audit table."""
+    try:
+        DataExportLog.objects.create(
+            exported_by=request.user if request.user.is_authenticated else None,
+            export_type=export_type,
+            record_count=record_count,
+            ip_address=_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+        )
+    except Exception:
+        # Never let logging failure block the export
+        pass
+
+
 @login_required
 @user_passes_test(is_admin)
 def export_customers(request):
@@ -592,7 +637,13 @@ def export_customers(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="customers_export.csv"'
     
+    customers = list(Customer.objects.all().select_related('salesperson'))
+
     writer = csv.writer(response)
+
+    # Data Privacy Act compliance notice
+    _write_privacy_notice(writer, request, len(customers), 'Customers')
+
     # Write header
     writer.writerow([
         'Company Name', 'Contact Person Name', 'Contact Person Position', 'Email', 'Phone Number', 'Address', 
@@ -601,7 +652,6 @@ def export_customers(request):
     ])
     
     # Write customer data
-    customers = Customer.objects.all().select_related('salesperson')
     for customer in customers:
         salesperson_initials = customer.salesperson.initials if customer.salesperson and customer.salesperson.initials else ''
         writer.writerow([
@@ -619,7 +669,10 @@ def export_customers(request):
             customer.created_at.strftime('%Y-%m-%d %H:%M:%S') if customer.created_at else '',
             customer.updated_at.strftime('%Y-%m-%d %H:%M:%S') if customer.updated_at else '',
         ])
-    
+
+    # Audit log
+    _log_data_export(request, 'customers', len(customers))
+
     return response
 
 
@@ -630,15 +683,19 @@ def export_customers_with_contacts(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="customers_with_contacts_export.csv"'
 
-    writer = csv.writer(response)
-    writer.writerow(_customer_with_contacts_header())
-
-    customers = (
+    customers = list(
         Customer.objects.all()
         .select_related('salesperson')
         .prefetch_related('contacts')
         .order_by('company_name', 'id')
     )
+
+    writer = csv.writer(response)
+
+    # Data Privacy Act compliance notice
+    _write_privacy_notice(writer, request, len(customers), 'Customers + Contacts')
+
+    writer.writerow(_customer_with_contacts_header())
 
     for customer in customers:
         salesperson_initials = customer.salesperson.initials if customer.salesperson and customer.salesperson.initials else ''
@@ -670,6 +727,9 @@ def export_customers_with_contacts(request):
             row.extend(['', '', '', '', ''])
 
         writer.writerow(row)
+
+    # Audit log
+    _log_data_export(request, 'customers_with_contacts', len(customers))
 
     return response
 
