@@ -29,11 +29,16 @@ class MultiOptionProposalForm(ProposalForm):
             'stock_availability',
             'payment_terms',
             'delivery_lead_time',
-            'use_total_price_label',
+            'show_vat',
+            'use_availability_column',
             'include_bank_details',
             # Bank details
-            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type', 'php_branch',
-            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number', 'usd_bank_address', 'usd_swift_code',
+            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type',
+            'php_branch', 'php_bank_address', 'php_swift_code', 'php_branch_code',
+            'php_bpi_account_name', 'php_bpi_account_number', 'php_bpi_account_type',
+            'php_bpi_branch', 'php_bpi_bank_address', 'php_bpi_swift_code',
+            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number',
+            'usd_bank_name', 'usd_bank_address', 'usd_swift_code', 'usd_branch_code',
             'introduction',
             'special_note',
             'closing',
@@ -75,8 +80,12 @@ class MultiOptionProposalForm(ProposalForm):
 
         # Bank detail fields are optional — only used if include_bank_details is checked
         bank_fields = [
-            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type', 'php_branch',
-            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number', 'usd_bank_address', 'usd_swift_code',
+            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type',
+            'php_branch', 'php_bank_address', 'php_swift_code', 'php_branch_code',
+            'php_bpi_account_name', 'php_bpi_account_number', 'php_bpi_account_type',
+            'php_bpi_branch', 'php_bpi_bank_address', 'php_bpi_swift_code',
+            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number',
+            'usd_bank_name', 'usd_bank_address', 'usd_swift_code', 'usd_branch_code',
         ]
         for field_name in bank_fields:
             if field_name in self.fields:

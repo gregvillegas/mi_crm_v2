@@ -526,12 +526,14 @@ def proposal_delete(request, pk):
 
 def generate_pdf_buffer(proposal):
     buffer = io.BytesIO()
-    
-    # Calculate footer height first to adjust bottom margin
+
+    img_width = 7.5 * inch
+
+    # --- Pre-calculate footer dimensions ---
     footer_img_path = os.path.join(settings.BASE_DIR, 'core/static/core/images/PROPOSAL-FOOTER.png')
     footer_height = 0
-    footer_width = 7.5 * inch
-    
+    footer_width = img_width
+
     if os.path.exists(footer_img_path):
         try:
             img_reader = ImageReader(footer_img_path)
@@ -539,13 +541,33 @@ def generate_pdf_buffer(proposal):
             aspect = ih / float(iw)
             footer_height = footer_width * aspect
         except:
-            footer_height = 0.5 * inch # Fallback
-            
-    # Reduced margins to fit more content and match the dense layout of the screenshot
-    # Adjust bottom margin to accommodate footer + padding
+            footer_height = 0.5 * inch
+
+    # --- Pre-calculate header dimensions ---
+    header_img_path = os.path.join(settings.BASE_DIR, 'core/static/core/images/Proposal_Header.png')
+    header_height = 0
+    header_has_image = False
+
+    if os.path.exists(header_img_path):
+        try:
+            img_reader = ImageReader(header_img_path)
+            iw, ih = img_reader.getSize()
+            aspect = ih / float(iw)
+            header_height = img_width * aspect
+            header_has_image = True
+        except:
+            header_height = 1.2 * inch
+            header_has_image = True
+
+    # Margins: reserve space at top for header image + small gap; bottom for footer
+    top_margin = (header_height + 14) if header_has_image else 36
     bottom_margin = max(36, footer_height + 20)
-    
-    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=bottom_margin)
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter,
+        rightMargin=36, leftMargin=36,
+        topMargin=top_margin, bottomMargin=bottom_margin,
+    )
     styles = getSampleStyleSheet()
     
     # Custom Colors
@@ -628,75 +650,53 @@ def generate_pdf_buffer(proposal):
     styles.add(ParagraphStyle(name='TableHeaderRight', parent=styles['TableHeader'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='NoteHeader', parent=styles['Normal'], fontName=font_bold, fontSize=9, backColor=MIC_YELLOW))
 
-    def draw_footer(canvas, doc):
+    def draw_header_footer(canvas, doc):
         canvas.saveState()
+        page_width = letter[0]
+
+        # --- Draw header image (every page) ---
+        if header_has_image:
+            try:
+                x_pos = (page_width - img_width) / 2
+                # Position: top of page minus header height, with a small top margin
+                y_pos = letter[1] - header_height - 6
+                canvas.drawImage(
+                    header_img_path, x_pos, y_pos,
+                    width=img_width, height=header_height,
+                    mask='auto',
+                )
+            except Exception:
+                pass
+        else:
+            # Fallback text header drawn via canvas (no ReportLab Flowables available here)
+            # Draw a simple red bar with company name
+            bar_x = 36
+            bar_y = letter[1] - 54
+            canvas.setFillColor(colors.HexColor('#B22222'))
+            canvas.rect(bar_x, bar_y, page_width - 72, 40, fill=1, stroke=0)
+            canvas.setFillColor(colors.white)
+            canvas.setFont('Helvetica-Bold', 10)
+            canvas.drawString(bar_x + 6, bar_y + 14, 'MICRO IMAGE INTERNATIONAL CORPORATION')
+
+        # --- Draw footer image (every page) ---
         if os.path.exists(footer_img_path):
             try:
-                # Draw centered horizontally, at the bottom
-                # x = (letter[0] - width) / 2
-                x_pos = (letter[0] - footer_width) / 2
-                y_pos = 10 # Small margin from bottom edge
-                canvas.drawImage(footer_img_path, x_pos, y_pos, width=footer_width, height=footer_height, mask='auto')
-            except Exception as e:
+                x_pos = (page_width - footer_width) / 2
+                canvas.drawImage(
+                    footer_img_path, x_pos, 10,
+                    width=footer_width, height=footer_height,
+                    mask='auto',
+                )
+            except Exception:
                 pass
+
         canvas.restoreState()
 
     elements = []
-    
-    # --- HEADER ---
-    # Try to use the full width header image first
-    header_img_path = os.path.join(settings.BASE_DIR, 'core/static/core/images/Proposal_Header.png')
-    
-    if os.path.exists(header_img_path):
-        # Full width header image
-        # Assuming letter width is 8.5 inches. With 0.5 inch margins on each side, usable width is 7.5 inches.
-        # We'll adjust height proportionally.
-        img_width = 7.5 * inch
-        
-        # Read image to get aspect ratio
-        try:
-            img_reader = ImageReader(header_img_path)
-            iw, ih = img_reader.getSize()
-            aspect = ih / float(iw)
-            img_height = img_width * aspect
-        except:
-             img_height = 1.2 * inch # Fallback
-        
-        header_img = Image(header_img_path, width=img_width, height=img_height)
-        header_img.hAlign = 'CENTER'
-        elements.append(header_img)
-        elements.append(Spacer(1, 20))
-        
-    else:
-        # Fallback to old header construction
-        logo_path = os.path.join(settings.BASE_DIR, 'core/static/core/images/mi-logo-blk.png')
-        logo_img = None
-        if os.path.exists(logo_path):
-            logo_img = Image(logo_path, width=2.5*inch, height=0.75*inch)
-            logo_img.hAlign = 'LEFT'
-        
-        contact_text = """
-        Unit 53, 62 & 101, Legaspi Suites Bldg.<br/>
-        178 Salcedo St. Legaspi Village, Makati City<br/>
-        8-840-4323<br/>
-        www.microimageph.com
-        """
-        contact_para = Paragraph(contact_text, styles['HeaderContact'])
-        
-        header_data = [[logo_img if logo_img else "MICRO IMAGE", contact_para]]
-        header_table = Table(header_data, colWidths=[4.5*inch, 3*inch])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-            ('BACKGROUND', (1,0), (1,0), MIC_RED),
-            ('LEFTPADDING', (1,0), (1,0), 10),
-            ('RIGHTPADDING', (1,0), (1,0), 10),
-            ('TOPPADDING', (1,0), (1,0), 10),
-            ('BOTTOMPADDING', (1,0), (1,0), 10),
-            ('ALIGN', (0,0), (0,0), 'LEFT'),
-            ('ALIGN', (1,0), (1,0), 'RIGHT'),
-        ]))
-        elements.append(header_table)
-        elements.append(Spacer(1, 20))
+
+    # Header is now drawn on every page via draw_header_footer callback.
+    # Add a small spacer so content starts below the reserved top margin.
+    elements.append(Spacer(1, 6))
     
     # --- REFERENCE INFO ---
     ref_no = proposal.reference_number if proposal.reference_number else proposal.proposal_number
@@ -730,6 +730,14 @@ def generate_pdf_buffer(proposal):
     # --- ITEMS TABLE ---
     currency_symbol = '₱' if proposal.currency == 'PHP' else '$'
     price_col_header = "TOTAL PRICE"
+    # Availability/Warranty column toggle — per-proposal setting
+    avail_col_header = "AVAILABILITY" if proposal.use_availability_column else "WARRANTY"
+
+    def _avail_cell(item):
+        """Return the availability or warranty value for a line item."""
+        if proposal.use_availability_column:
+            return item.availability or ''
+        return item.warranty or proposal.warranty
 
     if proposal.is_multi_option:
         # ===============================================================
@@ -750,7 +758,7 @@ def generate_pdf_buffer(proposal):
                 Paragraph("QTY", styles['TableHeader']),
                 Paragraph("UNIT PRICE", styles['TableHeader']),
                 Paragraph(price_col_header, styles['TableHeader']),
-                Paragraph("WARRANTY", styles['TableHeader']),
+                Paragraph(avail_col_header, styles['TableHeader']),
             ]]
 
             for idx, item in enumerate(group.group_items.all(), start=1):
@@ -761,7 +769,7 @@ def generate_pdf_buffer(proposal):
                     Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
                     Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                     Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
-                    Paragraph(item.warranty or proposal.warranty, styles['TableText']),
+                    Paragraph(_avail_cell(item), styles['TableText']),
                 ])
                 for component in item.bundle_components:
                     group_table_data.append([
@@ -784,7 +792,7 @@ def generate_pdf_buffer(proposal):
                 '',
             ])
 
-            col_widths = [0.55*inch, 1.1*inch, 2.05*inch, 0.5*inch, 1.05*inch, 1.3*inch, 0.95*inch]
+            col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
             gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
             gt_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
@@ -813,7 +821,7 @@ def generate_pdf_buffer(proposal):
             Paragraph("QTY", styles['TableHeader']),
             Paragraph("UNIT PRICE", styles['TableHeader']),
             Paragraph(price_col_header, styles['TableHeader']),
-            Paragraph("WARRANTY", styles['TableHeader'])
+            Paragraph(avail_col_header, styles['TableHeader'])
         ]]
     
         for idx, item in enumerate(proposal.items.all(), start=1):
@@ -831,7 +839,7 @@ def generate_pdf_buffer(proposal):
                 Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
                 Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                 Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
-                Paragraph(item.warranty or proposal.warranty, styles['TableText'])
+                Paragraph(_avail_cell(item), styles['TableText'])
             ])
             for component in item.bundle_components:
                 table_data.append([
@@ -867,16 +875,25 @@ def generate_pdf_buffer(proposal):
                     ''
                 ])
 
+            if proposal.show_vat:
+                table_data.append([
+                    '', '', '', '',
+                    Paragraph("VAT (12%)", styles['TableText']),
+                    Paragraph(f"{currency_symbol}{proposal.tax_amount:,.2f}", styles['TableTextRight']),
+                    ''
+                ])
+
+            grand_total_label = "Grand Total (VAT incl.)" if proposal.show_vat else "Grand Total"
             # Grand Total Row
             table_data.append([
                 '', '', '', '', 
-                Paragraph("Grand Total", styles['TableHeader']), 
+                Paragraph(grand_total_label, styles['TableHeader']), 
                 Paragraph(f"{currency_symbol}{proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
                 ''
             ])
     
-        # Tighter widths to improve print margins and reduce empty space in TOTAL PRICE/WARRANTY
-        col_widths = [0.55*inch, 1.1*inch, 2.05*inch, 0.5*inch, 1.05*inch, 1.3*inch, 0.95*inch]
+        # Column widths: last column widened to 1.1" so "AVAILABILITY" fits on one line
+        col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
     
         # Styling
@@ -923,23 +940,41 @@ def generate_pdf_buffer(proposal):
         [Paragraph("Cancellation", tc_label), Paragraph(cancellation_text, tc_style)],
     ]
 
+    BANK_NOTIFICATION_EMAIL = "abengo@microimageph.com / jtorrefranca@microimageph.com"
+
     if proposal.include_bank_details:
         if proposal.currency == 'USD':
-            bank_html = f"""
-            <b>{proposal.usd_beneficiary_name}</b><br/>
-            Beneficiary Address: {proposal.usd_beneficiary_address}<br/>
-            Account Number: {proposal.usd_account_number}<br/>
-            Bank Address: {proposal.usd_bank_address}<br/>
-            SWIFT Code (BIC): {proposal.usd_swift_code}
-            """.strip()
+            bank_html = (
+                f"<b>USD — {proposal.usd_bank_name}</b><br/>"
+                f"Beneficiary: {proposal.usd_beneficiary_name}<br/>"
+                f"Beneficiary Address: {proposal.usd_beneficiary_address}<br/>"
+                f"Account Number: {proposal.usd_account_number}<br/>"
+                f"Bank Address: {proposal.usd_bank_address}<br/>"
+                f"Swift Code (BIC): {proposal.usd_swift_code}<br/>"
+                f"Branch Code: {proposal.usd_branch_code}<br/>"
+                f"Payment Notification Email: {BANK_NOTIFICATION_EMAIL}"
+            )
         else:
-            bank_html = f"""
-            <b>{proposal.php_account_name}</b><br/>
-            {proposal.php_bank_name}<br/>
-            Account Number: {proposal.php_account_number}<br/>
-            Account Type: {proposal.php_account_type}<br/>
-            Branch: {proposal.php_branch}
-            """.strip()
+            bdo_html = (
+                f"<b>BDO — Banco De Oro</b><br/>"
+                f"Account Name: {proposal.php_account_name}<br/>"
+                f"Account Number: {proposal.php_account_number} ({proposal.php_account_type})<br/>"
+                f"Branch: {proposal.php_branch}<br/>"
+                f"Bank Address: {proposal.php_bank_address}<br/>"
+                f"Swift Code: {proposal.php_swift_code} &nbsp; Branch Code: {proposal.php_branch_code}"
+            )
+            bpi_html = (
+                f"<b>BPI — Bank of the Philippine Islands</b><br/>"
+                f"Account Name: {proposal.php_bpi_account_name}<br/>"
+                f"Account Number: {proposal.php_bpi_account_number} ({proposal.php_bpi_account_type})<br/>"
+                f"Branch: {proposal.php_bpi_branch}<br/>"
+                f"Bank Address: {proposal.php_bpi_bank_address}<br/>"
+                f"Swift Code: {proposal.php_bpi_swift_code}"
+            )
+            bank_html = (
+                bdo_html + "<br/><br/>" + bpi_html
+                + f"<br/><br/><i>Payment Notification Email: {BANK_NOTIFICATION_EMAIL}</i>"
+            )
         tc_data.append([Paragraph("Bank Details", tc_label), Paragraph(bank_html, tc_style)])
 
     tc_data.extend([
@@ -1012,7 +1047,7 @@ def generate_pdf_buffer(proposal):
     # --- FOOTER ---
     # Implemented via onFirstPage/onLaterPages callbacks
     
-    doc.build(elements, onFirstPage=draw_footer, onLaterPages=draw_footer)
+    doc.build(elements, onFirstPage=draw_header_footer, onLaterPages=draw_header_footer)
     buffer.seek(0)
     return buffer
 
@@ -1332,7 +1367,8 @@ def approval_tier_create(request):
             messages.success(request, 'Approval tier created')
             return redirect('approval_tier_list')
     else:
-        form = ProposalApprovalTierForm()
+        # Pre-check Active so new tiers are live by default
+        form = ProposalApprovalTierForm(initial={'active': True})
     return render(request, 'sales_proposals/approval_tier_form.html', {'form': form, 'title': 'Create Approval Tier'})
 
 @login_required

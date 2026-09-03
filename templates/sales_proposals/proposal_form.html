@@ -72,13 +72,16 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         {{ form.show_discount|as_crispy_field }}
                     </div>
-                    <div class="col-md-4">
-                        {{ form.use_total_price_label|as_crispy_field }}
+                    <div class="col-md-3">
+                        {{ form.show_vat|as_crispy_field }}
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        {{ form.use_availability_column|as_crispy_field }}
+                    </div>
+                    <div class="col-md-3">
                         {{ form.discount_amount|as_crispy_field }}
                     </div>
                 </div>
@@ -126,7 +129,10 @@
                             <div class="col-12 mt-2">
                                 <div class="row">
                                     <div class="col-md-5">
-                                        {{ form.warranty|as_crispy_field }}
+                                        <div class="mb-3 warranty-field-wrapper">
+                                            <label class="form-label warranty-label" for="{{ form.warranty.id_for_label }}">Availability</label>
+                                            {{ form.warranty }}
+                                        </div>
                                     </div>
                                     <div class="col-md-2 d-flex align-items-center pt-3">
                                         <div class="form-check">
@@ -196,7 +202,10 @@
                         <div class="col-12 mt-2">
                             <div class="row">
                                 <div class="col-md-5">
-                                    {{ formset.empty_form.warranty|as_crispy_field }}
+                                    <div class="mb-3 warranty-field-wrapper">
+                                        <label class="form-label warranty-label" for="{{ formset.empty_form.warranty.id_for_label }}">Availability</label>
+                                        {{ formset.empty_form.warranty }}
+                                    </div>
                                 </div>
                                 <div class="col-md-2 d-flex align-items-center pt-3">
                                     <div class="form-check">
@@ -295,23 +304,47 @@
                     <div class="alert alert-secondary py-2 mb-3">
                         Bank details will appear in the PDF when enabled. Values are editable per proposal.
                     </div>
+
+                    <!-- PHP Bank Details: BDO + BPI -->
                     <div id="bank-php">
-                        <h6 class="fw-bold">PHP Bank Details</h6>
+                        <h6 class="fw-bold text-primary mb-2"><i class="fas fa-university me-1"></i>PHP — BDO (Banco De Oro)</h6>
                         <div class="row">
                             <div class="col-md-4">{{ form.php_bank_name|as_crispy_field }}</div>
                             <div class="col-md-4">{{ form.php_account_name|as_crispy_field }}</div>
                             <div class="col-md-4">{{ form.php_account_number|as_crispy_field }}</div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">{{ form.php_account_type|as_crispy_field }}</div>
-                            <div class="col-md-6">{{ form.php_branch|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_account_type|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_branch|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_swift_code|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_branch_code|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">{{ form.php_bank_address|as_crispy_field }}</div>
+                        </div>
+
+                        <h6 class="fw-bold text-primary mb-2 mt-3"><i class="fas fa-university me-1"></i>PHP — BPI (Bank of the Philippine Islands)</h6>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.php_bpi_account_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_account_number|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_account_type|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.php_bpi_branch|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_swift_code|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">{{ form.php_bpi_bank_address|as_crispy_field }}</div>
                         </div>
                     </div>
+
+                    <!-- USD Bank Details: BDO -->
                     <div id="bank-usd">
-                        <h6 class="fw-bold">USD Bank Details</h6>
+                        <h6 class="fw-bold text-success mb-2"><i class="fas fa-university me-1"></i>USD — BDO (Banco De Oro)</h6>
                         <div class="row">
-                            <div class="col-md-6">{{ form.usd_beneficiary_name|as_crispy_field }}</div>
-                            <div class="col-md-6">{{ form.usd_account_number|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_bank_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_beneficiary_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_account_number|as_crispy_field }}</div>
                         </div>
                         <div class="row">
                             <div class="col-md-6">{{ form.usd_beneficiary_address|as_crispy_field }}</div>
@@ -319,6 +352,7 @@
                         </div>
                         <div class="row">
                             <div class="col-md-4">{{ form.usd_swift_code|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_branch_code|as_crispy_field }}</div>
                         </div>
                     </div>
                 </div>
@@ -414,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 totalFormsInput.value = formIdx + 1;
                 attachItemHandlers(newRow);
                 renumberItems();
+                updateWarrantyLabels();
             }
         });
     }
@@ -467,6 +502,25 @@ document.addEventListener('DOMContentLoaded', function() {
         currencySelect.addEventListener('change', toggleBankDetails);
     }
     toggleBankDetails();
+
+    // -----------------------------------------------
+    // Dynamic Availability / Warranty label
+    // -----------------------------------------------
+    const availChk = document.getElementById('id_use_availability_column');
+
+    function updateWarrantyLabels() {
+        const isAvail = availChk ? availChk.checked : true;
+        const labelText = isAvail ? 'Availability' : 'Warranty';
+        document.querySelectorAll('.warranty-label').forEach(function(el) {
+            el.textContent = labelText;
+        });
+    }
+
+    if (availChk) {
+        availChk.addEventListener('change', updateWarrantyLabels);
+    }
+    // Run on page load — also covers items already rendered
+    updateWarrantyLabels();
 
     // Dependent Contact Person dropdown
     const customerSelect = document.getElementById('id_customer');

@@ -81,8 +81,8 @@
                                         <th>Description</th>
                                         <th class="text-center">Qty</th>
                                         <th class="text-end">Unit Price</th>
-                                        <th class="text-end">{% if proposal.use_total_price_label %}Total Price{% else %}Extended Price{% endif %}</th>
-                                        <th>Warranty</th>
+                                        <th class="text-end">Total Price</th>
+                                        <th>{% if proposal.use_availability_column %}Availability{% else %}Warranty{% endif %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -94,7 +94,7 @@
                                         <td class="text-center">{{ item.quantity|intcomma }}</td>
                                         <td class="text-end">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ item.unit_price|intcomma }}</td>
                                         <td class="text-end">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ item.amount|intcomma }}</td>
-                                        <td>{{ item.warranty }}</td>
+                                        <td>{% if proposal.use_availability_column %}{{ item.availability }}{% else %}{{ item.warranty }}{% endif %}</td>
                                     </tr>
                                     {% for component in item.bundle_components %}
                                     <tr class="table-light">
@@ -132,8 +132,8 @@
                                     <th>Description</th>
                                     <th class="text-center">Qty</th>
                                     <th class="text-end">Unit Price</th>
-                                    <th class="text-end">{% if proposal.use_total_price_label %}Total Price{% else %}Extended Price{% endif %}</th>
-                                    <th>Warranty</th>
+                                    <th class="text-end">Total Price</th>
+                                    <th>{% if proposal.use_availability_column %}Availability{% else %}Warranty{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -152,7 +152,7 @@
                                     <td class="text-end">
                                         {% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ item.amount|intcomma }}
                                     </td>
-                                    <td>{{ item.warranty }}</td>
+                                    <td>{% if proposal.use_availability_column %}{{ item.availability }}{% else %}{{ item.warranty }}{% endif %}</td>
                                 </tr>
                                 {% for component in item.bundle_components %}
                                 <tr class="table-light">
@@ -174,8 +174,22 @@
                                     <td class="text-end">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.subtotal|intcomma }}</td>
                                     <td></td>
                                 </tr>
+                                {% if proposal.show_discount and proposal.discount_amount %}
+                                <tr>
+                                    <td colspan="5" class="text-end text-muted">Discount:</td>
+                                    <td class="text-end text-muted">-{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.discount_amount|intcomma }}</td>
+                                    <td></td>
+                                </tr>
+                                {% endif %}
+                                {% if proposal.show_vat %}
+                                <tr>
+                                    <td colspan="5" class="text-end text-muted">VAT (12%):</td>
+                                    <td class="text-end text-muted">{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.tax_amount|intcomma }}</td>
+                                    <td></td>
+                                </tr>
+                                {% endif %}
                                 <tr class="table-active">
-                                    <td colspan="5" class="text-end"><strong>Grand Total:</strong></td>
+                                    <td colspan="5" class="text-end"><strong>Grand Total{% if proposal.show_vat %} (VAT inclusive){% endif %}:</strong></td>
                                     <td class="text-end"><strong>{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.total_amount|intcomma }}</strong></td>
                                     <td></td>
                                 </tr>
@@ -223,12 +237,39 @@
                         Customer
                         <a href="{% url 'customer_history' proposal.customer.pk %}">{{ proposal.customer.company_name }}</a>
                     </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Include Bank Details
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Bank Details in PDF</span>
+                            {% if proposal.include_bank_details %}
+                            <span class="badge bg-success">Included</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not included</span>
+                            {% endif %}
+                        </div>
                         {% if proposal.include_bank_details %}
-                        <span class="badge bg-success">Yes</span>
-                        {% else %}
-                        <span class="badge bg-secondary">No</span>
+                        <div class="mt-2 small">
+                            {% if proposal.currency == 'PHP' %}
+                            <div class="mb-1">
+                                <strong class="text-primary">BDO — Banco De Oro</strong><br>
+                                {{ proposal.php_account_name }}<br>
+                                Acct #: {{ proposal.php_account_number }}<br>
+                                Branch: {{ proposal.php_branch }} &nbsp;|&nbsp; Swift: {{ proposal.php_swift_code }}
+                            </div>
+                            <div>
+                                <strong class="text-primary">BPI — Bank of the Philippine Islands</strong><br>
+                                {{ proposal.php_bpi_account_name }}<br>
+                                Acct #: {{ proposal.php_bpi_account_number }}<br>
+                                Branch: {{ proposal.php_bpi_branch }} &nbsp;|&nbsp; Swift: {{ proposal.php_bpi_swift_code }}
+                            </div>
+                            {% else %}
+                            <div>
+                                <strong class="text-success">BDO USD — Banco De Oro</strong><br>
+                                {{ proposal.usd_beneficiary_name }}<br>
+                                Acct #: {{ proposal.usd_account_number }}<br>
+                                Swift: {{ proposal.usd_swift_code }}
+                            </div>
+                            {% endif %}
+                        </div>
                         {% endif %}
                     </li>
                     <li class="list-group-item">
@@ -243,9 +284,19 @@
                             <small class="text-muted">Total (PHP): {{ proposal.approval_total_php|intcomma }}</small>
                             <div class="mt-2">
                                 {% for step in proposal.approval_steps.all %}
-                                <div class="d-flex justify-content-between">
-                                    <span>Level {{ step.level }}: {{ step.approver.get_full_name|default:'Unassigned' }}</span>
-                                    <span class="badge bg-{% if step.status == 'approved' %}success{% elif step.status == 'rejected' %}danger{% else %}secondary{% endif %}">{{ step.status|title }}</span>
+                                <div class="d-flex justify-content-between align-items-start mb-1">
+                                    <div>
+                                        <span class="fw-semibold">Level {{ step.level }}: {{ step.approver.get_full_name|default:'Unassigned' }}</span>
+                                        {% if step.decided_at %}
+                                        <small class="text-muted d-block">{{ step.decided_at|date:"M d, Y H:i" }}</small>
+                                        {% endif %}
+                                        {% if step.comment %}
+                                        <div class="mt-1 p-2 rounded {% if step.status == 'approved' %}bg-success bg-opacity-10 border border-success{% elif step.status == 'rejected' %}bg-danger bg-opacity-10 border border-danger{% else %}bg-light border{% endif %}">
+                                            <small><i class="fas fa-comment-alt me-1 text-muted"></i>{{ step.comment }}</small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <span class="badge bg-{% if step.status == 'approved' %}success{% elif step.status == 'rejected' %}danger{% else %}secondary{% endif %} ms-2 flex-shrink-0">{{ step.status|title }}</span>
                                 </div>
                                 {% empty %}
                                 <small class="text-muted">Awaiting chain generation</small>

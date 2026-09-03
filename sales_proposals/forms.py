@@ -27,11 +27,19 @@ class ProposalForm(forms.ModelForm):
             'delivery_lead_time',
             'include_bank_details',
             'show_discount',
-            'use_total_price_label',
+            'show_vat',
+            'use_availability_column',
             'discount_amount',
             # Bank details (editable)
-            'php_bank_name','php_account_name','php_account_number','php_account_type','php_branch',
-            'usd_beneficiary_name','usd_beneficiary_address','usd_account_number','usd_bank_address','usd_swift_code',
+            # BDO PHP
+            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type',
+            'php_branch', 'php_bank_address', 'php_swift_code', 'php_branch_code',
+            # BPI PHP
+            'php_bpi_account_name', 'php_bpi_account_number', 'php_bpi_account_type',
+            'php_bpi_branch', 'php_bpi_bank_address', 'php_bpi_swift_code',
+            # USD BDO
+            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number',
+            'usd_bank_name', 'usd_bank_address', 'usd_swift_code', 'usd_branch_code',
             'introduction',
             'special_note',
             'closing',
@@ -39,18 +47,33 @@ class ProposalForm(forms.ModelForm):
         labels = {
             'stock_availability': 'Stock availability',
             'closing': 'Other terms',
-            'php_bank_name': 'PHP bank name',
-            'php_account_name': 'PHP account name',
-            'php_account_number': 'PHP account number',
-            'php_account_type': 'PHP account type',
-            'php_branch': 'PHP branch',
-            'usd_beneficiary_name': 'USD beneficiary name',
-            'usd_beneficiary_address': 'USD beneficiary address',
-            'usd_account_number': 'USD account number',
-            'usd_bank_address': 'USD bank address',
-            'usd_swift_code': 'USD swift code',
+            # BDO PHP
+            'php_bank_name': 'BDO Bank name',
+            'php_account_name': 'BDO Account name',
+            'php_account_number': 'BDO Account number',
+            'php_account_type': 'BDO Account type',
+            'php_branch': 'BDO Branch',
+            'php_bank_address': 'BDO Bank address',
+            'php_swift_code': 'BDO Swift code',
+            'php_branch_code': 'BDO Branch code',
+            # BPI PHP
+            'php_bpi_account_name': 'BPI Account name',
+            'php_bpi_account_number': 'BPI Account number',
+            'php_bpi_account_type': 'BPI Account type',
+            'php_bpi_branch': 'BPI Branch',
+            'php_bpi_bank_address': 'BPI Bank address',
+            'php_bpi_swift_code': 'BPI Swift code',
+            # USD BDO
+            'usd_beneficiary_name': 'USD Beneficiary name',
+            'usd_beneficiary_address': 'USD Beneficiary address',
+            'usd_account_number': 'USD Account number',
+            'usd_bank_name': 'USD Bank name',
+            'usd_bank_address': 'USD Bank address',
+            'usd_swift_code': 'USD Swift code (BIC)',
+            'usd_branch_code': 'USD Branch code',
             'show_discount': 'Show discount (PDF)',
-            'use_total_price_label': 'Use "Total Price" column header',
+            'show_vat': 'Include VAT 12%',
+            'use_availability_column': 'Show Availability column (uncheck for Warranty)',
             'discount_amount': 'Discount amount',
         }
         widgets = {
@@ -92,6 +115,18 @@ class ProposalForm(forms.ModelForm):
             qs = qs.filter(Q(salesperson_id__in=sp_ids) | Q(salesperson=self.user))
         self.fields['customer'].queryset = qs
         self.fields['discount_amount'].required = False
+        # All bank detail fields are optional
+        bank_fields = [
+            'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type',
+            'php_branch', 'php_bank_address', 'php_swift_code', 'php_branch_code',
+            'php_bpi_account_name', 'php_bpi_account_number', 'php_bpi_account_type',
+            'php_bpi_branch', 'php_bpi_bank_address', 'php_bpi_swift_code',
+            'usd_beneficiary_name', 'usd_beneficiary_address', 'usd_account_number',
+            'usd_bank_name', 'usd_bank_address', 'usd_swift_code', 'usd_branch_code',
+        ]
+        for f in bank_fields:
+            if f in self.fields:
+                self.fields[f].required = False
 
     def _clean_decimal_text(self, field_name):
         raw_value = self.cleaned_data.get(field_name)
@@ -133,6 +168,7 @@ class ProposalItemForm(forms.ModelForm):
             'quantity': NumberInput(attrs={'class': 'no-spin', 'step': '1', 'min': '1', 'inputmode': 'numeric'}),
             'unit_cost': TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
             'unit_price': TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
+            'warranty': TextInput(attrs={'class': 'form-control'}),
             'bundled_items': Textarea(attrs={
                 'rows': 5,
                 'placeholder': 'Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]).\nPricing columns are ignored — only Part Number, Description, and Qty are kept.\nB4YT6AV | HP IDS DSC RTX PRO 2000 8GB Ultra 9 285HX 16 inch G1i Base NB PC | 2\n8C9M7AV | No Country of Origin Restriction | 2',

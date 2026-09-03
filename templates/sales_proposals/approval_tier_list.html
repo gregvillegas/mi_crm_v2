@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 {% block content %}
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -14,6 +15,37 @@
       <a href="{% url 'approval_tier_create' %}" class="btn btn-primary">New Tier</a>
     </div>
   </div>
+
+  {% with active_count=tiers|length %}
+  {% if not tiers %}
+  {# No tiers at all #}
+  <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+    <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>No tiers defined — hardcoded fallback is active.</strong><br>
+      Any proposal totalling <strong>₱500,000 or more</strong> will route through the built-in chain:
+      <code>Supervisor → SM/ASM (if group requires it) → AVP/GM</code>.
+      Click <strong>Seed Defaults</strong> to populate the standard 3-tier setup, or <strong>New Tier</strong> to configure your own.
+    </div>
+  </div>
+  {% else %}
+  {% with active_tiers=tiers %}
+  {# Check if any are actually active — we can't use a queryset filter in templates easily,
+     so we surface a note about inactive rows #}
+  <div class="alert alert-info d-flex align-items-start gap-2 mb-3 py-2">
+    <i class="fas fa-info-circle mt-1 flex-shrink-0"></i>
+    <div>
+      <strong>How tiers work:</strong>
+      When a proposal's PHP total falls within an active tier's range, that tier's approval chain is used.
+      If no active tier covers the amount, the system falls back to the built-in rule:
+      <code>Supervisor → ASM → AVP/GM</code> for proposals ≥ ₱500,000.
+      <strong>Inactive tiers are ignored.</strong>
+    </div>
+  </div>
+  {% endwith %}
+  {% endif %}
+  {% endwith %}
+
   <div class="card">
     <div class="table-responsive">
       <table class="table table-hover mb-0">
@@ -30,14 +62,18 @@
         </thead>
         <tbody>
           {% for t in tiers %}
-          <tr>
+          <tr class="{% if not t.active %}table-secondary text-muted{% endif %}">
             <td>{{ t.name|default:'—' }}</td>
-            <td>{{ t.min_amount_php }}</td>
-            <td>{{ t.max_amount_php|default:'∞' }}</td>
-            <td>{{ t.chain }}</td>
+            <td>₱{{ t.min_amount_php|intcomma }}</td>
+            <td>{% if t.max_amount_php %}₱{{ t.max_amount_php|intcomma }}{% else %}<span class="text-muted">∞ (no limit)</span>{% endif %}</td>
+            <td><code>{{ t.chain }}</code></td>
             <td>{{ t.order }}</td>
             <td>
-              {% if t.active %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}
+              {% if t.active %}
+              <span class="badge bg-success"><i class="fas fa-check me-1"></i>Active</span>
+              {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+              {% endif %}
             </td>
             <td class="text-end">
               <a href="{% url 'approval_tier_edit' t.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
@@ -45,11 +81,20 @@
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="7" class="text-center py-4">No tiers defined.</td></tr>
+          <tr><td colspan="7" class="text-center py-4 text-muted">No tiers defined.</td></tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+  </div>
+
+  <div class="mt-3 text-muted small">
+    <strong>Chain tokens:</strong>
+    <code>supervisor</code> — Group supervisor &nbsp;|&nbsp;
+    <code>asm</code> — Area Sales Manager / SM (only if group requires SM approval) &nbsp;|&nbsp;
+    <code>avp_or_gm</code> — AVP / General Manager<br>
+    Separate tokens with commas in the desired approval order, e.g. <code>supervisor,asm,avp_or_gm</code>.
+    The <strong>Order</strong> column controls which tier wins when multiple ranges overlap — lower order number wins.
   </div>
 </div>
 {% endblock %}

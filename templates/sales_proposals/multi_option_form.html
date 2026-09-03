@@ -79,11 +79,8 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-12">
                         {{ form.stock_availability|as_crispy_field }}
-                    </div>
-                    <div class="col-md-6">
-                        {{ form.use_total_price_label|as_crispy_field }}
                     </div>
                 </div>
                 <div class="row">
@@ -134,13 +131,14 @@
                             <table class="table table-sm table-bordered mb-2">
                                 <thead class="table-light">
                                     <tr>
-                                        <th style="width:12%">Part Number</th>
-                                        <th style="width:30%">Description</th>
-                                        <th style="width:7%" class="text-center">Qty</th>
-                                        <th style="width:13%" class="text-end">Unit Cost</th>
-                                        <th style="width:13%" class="text-end">Unit Price</th>
-                                        <th style="width:15%">Warranty</th>
-                                        <th style="width:10%" class="text-center">Actions</th>
+                                        <th style="width:11%">Part Number</th>
+                                        <th style="width:28%">Description</th>
+                                        <th style="width:6%" class="text-center">Qty</th>
+                                        <th style="width:11%" class="text-end">Unit Cost</th>
+                                        <th style="width:11%" class="text-end">Unit Price</th>
+                                        <th style="width:14%" class="warranty-col-header">Availability</th>
+                                        <th style="width:11%" class="text-center">Bundle</th>
+                                        <th style="width:8%" class="text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="group-items-body">
@@ -196,8 +194,63 @@
                     <div class="col-md-6">{{ form.delivery_lead_time|as_crispy_field }}</div>
                 </div>
                 <div class="row">
-                    <div class="col-md-12">{{ form.include_bank_details|as_crispy_field }}</div>
+                    <div class="col-md-4">{{ form.show_vat|as_crispy_field }}</div>
+                    <div class="col-md-4">{{ form.use_availability_column|as_crispy_field }}</div>
+                    <div class="col-md-4">{{ form.include_bank_details|as_crispy_field }}</div>
                 </div>
+
+                <div id="bank-details" class="mt-3" style="display:none;">
+                    <div class="alert alert-secondary py-2 mb-3">
+                        Bank details will appear in the PDF when enabled. Values are editable per proposal.
+                    </div>
+                    <div id="bank-php">
+                        <h6 class="fw-bold text-primary mb-2"><i class="fas fa-university me-1"></i>PHP — BDO (Banco De Oro)</h6>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.php_bank_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_account_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_account_number|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-3">{{ form.php_account_type|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_branch|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_swift_code|as_crispy_field }}</div>
+                            <div class="col-md-3">{{ form.php_branch_code|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">{{ form.php_bank_address|as_crispy_field }}</div>
+                        </div>
+                        <h6 class="fw-bold text-primary mb-2 mt-3"><i class="fas fa-university me-1"></i>PHP — BPI (Bank of the Philippine Islands)</h6>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.php_bpi_account_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_account_number|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_account_type|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.php_bpi_branch|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.php_bpi_swift_code|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">{{ form.php_bpi_bank_address|as_crispy_field }}</div>
+                        </div>
+                    </div>
+                    <div id="bank-usd">
+                        <h6 class="fw-bold text-success mb-2"><i class="fas fa-university me-1"></i>USD — BDO (Banco De Oro)</h6>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.usd_bank_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_beneficiary_name|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_account_number|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">{{ form.usd_beneficiary_address|as_crispy_field }}</div>
+                            <div class="col-md-6">{{ form.usd_bank_address|as_crispy_field }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">{{ form.usd_swift_code|as_crispy_field }}</div>
+                            <div class="col-md-4">{{ form.usd_branch_code|as_crispy_field }}</div>
+                        </div>
+                    </div>
+                </div>
+
                 {{ form.introduction|as_crispy_field }}
                 {{ form.closing|as_crispy_field }}
             </div>
@@ -223,11 +276,24 @@
         <td><input type="number" class="form-control form-control-sm text-center item-quantity" value="1" min="1" step="1"></td>
         <td><input type="text" class="form-control form-control-sm text-end item-unit-cost" placeholder="0.00"></td>
         <td><input type="text" class="form-control form-control-sm text-end item-unit-price" placeholder="0.00"></td>
-        <td><input type="text" class="form-control form-control-sm item-warranty" placeholder="1 year parts"></td>
-        <td class="text-center">
+        <td><input type="text" class="form-control form-control-sm item-warranty" placeholder="e.g. On Stock / 3-5 days"></td>
+        <td class="text-center align-middle">
+            <div class="form-check d-flex justify-content-center mb-0">
+                <input class="form-check-input item-is-bundle" type="checkbox" title="Bundled sub-items / part numbers">
+            </div>
+        </td>
+        <td class="text-center align-middle">
             <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" title="Remove">
                 <i class="fas fa-times"></i>
             </button>
+        </td>
+    </tr>
+    <tr class="bundle-row" style="display:none;">
+        <td colspan="8" class="bg-light ps-4 pe-2 pb-2 pt-1">
+            <label class="form-label small fw-bold mb-1"><i class="fas fa-sitemap me-1 text-muted"></i>Bundled Sub-items / Part Numbers</label>
+            <textarea class="form-control form-control-sm item-bundled-items" rows="3"
+                placeholder="Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]).&#10;Pricing columns are ignored — only Part Number, Description, and Qty are kept.&#10;Example: B4YT6AV | HP DSC RTX PRO 2000 8GB | 2"></textarea>
+            <small class="text-muted">One component per line. Format: <code>PART NUMBER | Description | Qty</code></small>
         </td>
     </tr>
 </template>
@@ -289,7 +355,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!opt || !opt.value) { setContact('', '', ''); return; }
             setContact(opt.dataset.name || '', opt.dataset.email || '', opt.dataset.phone || '');
         });
-        // Initial load
         if (customerSelect.value) {
             const presetName = document.getElementById('id_contact_name')?.value;
             loadContacts(customerSelect.value, presetName);
@@ -318,6 +383,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===============================================
+    // Dynamic Availability / Warranty column header
+    // ===============================================
+    const availChk = document.getElementById('id_use_availability_column');
+
+    function updateWarrantyColHeaders() {
+        const isAvail = availChk ? availChk.checked : true;
+        const labelText = isAvail ? 'Availability' : 'Warranty';
+        document.querySelectorAll('.warranty-col-header').forEach(function(el) {
+            el.textContent = labelText;
+        });
+    }
+
+    if (availChk) {
+        availChk.addEventListener('change', updateWarrantyColHeaders);
+    }
+    updateWarrantyColHeaders();
+
+    // ===============================================
+    // Bank Details Toggle
+    // ===============================================
+    const includeBank = document.getElementById('id_include_bank_details');
+    const bankDetails = document.getElementById('bank-details');
+    const bankPHP = document.getElementById('bank-php');
+    const bankUSD = document.getElementById('bank-usd');
+
+    function toggleBankDetails() {
+        if (!bankDetails) return;
+        const on = includeBank && includeBank.checked;
+        bankDetails.style.display = on ? 'block' : 'none';
+        if (!on) return;
+        if (currencySelect && currencySelect.value === 'USD') {
+            if (bankPHP) bankPHP.style.display = 'none';
+            if (bankUSD) bankUSD.style.display = 'block';
+        } else {
+            if (bankPHP) bankPHP.style.display = 'block';
+            if (bankUSD) bankUSD.style.display = 'none';
+        }
+    }
+    if (includeBank) {
+        includeBank.addEventListener('change', toggleBankDetails);
+    }
+    if (currencySelect) {
+        currencySelect.addEventListener('change', toggleBankDetails);
+    }
+    toggleBankDetails();
+
+    // ===============================================
     // Option Groups & Items Management
     // ===============================================
     const container = document.getElementById('option-groups-container');
@@ -334,20 +446,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add Item button per group
+    // Delegated event handler for the groups container
     container.addEventListener('click', function(e) {
+        // Add item
         const addBtn = e.target.closest('.add-item-to-group');
         if (addBtn) {
             const groupCard = addBtn.closest('.option-group-card');
             const tbody = groupCard.querySelector('.group-items-body');
             addItemRow(tbody, null);
             updateSubtotals();
+            return;
         }
 
+        // Remove item (removes the item row AND its bundle row if present)
         const removeBtn = e.target.closest('.remove-item-btn');
         if (removeBtn) {
-            removeBtn.closest('tr').remove();
+            const itemRow = removeBtn.closest('tr.item-row');
+            const bundleRow = itemRow ? itemRow.nextElementSibling : null;
+            if (bundleRow && bundleRow.classList.contains('bundle-row')) {
+                bundleRow.remove();
+            }
+            if (itemRow) itemRow.remove();
             updateSubtotals();
+            return;
+        }
+    });
+
+    // Toggle bundle textarea when checkbox changes
+    container.addEventListener('change', function(e) {
+        if (e.target.classList.contains('item-is-bundle')) {
+            const itemRow = e.target.closest('tr.item-row');
+            const bundleRow = itemRow ? itemRow.nextElementSibling : null;
+            if (bundleRow && bundleRow.classList.contains('bundle-row')) {
+                bundleRow.style.display = e.target.checked ? '' : 'none';
+                if (!e.target.checked) {
+                    const ta = bundleRow.querySelector('.item-bundled-items');
+                    if (ta) ta.value = '';
+                }
+            }
         }
     });
 
@@ -386,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         container.appendChild(clone);
         totalForms.value = count + 1;
+        updateWarrantyColHeaders();
     });
 
     // Before form submit: serialize all items to JSON
@@ -395,10 +532,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const deleteCheck = groupCard.querySelector('[name$="-DELETE"]');
             if (deleteCheck && deleteCheck.checked) return; // skip deleted groups
             
-            groupCard.querySelectorAll('.item-row').forEach(function(row) {
+            groupCard.querySelectorAll('tr.item-row').forEach(function(row) {
                 const partNumber = row.querySelector('.item-part-number').value.trim();
                 const description = row.querySelector('.item-description').value.trim();
                 const unitPrice = row.querySelector('.item-unit-price').value.trim();
+                const isBundleChk = row.querySelector('.item-is-bundle');
+                const isBundle = isBundleChk ? isBundleChk.checked : false;
+
+                // Get bundled_items from the next sibling bundle-row
+                let bundledItems = '';
+                const bundleRow = row.nextElementSibling;
+                if (bundleRow && bundleRow.classList.contains('bundle-row')) {
+                    const ta = bundleRow.querySelector('.item-bundled-items');
+                    if (ta) bundledItems = ta.value.trim();
+                }
                 
                 // Only include rows with at least a description or part number
                 if (description || partNumber) {
@@ -410,8 +557,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         unit_cost: row.querySelector('.item-unit-cost').value || '0',
                         unit_price: unitPrice || '0',
                         warranty: row.querySelector('.item-warranty').value || '',
-                        is_bundle: false,
-                        bundled_items: '',
+                        is_bundle: isBundle,
+                        bundled_items: isBundle ? bundledItems : '',
                     });
                 }
             });
@@ -420,23 +567,41 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function addItemRow(tbody, data) {
-        const template = document.getElementById('item-row-template');
-        const row = template.content.cloneNode(true).querySelector('tr');
+        const tmpl = document.getElementById('item-row-template');
+        const fragment = tmpl.content.cloneNode(true);
+        const itemRow = fragment.querySelector('tr.item-row');
+        const bundleRow = fragment.querySelector('tr.bundle-row');
+
         if (data) {
-            row.querySelector('.item-part-number').value = data.part_number || '';
-            row.querySelector('.item-description').value = data.description || '';
-            row.querySelector('.item-quantity').value = data.quantity || '1';
-            row.querySelector('.item-unit-cost').value = data.unit_cost || '0';
-            row.querySelector('.item-unit-price').value = data.unit_price || '0';
-            row.querySelector('.item-warranty').value = data.warranty || '';
+            itemRow.querySelector('.item-part-number').value = data.part_number || '';
+            itemRow.querySelector('.item-description').value = data.description || '';
+            itemRow.querySelector('.item-quantity').value = data.quantity || '1';
+            itemRow.querySelector('.item-unit-cost').value = data.unit_cost || '0';
+            itemRow.querySelector('.item-unit-price').value = data.unit_price || '0';
+            itemRow.querySelector('.item-warranty').value = data.warranty || '';
+
+            const isBundleChk = itemRow.querySelector('.item-is-bundle');
+            const bundledText = bundleRow.querySelector('.item-bundled-items');
+
+            if (data.is_bundle) {
+                isBundleChk.checked = true;
+                bundleRow.style.display = '';
+                if (bundledText) bundledText.value = data.bundled_items || '';
+            } else {
+                isBundleChk.checked = false;
+                bundleRow.style.display = 'none';
+            }
         }
-        tbody.appendChild(row);
+
+        // Append both rows (item + its paired bundle row)
+        tbody.appendChild(itemRow);
+        tbody.appendChild(bundleRow);
     }
 
     function updateSubtotals() {
         container.querySelectorAll('.option-group-card').forEach(function(groupCard) {
             let subtotal = 0;
-            groupCard.querySelectorAll('.item-row').forEach(function(row) {
+            groupCard.querySelectorAll('tr.item-row').forEach(function(row) {
                 const qty = parseFloat(row.querySelector('.item-quantity').value) || 0;
                 const price = parseFloat(row.querySelector('.item-unit-price').value.replace(/,/g, '')) || 0;
                 subtotal += qty * price;
@@ -468,6 +633,9 @@ document.addEventListener('DOMContentLoaded', function() {
 .group-subtotal {
     font-size: 0.9rem;
     font-weight: 700;
+}
+tr.bundle-row td {
+    border-top: none;
 }
 </style>
 {% endblock %}

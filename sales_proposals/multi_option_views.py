@@ -251,10 +251,18 @@ def _calculate_multi_option_totals(proposal):
 
     proposal.subtotal = max_subtotal
     proposal.total_cost = max_cost
-    proposal.tax_type = 'ZERO'
-    proposal.tax_rate = Decimal('0')
-    proposal.tax_amount = Decimal('0')
-    proposal.total_amount = max_subtotal
+
+    # VAT: only applied when show_vat is enabled (12% on subtotal)
+    if proposal.show_vat:
+        proposal.tax_type = 'VAT'
+        proposal.tax_rate = Decimal('12.00')
+        proposal.tax_amount = (max_subtotal * Decimal('0.12')).quantize(Decimal('0.01'))
+    else:
+        proposal.tax_type = 'ZERO'
+        proposal.tax_rate = Decimal('0')
+        proposal.tax_amount = Decimal('0')
+
+    proposal.total_amount = max_subtotal + proposal.tax_amount
     proposal.gross_profit = max_subtotal - (max_cost * Decimal('1.05'))
 
     # PHP equivalent for approval

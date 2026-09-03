@@ -71,6 +71,11 @@ class Proposal(models.Model):
     # Optional Fields
     include_bank_details = models.BooleanField(default=False, help_text="Include bank details in the proposal PDF")
     show_discount = models.BooleanField(default=False, help_text="Show discount line in the proposal PDF")
+    show_vat = models.BooleanField(default=False, help_text="Show VAT 12% line in the proposal (most proposals exclude VAT)")
+    use_availability_column = models.BooleanField(
+        default=True,
+        help_text="Show 'Availability' column in the proposal (uncheck to show 'Warranty' column instead)"
+    )
     use_total_price_label = models.BooleanField(default=False, help_text="Use 'Total Price' instead of 'Extended Price' as column header in PDF and detail view")
     discount_amount = models.DecimalField(
         max_digits=12,
@@ -81,18 +86,30 @@ class Proposal(models.Model):
     )
     
     # Bank details (per-currency, editable per proposal)
-    # PHP
-    php_bank_name = models.CharField(max_length=200, default="BDO Unibank, Inc.")
-    php_account_name = models.CharField(max_length=200, default="MICRO IMAGE INTERNATIONAL CORP.")
-    php_account_number = models.CharField(max_length=100, default="0123 0001 0002 1111")
-    php_account_type = models.CharField(max_length=200, default="Current Account / Checking Account")
-    php_branch = models.CharField(max_length=200, default="Banco De Oro - Salcedo Dela Rosa Branch")
-    # USD
-    usd_beneficiary_name = models.CharField(max_length=200, default="MICRO IMAGE INTERNATIONAL CORP.")
-    usd_beneficiary_address = models.CharField(max_length=300, default="Unit 101 Legaspi Suites Bldg., 178 Salcedo St., Makati City")
-    usd_account_number = models.CharField(max_length=100, default="0123 0001 0002 1111")
-    usd_bank_address = models.CharField(max_length=300, default="G/F State Condominium 1 Building, Salcedo Street, Legaspi Village, Makati, Philippines")
-    usd_swift_code = models.CharField(max_length=50, default="BOPIPHMM")
+    # PHP — BDO
+    php_bank_name = models.CharField(max_length=200, default="Banco De Oro")
+    php_account_name = models.CharField(max_length=200, default="MICRO IMAGE INTERNATIONAL CORPORATION")
+    php_account_number = models.CharField(max_length=100, default="00204-0042969 (SAVINGS)")
+    php_account_type = models.CharField(max_length=200, default="Savings Account")
+    php_branch = models.CharField(max_length=200, default="SALCEDO-DELA ROSA")
+    php_bank_address = models.CharField(max_length=300, default="Golden Rock Bldg, 168 Salcedo, Legaspi Village, Makati, 1229 Metro Manila")
+    php_swift_code = models.CharField(max_length=50, default="BNORPHMM")
+    php_branch_code = models.CharField(max_length=20, default="00204")
+    # PHP — BPI
+    php_bpi_account_name = models.CharField(max_length=200, default="MICRO IMAGE INTERNATIONAL CORPORATION")
+    php_bpi_account_number = models.CharField(max_length=100, default="0075-336527 (CURRENT)")
+    php_bpi_account_type = models.CharField(max_length=200, default="Current Account")
+    php_bpi_branch = models.CharField(max_length=200, default="LEGASPI-SALCEDO")
+    php_bpi_bank_address = models.CharField(max_length=300, default="Golden Rock Bldg, 168 Salcedo, Legaspi Village, Makati, 1229 Metro Manila")
+    php_bpi_swift_code = models.CharField(max_length=50, default="BOPIPHMMXXX")
+    # USD — BDO
+    usd_beneficiary_name = models.CharField(max_length=200, default="MICRO IMAGE INTERNATIONAL CORPORATION")
+    usd_beneficiary_address = models.CharField(max_length=300, default="Unit 53 & 101 Legaspi Suites Building, 178 Salcedo St., Legaspi Village, Makati City 1229")
+    usd_account_number = models.CharField(max_length=100, default="10204-0146004")
+    usd_bank_name = models.CharField(max_length=200, default="Banco De Oro")
+    usd_bank_address = models.CharField(max_length=300, default="Golden Rock Bldg, 168 Salcedo, Legaspi Village, Makati, 1229 Metro Manila")
+    usd_swift_code = models.CharField(max_length=50, default="BNORPHMMXXX")
+    usd_branch_code = models.CharField(max_length=20, default="10204")
     
     # Price Validity options
     validity_subject_to_prior_sale = models.BooleanField(default=False)
@@ -210,16 +227,23 @@ class Proposal(models.Model):
         self.subtotal = sum(item.amount for item in priced_items)
         self.total_cost = sum(item.total_cost for item in priced_items)
 
-        # Tax is no longer exposed in proposals, so proposal totals stay tax-free.
-        self.tax_type = 'ZERO'
-        self.tax_rate = Decimal('0.00')
-        self.tax_amount = Decimal('0.00')
         discount = self.effective_discount_amount
-        discounted_total = self.subtotal - discount
-        self.total_amount = discounted_total if discounted_total > 0 else Decimal('0.00')
-        
+        discounted_subtotal = self.subtotal - discount
+        discounted_subtotal = discounted_subtotal if discounted_subtotal > 0 else Decimal('0.00')
+
+        # VAT: only applied when show_vat is enabled (12% on discounted subtotal)
+        if self.show_vat:
+            self.tax_type = 'VAT'
+            self.tax_rate = Decimal('12.00')
+            self.tax_amount = (discounted_subtotal * Decimal('0.12')).quantize(Decimal('0.01'))
+        else:
+            self.tax_type = 'ZERO'
+            self.tax_rate = Decimal('0.00')
+            self.tax_amount = Decimal('0.00')
+
+        self.total_amount = discounted_subtotal + self.tax_amount
+
         # Gross profit is Total Revenue (excl tax if we consider net sales, but typically GP is Sales - COGS)
-        # Assuming subtotal is Net Sales.
         self.gross_profit = self.total_amount - self.internal_cost_with_uplift
         php_total = self.total_amount
         if self.currency == 'USD':
