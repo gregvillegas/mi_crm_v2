@@ -65,6 +65,11 @@ def multi_option_proposal_create(request):
                     group_index = item_data.get('group_index', 0)
                     if group_index < len(groups_saved):
                         group = groups_saved[group_index]
+                        form_value = item_data.get('warranty', '') or ''
+                        if proposal.use_availability_column:
+                            item_avail, item_warr = form_value, ''
+                        else:
+                            item_avail, item_warr = '', form_value
                         ProposalItem.objects.create(
                             proposal=proposal,
                             option_group=group,
@@ -73,7 +78,8 @@ def multi_option_proposal_create(request):
                             quantity=Decimal(str(item_data.get('quantity', '1') or '1').replace(',', '')),
                             unit_cost=Decimal(str(item_data.get('unit_cost', '0') or '0').replace(',', '')),
                             unit_price=Decimal(str(item_data.get('unit_price', '0') or '0').replace(',', '')),
-                            warranty=item_data.get('warranty', ''),
+                            availability=item_avail,
+                            warranty=item_warr,
                             is_bundle=item_data.get('is_bundle', False),
                             bundled_items=item_data.get('bundled_items', ''),
                         )
@@ -131,6 +137,10 @@ def multi_option_proposal_update(request, pk):
     existing_items = []
     for group_idx, group in enumerate(proposal.option_groups.all()):
         for item in group.group_items.all():
+            if proposal.use_availability_column:
+                value_for_form = item.availability or ''
+            else:
+                value_for_form = item.warranty or ''
             existing_items.append({
                 'group_index': group_idx,
                 'part_number': item.part_number,
@@ -138,7 +148,7 @@ def multi_option_proposal_update(request, pk):
                 'quantity': str(item.quantity),
                 'unit_cost': str(item.unit_cost),
                 'unit_price': str(item.unit_price),
-                'warranty': item.warranty,
+                'warranty': value_for_form,
                 'is_bundle': item.is_bundle,
                 'bundled_items': item.bundled_items,
             })
@@ -180,6 +190,11 @@ def multi_option_proposal_update(request, pk):
                     group_index = item_data.get('group_index', 0)
                     if group_index < len(groups_saved):
                         group = groups_saved[group_index]
+                        form_value = item_data.get('warranty', '') or ''
+                        if proposal.use_availability_column:
+                            item_avail, item_warr = form_value, ''
+                        else:
+                            item_avail, item_warr = '', form_value
                         ProposalItem.objects.create(
                             proposal=proposal,
                             option_group=group,
@@ -188,7 +203,8 @@ def multi_option_proposal_update(request, pk):
                             quantity=Decimal(str(item_data.get('quantity', '1') or '1')),
                             unit_cost=Decimal(str(item_data.get('unit_cost', '0') or '0')),
                             unit_price=Decimal(str(item_data.get('unit_price', '0') or '0')),
-                            warranty=item_data.get('warranty', ''),
+                            availability=item_avail,
+                            warranty=item_warr,
                             is_bundle=item_data.get('is_bundle', False),
                             bundled_items=item_data.get('bundled_items', ''),
                         )

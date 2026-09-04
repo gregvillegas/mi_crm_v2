@@ -35,13 +35,16 @@ class Group(models.Model):
                                 null=True, blank=True,
                                 help_text='Required for regular groups, not used for TSG groups')
     
-    # Sales Managers assigned to oversee this group (subset of a team's groups)
+    # Sales Managers assigned to oversee this group (subset of a team's groups).
+    # Both 'sm' and 'asm' roles display as "Sales Manager" and can be scoped to
+    # specific groups here. This lets an ASM oversee only their assigned groups
+    # instead of the whole team.
     sm_managers = models.ManyToManyField(
         User,
         related_name='sm_groups',
         blank=True,
-        limit_choices_to={'role': 'sm'},
-        help_text='Sales Managers responsible for this group. One SM can manage multiple groups across a team.',
+        limit_choices_to={'role__in': ['sm', 'asm']},
+        help_text='Sales Managers (SM/ASM) responsible for this group. One manager can oversee multiple groups within a team.',
     )
 
     # Whether this group requires SM/ASM approval in the proposal approval chain.

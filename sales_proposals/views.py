@@ -377,24 +377,45 @@ def proposal_create(request):
                 proposal = form.save(commit=False)
                 proposal.created_by = request.user
                 proposal.save()
-                
-                items = formset.save(commit=False)
-                for item in items:
+
+                use_avail = proposal.use_availability_column
+                _ = formset.save(commit=False)
+                for subform in formset.forms:
+                    if subform in formset.deleted_forms:
+                        continue
+                    if not subform.cleaned_data:
+                        continue
+                    if subform.empty_permitted and not any(
+                        v for k, v in subform.cleaned_data.items()
+                        if k != 'id' and v not in (None, '', False)
+                    ):
+                        continue
+                    item = subform.save(commit=False)
                     item.proposal = proposal
+                    form_value = (subform.cleaned_data.get('warranty') or '').strip()
+                    if use_avail:
+                        item.availability = form_value
+                        item.warranty = ''
+                    else:
+                        item.warranty = form_value
+                        item.availability = ''
                     item.save()
+                for obj in formset.deleted_objects:
+                    if getattr(obj, 'pk', None):
+                        obj.delete()
                 # Save attachments
                 attachments = attach_formset.save(commit=False)
                 for att in attachments:
                     att.proposal = proposal
                     att.uploaded_by = request.user
                     att.save()
-                
+
                 proposal.calculate_totals()
                 proposal.ensure_approval_chain()
-                
+
                 # Auto-update Sales Funnel
                 update_sales_funnel(proposal)
-                
+
                 messages.success(request, 'Proposal created successfully.')
                 return redirect('proposal_detail', pk=proposal.pk)
     else:
@@ -425,6 +446,7 @@ def proposal_update(request, pk):
         if form.is_valid() and formset.is_valid() and attach_formset.is_valid():
             with transaction.atomic():
                 before = Proposal.objects.get(pk=proposal.pk)
+                before_use_avail = before.use_availability_column
                 before_items = {
                     i.pk: {
                         'part_number': i.part_number,
@@ -432,7 +454,8 @@ def proposal_update(request, pk):
                         'quantity': str(i.quantity),
                         'unit_cost': str(i.unit_cost),
                         'unit_price': str(i.unit_price),
-                        'warranty': i.warranty,
+                        'column_value': (i.availability if before_use_avail else i.warranty) or '',
+                        'use_availability_column': before_use_avail,
                         'is_optional': i.is_optional,
                         'is_bundle': i.is_bundle,
                         'bundled_items': i.bundled_items,
@@ -440,9 +463,27 @@ def proposal_update(request, pk):
                     for i in before.items.all()
                 }
                 updated = form.save()
-                items = formset.save(commit=False)
-                for item in items:
+                use_avail = proposal.use_availability_column
+                _ = formset.save(commit=False)
+                for subform in formset.forms:
+                    if subform in formset.deleted_forms:
+                        continue
+                    if not subform.cleaned_data:
+                        continue
+                    if subform.empty_permitted and not any(
+                        v for k, v in subform.cleaned_data.items()
+                        if k != 'id' and v not in (None, '', False)
+                    ):
+                        continue
+                    item = subform.save(commit=False)
                     item.proposal = proposal
+                    form_value = (subform.cleaned_data.get('warranty') or '').strip()
+                    if use_avail:
+                        item.availability = form_value
+                        item.warranty = ''
+                    else:
+                        item.warranty = form_value
+                        item.availability = ''
                     item.save()
                 for obj in formset.deleted_objects:
                     obj.delete()
@@ -467,6 +508,7 @@ def proposal_update(request, pk):
                     if getattr(before, f) != getattr(after, f):
                         changes[f] = {'from': str(getattr(before, f)), 'to': str(getattr(after, f))}
                 # Items
+                after_use_avail = proposal.use_availability_column
                 after_items = {
                     i.pk: {
                         'part_number': i.part_number,
@@ -474,7 +516,8 @@ def proposal_update(request, pk):
                         'quantity': str(i.quantity),
                         'unit_cost': str(i.unit_cost),
                         'unit_price': str(i.unit_price),
-                        'warranty': i.warranty,
+                        'column_value': (i.availability if after_use_avail else i.warranty) or '',
+                        'use_availability_column': after_use_avail,
                         'is_optional': i.is_optional,
                         'is_bundle': i.is_bundle,
                         'bundled_items': i.bundled_items,
@@ -500,6 +543,11 @@ def proposal_update(request, pk):
     else:
         form = ProposalForm(instance=proposal, user=request.user)
         formset = ProposalItemFormSet(instance=proposal)
+        if proposal.use_availability_column:
+            for item_form in formset:
+                if item_form.instance and item_form.instance.availability:
+                    item_form.initial = item_form.initial or {}
+                    item_form.initial['warranty'] = item_form.instance.availability
         attach_formset = ProposalAttachmentFormSet(instance=proposal)
     
     return render(request, 'sales_proposals/proposal_form.html', {
@@ -737,7 +785,7 @@ def generate_pdf_buffer(proposal):
         """Return the availability or warranty value for a line item."""
         if proposal.use_availability_column:
             return item.availability or ''
-        return item.warranty or proposal.warranty
+        return item.warranty or proposal.warranty or ''
 
     if proposal.is_multi_option:
         # ===============================================================

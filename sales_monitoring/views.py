@@ -1313,7 +1313,14 @@ def group_performance(request):
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
     elif user.role == 'asm':
-        supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        # ASM sees only their explicitly assigned groups (via sm_managers).
+        # If the ASM has no specific group assignments, fall back to the whole
+        # team (legacy behavior for ASMs who oversee an entire team).
+        assigned_groups = user.sm_groups.all()
+        if assigned_groups.exists():
+            supervised_groups = assigned_groups
+        else:
+            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
     elif user.role == 'sm':
         # SM sees only their explicitly assigned groups
         supervised_groups = user.sm_groups.all()
