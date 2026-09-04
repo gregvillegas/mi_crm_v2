@@ -62,17 +62,11 @@
                 <a href="{% url 'export_customers' %}" class="btn btn-success btn-sm customer-icon-btn" title="Export CSV" aria-label="Export CSV">
                     <i class="fas fa-download"></i><span class="btn-label">Export CSV</span>
                 </a>
-                <a href="{% url 'export_customers_with_contacts' %}" class="btn btn-outline-success btn-sm customer-icon-btn" title="Export Customers + Contacts" aria-label="Export Customers + Contacts">
-                    <i class="fas fa-file-export"></i><span class="btn-label">Export Customers + Contacts</span>
-                </a>
                 <a href="{% url 'import_customers' %}" class="btn btn-warning btn-sm customer-icon-btn" title="Import CSV" aria-label="Import CSV">
                     <i class="fas fa-upload"></i><span class="btn-label">Import CSV</span>
                 </a>
                 <a href="{% url 'import_customer_contacts' %}" class="btn btn-outline-warning btn-sm customer-icon-btn" title="Import Contacts" aria-label="Import Contacts">
                     <i class="fas fa-address-book"></i><span class="btn-label">Import Contacts</span>
-                </a>
-                <a href="{% url 'import_customers_with_contacts' %}" class="btn btn-outline-primary btn-sm customer-icon-btn" title="Import Customers + Contacts" aria-label="Import Customers + Contacts">
-                    <i class="fas fa-file-import"></i><span class="btn-label">Import Customers + Contacts</span>
                 </a>
                 <a href="{% url 'download_sample_csv' %}" class="btn btn-info btn-sm customer-icon-btn" title="Sample CSV" aria-label="Sample CSV">
                     <i class="fas fa-file-csv"></i><span class="btn-label">Sample CSV</span>
@@ -224,6 +218,30 @@
                     {% endfor %}
                 </select>
             </div>
+            {% if show_team_group_filters %}
+            <div class="col-md-2">
+                <label for="team" class="form-label">Team</label>
+                <select class="form-select" id="team" name="team">
+                    <option value="">All Teams</option>
+                    {% for t in available_teams %}
+                        <option value="{{ t.id }}" {% if current_filters.team|add:'0' == t.id|add:'0' %}selected{% endif %}>
+                            {{ t.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="group" class="form-label">Group</label>
+                <select class="form-select" id="group" name="group">
+                    <option value="">All Groups</option>
+                    {% for g in available_groups %}
+                        <option value="{{ g.id }}" data-team="{{ g.team_id }}" {% if current_filters.group|add:'0' == g.id|add:'0' %}selected{% endif %}>
+                            {{ g.name }} — {{ g.team.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
             <div class="col-md-2">
                 <label for="view" class="form-label">View</label>
                 <select class="form-select" id="view" name="view">
@@ -458,6 +476,32 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Team -> Group dependent filter: selecting a Team narrows the Group options.
+    (function () {
+        const teamSelect = document.getElementById('team');
+        const groupSelect = document.getElementById('group');
+        if (!teamSelect || !groupSelect) return;
+
+        function syncGroups() {
+            const teamId = teamSelect.value;
+            let clearedSelection = false;
+            Array.from(groupSelect.options).forEach(function (opt) {
+                if (!opt.value) { opt.hidden = false; return; } // keep "All Groups"
+                const belongs = !teamId || opt.dataset.team === teamId;
+                opt.hidden = !belongs;
+                if (!belongs && opt.selected) {
+                    opt.selected = false;
+                    clearedSelection = true;
+                }
+            });
+            // If the currently-selected group no longer matches the team, reset to "All Groups"
+            if (clearedSelection) groupSelect.value = '';
+        }
+
+        teamSelect.addEventListener('change', syncGroups);
+        syncGroups(); // apply on initial load (preserves server-selected values)
+    })();
+
     // Active Toggle Buttons
     const activeToggleButtons = document.querySelectorAll('.toggle-active-btn');
     activeToggleButtons.forEach(button => {

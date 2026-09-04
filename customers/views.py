@@ -12,6 +12,7 @@ from .permissions import (
     can_view_customer as perms_can_view_customer,
     visible_customers_queryset,
     assignment_targets_queryset,
+    get_user_team_ids,
 )
 from users.models import User
 from teams.models import Team, Group, TeamMembership
@@ -63,6 +64,8 @@ def customer_list(request):
     territory_filter = request.GET.get('territory')
     search_query = request.GET.get('search')
     salesperson_filter = request.GET.get('salesperson')
+    team_filter = request.GET.get('team')
+    group_filter = request.GET.get('group')
     
     if status_filter == 'active':
         customers = customers.filter(is_active=True, auto_inactive_flag=False)
@@ -96,6 +99,25 @@ def customer_list(request):
                 sp_id = int(salesperson_filter)
                 customers = customers.filter(salesperson_id=sp_id)
             except ValueError:
+                pass
+
+    # Team / Group filters (granular search for executive roles + AVP).
+    # Path: Customer.salesperson -> TeamMembership.group -> Group.team
+    show_team_group_filters = user.role in ['admin', 'gm', 'vp', 'president', 'avp']
+    if show_team_group_filters:
+        if team_filter:
+            try:
+                customers = customers.filter(
+                    salesperson__team_membership__group__team_id=int(team_filter)
+                )
+            except (ValueError, TypeError):
+                pass
+        if group_filter:
+            try:
+                customers = customers.filter(
+                    salesperson__team_membership__group_id=int(group_filter)
+                )
+            except (ValueError, TypeError):
                 pass
     
     # Duplicates filter — show only customers with similar/duplicate company names
@@ -131,6 +153,23 @@ def customer_list(request):
     
     # Available salespeople for filter dropdown (active only)
     available_salespeople = assignment_targets_queryset(user)
+
+    # Team / Group options for granular filtering.
+    # Executives see all teams/groups; AVP is scoped to their managed teams only.
+    available_teams = []
+    available_groups = []
+    if show_team_group_filters:
+        if user.role == 'avp':
+            avp_team_ids = get_user_team_ids(user)
+            available_teams = Team.objects.filter(id__in=avp_team_ids).order_by('name')
+            available_groups = (
+                Group.objects.select_related('team')
+                .filter(team_id__in=avp_team_ids)
+                .order_by('team__name', 'name')
+            )
+        else:
+            available_teams = Team.objects.all().order_by('name')
+            available_groups = Group.objects.select_related('team').all().order_by('team__name', 'name')
     
     # Determine if user can see admin actions column
     # Admin, VP, GM, Marketing: Full access
@@ -149,6 +188,9 @@ def customer_list(request):
         'industry_choices': Customer.INDUSTRY_CHOICES,
         'territory_choices': Customer.TERRITORY_CHOICES,
         'available_salespeople': available_salespeople,
+        'available_teams': available_teams,
+        'available_groups': available_groups,
+        'show_team_group_filters': show_team_group_filters,
         'current_filters': {
             'status': status_filter,
             'millionaire': millionaire_filter,
@@ -156,6 +198,8 @@ def customer_list(request):
             'territory': territory_filter,
             'search': search_query or '',
             'salesperson': salesperson_filter or '',
+            'team': team_filter or '',
+            'group': group_filter or '',
             'duplicates': duplicates_filter or '',
             'view': view_mode,
         },

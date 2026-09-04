@@ -195,6 +195,427 @@
             border-radius: 0.25rem;
             word-break: break-all;
         }
+
+        /* =====================================================================
+           MOBILE-NATIVE OVERHAUL  (Senior CSS Architect layer)
+           - All behavior scoped to @media (max-width: 768px)
+           - Desktop (>= 769px) is untouched
+           - GPU-friendly: animations use transform/opacity only
+           ===================================================================== */
+
+        /* ---- 1. DESIGN TOKENS (global, inert on desktop) ---- */
+        :root {
+            --m-space-1: 4px;
+            --m-space-2: 8px;
+            --m-space-3: 12px;
+            --m-space-4: 16px;
+            --m-space-5: 24px;
+            --m-space-6: 32px;
+
+            --m-radius-sm: 10px;
+            --m-radius-md: 16px;
+            --m-radius-lg: 22px;
+            --m-radius-pill: 999px;
+
+            --m-brand: #0056b3;
+            --m-brand-600: #004494;
+            --m-ink: #16202c;
+            --m-ink-soft: #5a6875;
+            --m-surface: #ffffff;
+            --m-surface-2: #f4f6f9;
+            --m-hairline: rgba(22, 32, 44, 0.08);
+
+            --m-glass-bg: rgba(255, 255, 255, 0.72);
+            --m-glass-dark: rgba(18, 22, 28, 0.62);
+
+            /* One soft elevation token, reused everywhere (no box-shadow abuse) */
+            --m-elev-1: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 16px rgba(16, 24, 40, 0.08);
+            --m-elev-2: 0 6px 24px rgba(16, 24, 40, 0.14);
+
+            --m-touch: 44px;
+            --m-tabbar-h: 60px;
+
+            --m-safe-top: env(safe-area-inset-top, 0px);
+            --m-safe-bottom: env(safe-area-inset-bottom, 0px);
+            --m-safe-left: env(safe-area-inset-left, 0px);
+            --m-safe-right: env(safe-area-inset-right, 0px);
+
+            --m-ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.2);
+            --m-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --m-dur: 0.25s;
+        }
+
+        /* ---- 6 & ANIMATION SYSTEM: keyframes (global, inert until used) ---- */
+        @keyframes m-shimmer {
+            0%   { background-position: -160% 0; }
+            100% { background-position: 160% 0; }
+        }
+        @keyframes m-pop-in {
+            0%   { opacity: 0; transform: translateY(12px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes m-sheet-up {
+            0%   { transform: translateY(100%); }
+            100% { transform: translateY(0); }
+        }
+        @keyframes m-spin { to { transform: rotate(360deg); } }
+
+        /* Skeleton screens (opt-in via class; usable on any breakpoint) */
+        .m-skeleton {
+            position: relative;
+            overflow: hidden;
+            background: var(--m-surface-2, #f4f6f9);
+            border-radius: var(--m-radius-sm, 10px);
+            background-image: linear-gradient(
+                100deg,
+                rgba(255,255,255,0) 20%,
+                rgba(255,255,255,0.75) 50%,
+                rgba(255,255,255,0) 80%
+            );
+            background-size: 200% 100%;
+            background-repeat: no-repeat;
+            animation: m-shimmer 1.3s ease-in-out infinite;
+        }
+        .m-skeleton--text { height: 0.85em; margin: 0.35em 0; }
+        .m-skeleton--title { height: 1.25em; width: 55%; margin-bottom: 0.6em; }
+        .m-skeleton--line-70 { width: 70%; }
+        .m-skeleton--line-90 { width: 90%; }
+        .m-skeleton--avatar { width: 44px; height: 44px; border-radius: 50%; }
+        .m-skeleton--card { height: 120px; border-radius: var(--m-radius-md, 16px); }
+        @media (prefers-reduced-motion: reduce) {
+            .m-skeleton { animation: none; }
+        }
+
+        /* =====================================================================
+           MOBILE SCOPE  (<= 768px only)
+           ===================================================================== */
+        @media (max-width: 768px) {
+
+            /* ---- 2. TOUCH-FRIENDLY BASE RESET ---- */
+            html {
+                -webkit-text-size-adjust: 100%;
+                text-size-adjust: 100%;
+            }
+            body {
+                overscroll-behavior-y: none;
+                background: var(--m-surface-2);
+                color: var(--m-ink);
+                /* room for bottom tab bar + safe area */
+                padding-bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + var(--m-space-4));
+            }
+            a, button, .btn, .nav-link, .dropdown-item,
+            [role="button"], input, select, textarea, label {
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+            /* Prevent iOS zoom-on-focus: fields must be >= 16px */
+            input, select, textarea, .form-control, .form-select {
+                font-size: 16px !important;
+            }
+
+            /* ---- 3. GLASS HEADER (content scrolls under it) ---- */
+            .navbar.sticky-top {
+                background: var(--m-glass-dark) !important;
+                -webkit-backdrop-filter: saturate(160%) blur(20px);
+                backdrop-filter: saturate(160%) blur(20px);
+                padding-top: calc(0.5rem + var(--m-safe-top));
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                box-shadow: none;
+            }
+            /* Collapsed hamburger drawer becomes a spring-in glass sheet */
+            #navbarNav.navbar-collapse.collapsing,
+            #navbarNav.navbar-collapse.show {
+                background: var(--m-glass-dark);
+                -webkit-backdrop-filter: blur(20px);
+                backdrop-filter: blur(20px);
+                margin: var(--m-space-2) calc(-1 * var(--m-space-2)) 0;
+                padding: var(--m-space-2);
+                border-radius: var(--m-radius-md);
+            }
+            #navbarNav.navbar-collapse.show {
+                animation: m-pop-in var(--m-dur) var(--m-ease-spring);
+            }
+            .navbar-nav .nav-link,
+            .navbar-nav .dropdown-item {
+                min-height: var(--m-touch);
+                display: flex;
+                align-items: center;
+                border-radius: var(--m-radius-sm);
+                margin: 2px 0;
+            }
+
+            /* ---- MAIN CONTENT SPACING (safe-area aware) ---- */
+            .container.mt-4 {
+                padding-left: max(var(--m-space-4), var(--m-safe-left));
+                padding-right: max(var(--m-space-4), var(--m-safe-right));
+            }
+
+            /* ---- 3. SOFT-UI ELEVATION: CARDS ---- */
+            .card {
+                border: none;
+                border-radius: var(--m-radius-md);
+                box-shadow: var(--m-elev-1);
+                overflow: hidden;
+                transition: transform var(--m-dur) var(--m-ease-spring),
+                            box-shadow var(--m-dur) var(--m-ease-smooth);
+                will-change: transform;
+            }
+            /* Depress only when the card is intentionally tappable */
+            a > .card:active,
+            .m-tappable:active .card,
+            .card.m-tappable:active {
+                transform: scale(0.98);
+                box-shadow: var(--m-elev-2);
+            }
+            .card-header {
+                background: transparent;
+                border-bottom: 1px solid var(--m-hairline);
+            }
+
+            /* ---- 3. MICRO-INTERACTIONS: BUTTON DEPRESS ---- */
+            .btn {
+                min-height: var(--m-touch);
+                border-radius: var(--m-radius-pill);
+                padding-inline: var(--m-space-5);
+                font-weight: 600;
+                transition: transform 0.12s var(--m-ease-spring),
+                            filter 0.15s var(--m-ease-smooth),
+                            box-shadow var(--m-dur) var(--m-ease-smooth);
+                will-change: transform;
+            }
+            .btn:active { transform: scale(0.95); filter: brightness(0.96); }
+            .btn-sm { min-height: var(--m-touch); padding-inline: var(--m-space-4); }
+            /* 8px safe-space between adjacent buttons */
+            .btn-group > .btn + .btn { margin-left: var(--m-space-2); }
+
+            /* ---- 3. FLOATING-LABEL INPUTS + KEYBOARD-AWARE FOCUS ---- */
+            .form-control, .form-select {
+                border-radius: var(--m-radius-sm);
+                min-height: var(--m-touch);
+                border: 1px solid var(--m-hairline);
+                transition: border-color var(--m-dur) var(--m-ease-smooth),
+                            box-shadow var(--m-dur) var(--m-ease-smooth);
+            }
+            .form-control:focus, .form-select:focus {
+                border-color: var(--m-brand);
+                box-shadow: 0 0 0 4px rgba(0, 86, 179, 0.14);
+            }
+            .form-floating > label {
+                transition: transform var(--m-dur) var(--m-ease-spring),
+                            opacity var(--m-dur) var(--m-ease-smooth);
+            }
+            .form-floating > .form-control:focus ~ label,
+            .form-floating > .form-control:not(:placeholder-shown) ~ label {
+                transform: scale(0.82) translateY(-0.6rem) translateX(0.15rem);
+                color: var(--m-brand);
+            }
+            /* Keep a focused field clear of the on-screen keyboard */
+            .form-group:focus-within,
+            .mb-3:focus-within,
+            .form-floating:focus-within {
+                scroll-margin-bottom: 40vh;
+            }
+
+            /* ---- 2. PHYSICS-BASED SCROLLING & MOMENTUM ---- */
+            .table-responsive,
+            .m-scroll-x,
+            .modal-body,
+            .dropdown-menu.show {
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+            /* Horizontal snap carousel (opt-in via .m-snap-x) */
+            .m-snap-x {
+                display: flex;
+                gap: var(--m-space-3);
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior-x: contain;
+                scrollbar-width: none;
+                padding-bottom: var(--m-space-2);
+            }
+            .m-snap-x::-webkit-scrollbar { display: none; }
+            .m-snap-x > * { scroll-snap-align: start; flex: 0 0 82%; }
+            /* Full-screen vertical snap sections (opt-in via .m-snap-y) */
+            .m-snap-y {
+                scroll-snap-type: y mandatory;
+                overflow-y: auto;
+                height: 100dvh;
+                -webkit-overflow-scrolling: touch;
+            }
+            .m-snap-y > section { scroll-snap-align: start; min-height: 100dvh; }
+
+            /* ---- 5. TYPOGRAPHY SCALING WITH clamp() ---- */
+            body { font-size: clamp(0.95rem, 3.6vw, 1.05rem); line-height: 1.5; }
+            h1, .h1 { font-size: clamp(1.5rem, 6vw, 2rem); }
+            h2, .h2 { font-size: clamp(1.3rem, 5.2vw, 1.7rem); }
+            h3, .h3 { font-size: clamp(1.15rem, 4.6vw, 1.4rem); }
+            h4, .h4 { font-size: clamp(1.05rem, 4vw, 1.25rem); }
+            .lead   { font-size: clamp(1.05rem, 4vw, 1.2rem); }
+            .card-title { font-size: clamp(1.05rem, 4.4vw, 1.3rem); }
+            h2 { padding-bottom: var(--m-space-2); margin-bottom: var(--m-space-4); }
+
+            /* ---- 4. SPRING MODALS -> NATIVE BOTTOM SHEETS ---- */
+            .modal.fade .modal-dialog {
+                transform: translateY(16px);
+                transition: transform var(--m-dur) var(--m-ease-spring);
+            }
+            .modal.show .modal-dialog { transform: none; }
+            .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) {
+                position: fixed;
+                left: 0; right: 0; bottom: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+            .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) .modal-content {
+                border: none;
+                border-radius: var(--m-radius-lg) var(--m-radius-lg) 0 0;
+                padding-bottom: calc(var(--m-safe-bottom) + var(--m-space-3));
+                box-shadow: var(--m-elev-2);
+            }
+            .modal.show .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) .modal-content {
+                animation: m-sheet-up var(--m-dur) var(--m-ease-spring);
+            }
+            /* Grab-handle affordance */
+            .modal-dialog:not(.modal-dialog-centered):not(.modal-fullscreen) .modal-content::before {
+                content: "";
+                position: absolute;
+                top: 8px; left: 50%;
+                width: 40px; height: 4px;
+                border-radius: var(--m-radius-pill);
+                background: var(--m-hairline);
+                transform: translateX(-50%);
+            }
+            .modal-backdrop.show { --bs-backdrop-opacity: 0.45; }
+
+            /* ---- 4. SWIPE-TO-ACTION LIST PATTERN (opt-in via .m-swipe) ---- */
+            .m-swipe {
+                position: relative;
+                overflow: hidden;
+                border-radius: var(--m-radius-md);
+                background: var(--m-surface);
+                box-shadow: var(--m-elev-1);
+            }
+            .m-swipe__content {
+                position: relative;
+                z-index: 2;
+                background: var(--m-surface);
+                padding: var(--m-space-4);
+                min-height: var(--m-touch);
+                transition: transform var(--m-dur) var(--m-ease-spring);
+                will-change: transform;
+                touch-action: pan-y;
+            }
+            .m-swipe__actions {
+                position: absolute;
+                top: 0; right: 0; bottom: 0;
+                z-index: 1;
+                display: flex;
+                align-items: stretch;
+            }
+            .m-swipe__actions .btn {
+                border-radius: 0;
+                min-width: 76px;
+                display: flex; align-items: center; justify-content: center;
+            }
+            .m-swipe.is-open .m-swipe__content { transform: translateX(-152px); }
+
+            /* ---- 1. THUMB-ZONE BOTTOM TAB BAR ---- */
+            .m-tabbar {
+                position: fixed;
+                left: 0; right: 0; bottom: 0;
+                z-index: 1040;
+                display: flex;
+                justify-content: space-around;
+                align-items: stretch;
+                height: calc(var(--m-tabbar-h) + var(--m-safe-bottom));
+                padding-bottom: var(--m-safe-bottom);
+                background: var(--m-glass-bg);
+                -webkit-backdrop-filter: saturate(180%) blur(20px);
+                backdrop-filter: saturate(180%) blur(20px);
+                border-top: 1px solid var(--m-hairline);
+            }
+            .m-tabbar__item {
+                flex: 1 1 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                min-height: var(--m-touch);
+                color: var(--m-ink-soft);
+                text-decoration: none;
+                font-size: 0.68rem;
+                font-weight: 600;
+                transition: color 0.15s var(--m-ease-smooth),
+                            transform 0.12s var(--m-ease-spring);
+            }
+            .m-tabbar__item i { font-size: 1.25rem; line-height: 1; }
+            .m-tabbar__item:active { transform: scale(0.9); }
+            .m-tabbar__item.is-active { color: var(--m-brand); }
+
+            /* ---- 1. FLOATING PRIMARY ACTION (thumb-zone FAB, opt-in) ---- */
+            .m-fab {
+                position: fixed;
+                right: max(var(--m-space-5), var(--m-safe-right));
+                bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + var(--m-space-4));
+                z-index: 1041;
+                width: 56px; height: 56px;
+                border-radius: var(--m-radius-pill);
+                display: flex; align-items: center; justify-content: center;
+                background: var(--m-brand);
+                color: #fff;
+                border: none;
+                box-shadow: var(--m-elev-2);
+                font-size: 1.35rem;
+                transition: transform 0.14s var(--m-ease-spring);
+            }
+            .m-fab:active { transform: scale(0.9); }
+
+            /* ---- 4. PULL-TO-REFRESH INDICATOR (driven by JS) ---- */
+            .m-ptr {
+                position: fixed;
+                top: calc(var(--m-safe-top) + 6px);
+                left: 50%;
+                z-index: 1039;
+                width: 34px; height: 34px;
+                margin-left: -17px;
+                border-radius: 50%;
+                background: var(--m-surface);
+                box-shadow: var(--m-elev-1);
+                display: flex; align-items: center; justify-content: center;
+                color: var(--m-brand);
+                opacity: 0;
+                transform: translateY(-20px) scale(0.6);
+                transition: opacity 0.15s var(--m-ease-smooth),
+                            transform 0.2s var(--m-ease-spring);
+                pointer-events: none;
+            }
+            .m-ptr.is-visible { opacity: 1; transform: translateY(0) scale(1); }
+            .m-ptr.is-loading i { animation: m-spin 0.7s linear infinite; }
+
+            /* Tables soften into elevated surfaces on phones */
+            .table-responsive {
+                border-radius: var(--m-radius-md);
+                box-shadow: var(--m-elev-1);
+            }
+
+            /* Respect reduced-motion across the mobile layer */
+            @media (prefers-reduced-motion: reduce) {
+                .card, .btn, .modal .modal-dialog, .m-tabbar__item,
+                .m-fab, .m-swipe__content, #navbarNav.navbar-collapse.show,
+                .modal-content, .m-ptr {
+                    transition: none !important;
+                    animation: none !important;
+                }
+            }
+        }
+
+        /* Desktop guard: mobile-only chrome never renders >= 769px */
+        @media (min-width: 769px) {
+            .m-tabbar, .m-fab, .m-ptr { display: none !important; }
+        }
     </style>
 </head>
 <body>
@@ -494,8 +915,133 @@
     </footer>
     <script>document.getElementById('years-service').textContent = new Date().getFullYear() - 1997;</script>
 
+    {% if user.is_authenticated %}
+    <!-- Pull-to-refresh indicator (mobile only, hidden >=769px via CSS) -->
+    <div class="m-ptr" id="mPtr" aria-hidden="true"><i class="fas fa-arrow-down"></i></div>
+
+    <!-- Thumb-zone bottom tab bar (mobile only). Mirrors real nav destinations. -->
+    <nav class="m-tabbar" id="mTabbar" aria-label="Primary">
+        {% if user.role in 'avp,admin,president,gm,vp,salesperson,supervisor,teamlead,asm,marketing' %}
+        <a class="m-tabbar__item" href="{% url 'customer_list' %}"><i class="fas fa-users"></i><span>Customers</span></a>
+        {% endif %}
+        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
+        <a class="m-tabbar__item" href="{% url 'lead_generation:dashboard' %}"><i class="fas fa-user-plus"></i><span>Leads</span></a>
+        {% endif %}
+        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+        <a class="m-tabbar__item" href="{% url 'proposal_list' %}"><i class="fas fa-file-invoice-dollar"></i><span>Proposals</span></a>
+        {% endif %}
+        {% if user.role in 'salesperson,avp,supervisor,teamlead,asm,admin,president,gm,vp' %}
+        <a class="m-tabbar__item" href="{% url 'sales_monitoring:dashboard' %}"><i class="fas fa-desktop"></i><span>Monitor</span></a>
+        {% endif %}
+        <a class="m-tabbar__item" href="{% url 'profile' %}"><i class="fas fa-user-circle"></i><span>Me</span></a>
+    </nav>
+    {% endif %}
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Mobile-native interaction controller (tab-bar active state, pull-to-refresh, swipe-to-action) -->
+    <script>
+    (function () {
+        var MOBILE = window.matchMedia('(max-width: 768px)');
+        if (!MOBILE.matches) return;
+
+        /* --- Bottom tab bar: highlight the item matching the current path --- */
+        (function () {
+            var bar = document.getElementById('mTabbar');
+            if (!bar) return;
+            var here = window.location.pathname.replace(/\/+$/, '') || '/';
+            var best = null, bestLen = -1;
+            bar.querySelectorAll('.m-tabbar__item').forEach(function (a) {
+                var p = (a.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+                if (p !== '/' && here.indexOf(p) === 0 && p.length > bestLen) {
+                    best = a; bestLen = p.length;
+                } else if (p === here) {
+                    best = a; bestLen = p.length;
+                }
+            });
+            if (best) best.classList.add('is-active');
+        })();
+
+        /* --- Pull-to-refresh: only fires at scroll-top, on downward drag --- */
+        (function () {
+            var ptr = document.getElementById('mPtr');
+            if (!ptr) return;
+            var startY = 0, pulling = false, dist = 0;
+            var THRESHOLD = 70;
+            var icon = ptr.querySelector('i');
+
+            window.addEventListener('touchstart', function (e) {
+                if (window.scrollY <= 0 && e.touches.length === 1) {
+                    startY = e.touches[0].clientY;
+                    pulling = true;
+                    dist = 0;
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchmove', function (e) {
+                if (!pulling) return;
+                dist = e.touches[0].clientY - startY;
+                if (dist > 0 && window.scrollY <= 0) {
+                    var pct = Math.min(dist / THRESHOLD, 1);
+                    ptr.classList.add('is-visible');
+                    ptr.style.transform = 'translateY(' + (pct * 8) + 'px) scale(' + (0.6 + pct * 0.4) + ')';
+                    if (icon) icon.style.transform = 'rotate(' + (pct * 180) + 'deg)';
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', function () {
+                if (!pulling) return;
+                pulling = false;
+                if (dist >= THRESHOLD) {
+                    ptr.classList.add('is-loading');
+                    if (icon) { icon.className = 'fas fa-spinner'; }
+                    ptr.style.transform = '';
+                    setTimeout(function () { window.location.reload(); }, 350);
+                } else {
+                    ptr.classList.remove('is-visible');
+                    ptr.style.transform = '';
+                    if (icon) icon.style.transform = '';
+                }
+            }, { passive: true });
+        })();
+
+        /* --- Swipe-to-action: opt-in via .m-swipe wrapper. Reveals hidden actions. --- */
+        (function () {
+            var items = document.querySelectorAll('.m-swipe');
+            if (!items.length) return;
+            items.forEach(function (item) {
+                var content = item.querySelector('.m-swipe__content');
+                if (!content) return;
+                var startX = 0, dx = 0, active = false;
+
+                content.addEventListener('touchstart', function (e) {
+                    startX = e.touches[0].clientX; dx = 0; active = true;
+                }, { passive: true });
+
+                content.addEventListener('touchmove', function (e) {
+                    if (!active) return;
+                    dx = e.touches[0].clientX - startX;
+                }, { passive: true });
+
+                content.addEventListener('touchend', function () {
+                    if (!active) return;
+                    active = false;
+                    if (dx < -40) item.classList.add('is-open');       // swipe left -> reveal
+                    else if (dx > 40) item.classList.remove('is-open'); // swipe right -> close
+                }, { passive: true });
+            });
+            // Tap elsewhere closes any open swipe row
+            document.addEventListener('touchstart', function (e) {
+                if (e.target.closest('.m-swipe')) return;
+                document.querySelectorAll('.m-swipe.is-open').forEach(function (el) {
+                    el.classList.remove('is-open');
+                });
+            }, { passive: true });
+        })();
+    })();
+    </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>
