@@ -272,6 +272,49 @@ def proposal_list(request):
         except ValueError:
             selected_month = None
 
+    # --- Team / Group granular filters (executive roles + AVP) ---
+    # Path: Proposal.created_by -> TeamMembership.group -> Group.team
+    from teams.models import Team as _TeamModel, Group as _GroupModel
+    show_team_group_filters = request.user.role in ['admin', 'gm', 'vp', 'president', 'avp']
+    selected_team = request.GET.get('team') or ''
+    selected_group = request.GET.get('group') or ''
+    available_teams = []
+    available_groups = []
+    if show_team_group_filters:
+        if selected_team:
+            try:
+                proposals = proposals.filter(
+                    created_by__team_membership__group__team_id=int(selected_team)
+                )
+            except (ValueError, TypeError):
+                selected_team = ''
+        if selected_group:
+            try:
+                proposals = proposals.filter(
+                    created_by__team_membership__group_id=int(selected_group)
+                )
+            except (ValueError, TypeError):
+                selected_group = ''
+
+        # Scope dropdown options: AVP sees only their managed teams; execs see all
+        if request.user.role == 'avp':
+            avp_team_ids = list(request.user.managed_teams.values_list('id', flat=True))
+            available_teams = _TeamModel.objects.filter(id__in=avp_team_ids).order_by('name')
+            available_groups = (
+                _GroupModel.objects.select_related('team')
+                .filter(team_id__in=avp_team_ids).order_by('team__name', 'name')
+            )
+        else:
+            available_teams = _TeamModel.objects.all().order_by('name')
+            available_groups = _GroupModel.objects.select_related('team').all().order_by('team__name', 'name')
+
+    # --- Format filter (single vs multi-option) ---
+    selected_format = request.GET.get('format') or ''
+    if selected_format == 'multi':
+        proposals = proposals.filter(is_multi_option=True)
+    elif selected_format == 'single':
+        proposals = proposals.filter(is_multi_option=False)
+
     # Calculate Total Value of filtered proposals (in PHP)
     total_proposals_value = 0
     for proposal in proposals:
@@ -356,7 +399,13 @@ def proposal_list(request):
         'selected_month': selected_month,
         'total_proposals_value': total_proposals_value,
         'show_team_grouping': show_team_grouping,
-        'grouped_proposals': grouped_proposals
+        'grouped_proposals': grouped_proposals,
+        'show_team_group_filters': show_team_group_filters,
+        'available_teams': available_teams,
+        'available_groups': available_groups,
+        'selected_team': selected_team,
+        'selected_group': selected_group,
+        'selected_format': selected_format,
     }
     
     return render(request, 'sales_proposals/proposal_list.html', context)
@@ -756,8 +805,24 @@ def generate_pdf_buffer(proposal):
     contact_name = proposal.contact_name or proposal.customer.contact_person_name
     contact_email = proposal.contact_email or proposal.customer.email
     contact_phone = proposal.contact_phone or proposal.customer.phone_number
+    customer_address = (proposal.customer.address or '').strip()
     elements.append(Paragraph(f"{contact_name}", styles['NormalSmall']))
     elements.append(Paragraph(f"<b>{proposal.customer.company_name}</b>", styles['NormalSmall']))
+    if customer_address:
+        # Constrain the address to half the content width (7.5" usable -> 3.75")
+        # so long single-line addresses wrap onto a second line instead of
+        # spanning the full page width.
+        addr_para = Paragraph(customer_address.replace('\n', '<br/>'), styles['NormalSmall'])
+        addr_table = Table([[addr_para]], colWidths=[3.75 * inch])
+        addr_table.hAlign = 'LEFT'
+        addr_table.setStyle(TableStyle([
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        elements.append(addr_table)
     if contact_phone:
         elements.append(Paragraph(contact_phone, styles['NormalSmall']))
     if contact_email:

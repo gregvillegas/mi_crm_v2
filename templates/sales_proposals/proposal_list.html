@@ -3,64 +3,106 @@
 
 {% block content %}
 <!-- Page Header -->
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <div>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div class="d-flex align-items-center gap-3">
         <h2 class="mb-0">Sales Proposals</h2>
-    </div>
-    
-    {% if not show_team_grouping %}
-    <div class="bg-light border rounded px-3 py-2">
-        <span class="text-muted small">Total Investment:</span>
-        <span class="fw-bold text-dark">₱{{ total_proposals_value|floatformat:2|intcomma }}</span>
-    </div>
-    {% endif %}
-</div>
-
-<!-- Toolbar: Filters + Actions -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <!-- Filters -->
-    <form class="d-flex align-items-center gap-2" method="get">
-        {% if user.role != 'salesperson' and salespeople %}
-        <select name="salesperson" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 180px;">
-            <option value="">All Salespeople</option>
-            {% for sp in salespeople %}
-            <option value="{{ sp.id }}" {% if selected_salesperson == sp.id %}selected{% endif %}>
-                {{ sp.get_full_name }}
-            </option>
-            {% endfor %}
-        </select>
+        {% if not show_team_grouping %}
+        <div class="d-flex flex-column">
+            <span class="text-muted" style="font-size:0.7rem; letter-spacing:0.04em; text-transform:uppercase;">Total Investment</span>
+            <span class="fw-bold text-dark fs-5">₱{{ total_proposals_value|floatformat:2|intcomma }}</span>
+        </div>
         {% endif %}
-        
-        <select name="month" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 140px;">
-            <option value="">All Months</option>
-            {% for month in proposal_months %}
-            <option value="{{ month|date:'Y-m' }}" {% if selected_month == month|date:'Y-m' %}selected{% endif %}>
-                {{ month|date:'F Y' }}
-            </option>
-            {% endfor %}
-        </select>
-    </form>
+    </div>
 
-    <!-- Action Buttons -->
+    <!-- Primary Actions -->
     <div class="d-flex align-items-center gap-2">
         {% if user.role != 'salesperson' %}
-        <div class="btn-group me-2" role="group" aria-label="Management actions">
+        <div class="btn-group" role="group" aria-label="Management actions">
             <a href="{% url 'approvals_inbox' %}" class="btn btn-sm btn-outline-secondary" title="Approvals Inbox">
-                <i class="fas fa-inbox"></i> Approvals
+                <i class="fas fa-inbox me-1"></i> Approvals
             </a>
             <a href="{% url 'approval_tier_list' %}" class="btn btn-sm btn-outline-secondary" title="Approval Tiers">
-                <i class="fas fa-sliders-h"></i> Tiers
+                <i class="fas fa-sliders-h me-1"></i> Tiers
             </a>
         </div>
         {% endif %}
         <div class="btn-group" role="group" aria-label="Create proposal">
             <a href="{% url 'proposal_create' %}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus"></i> New Proposal
+                <i class="fas fa-plus me-1"></i> New Proposal
             </a>
             <a href="{% url 'multi_option_proposal_create' %}" class="btn btn-sm btn-outline-primary" title="Create multi-option proposal">
-                <i class="fas fa-layer-group"></i> Multi-Option
+                <i class="fas fa-layer-group me-1"></i> Multi-Option
             </a>
         </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            {% if user.role != 'salesperson' and salespeople %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <label for="filter-salesperson" class="form-label small text-muted mb-1">Salesperson</label>
+                <select name="salesperson" id="filter-salesperson" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Salespeople</option>
+                    {% for sp in salespeople %}
+                    <option value="{{ sp.id }}" {% if selected_salesperson == sp.id %}selected{% endif %}>{{ sp.get_full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label for="filter-month" class="form-label small text-muted mb-1">Month</label>
+                <select name="month" id="filter-month" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Months</option>
+                    {% for month in proposal_months %}
+                    <option value="{{ month|date:'Y-m' }}" {% if selected_month == month|date:'Y-m' %}selected{% endif %}>{{ month|date:'F Y' }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% if show_team_group_filters %}
+            <div class="col-6 col-md-3 col-lg-2">
+                <label for="filter-team" class="form-label small text-muted mb-1">Team</label>
+                <select name="team" id="filter-team" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Teams</option>
+                    {% for t in available_teams %}
+                    <option value="{{ t.id }}" {% if selected_team|add:'0' == t.id|add:'0' %}selected{% endif %}>{{ t.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label for="filter-group" class="form-label small text-muted mb-1">Group</label>
+                <select name="group" id="filter-group" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Groups</option>
+                    {% for g in available_groups %}
+                    <option value="{{ g.id }}" data-team="{{ g.team_id }}" {% if selected_group|add:'0' == g.id|add:'0' %}selected{% endif %}>{{ g.name }} — {{ g.team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-6 col-md-3 col-lg-2">
+                <label for="filter-format" class="form-label small text-muted mb-1">Format</label>
+                <select name="format" id="filter-format" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Formats</option>
+                    <option value="single" {% if selected_format == 'single' %}selected{% endif %}>Single</option>
+                    <option value="multi" {% if selected_format == 'multi' %}selected{% endif %}>Multi-Option</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-3 col-lg-2 d-flex gap-1">
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                    <i class="fas fa-filter me-1"></i>Filter
+                </button>
+                <a href="{% url 'proposal_list' %}" class="btn btn-sm btn-outline-secondary" title="Clear filters">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -102,7 +144,14 @@
                                 </a>
                             </td>
                             <td>{{ proposal.reference_number|default:"-" }}</td>
-                            <td>{{ proposal.subject }}</td>
+                            <td>
+                                {{ proposal.subject }}
+                                {% if proposal.is_multi_option %}
+                                <span class="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle ms-1 fw-medium" title="Multi-Option proposal (2 or more options)"><i class="fas fa-file-invoice me-1"></i>2+</span>
+                                {% else %}
+                                <span class="badge rounded-pill bg-secondary-subtle text-secondary border ms-1 fw-medium" title="Single-format proposal (1 option)"><i class="fas fa-file-invoice me-1"></i>1</span>
+                                {% endif %}
+                            </td>
                             <td>{{ proposal.customer.company_name }}</td>
                             <td>{{ proposal.date|date:"m/d/y" }}</td>
                             <td>{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.quoted_total_amount|intcomma }}</td>
@@ -176,7 +225,14 @@
                             </a>
                         </td>
                         <td>{{ proposal.reference_number|default:"-" }}</td>
-                        <td>{{ proposal.subject }}</td>
+                        <td>
+                            {{ proposal.subject }}
+                            {% if proposal.is_multi_option %}
+                            <span class="badge bg-primary ms-1" title="Multi-Option proposal"><i class="fas fa-layer-group me-1"></i>Multi</span>
+                            {% else %}
+                            <span class="badge bg-light text-secondary border ms-1" title="Single-format proposal">Single</span>
+                            {% endif %}
+                        </td>
                         <td>{{ proposal.customer.company_name }}</td>
                         <td>{{ proposal.date|date:"m/d/y" }}</td>
                         <td>{% if proposal.currency == 'USD' %}${% else %}₱{% endif %}{{ proposal.quoted_total_amount|intcomma }}</td>
@@ -230,4 +286,28 @@
     </div>
 </div>
 {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Team -> Group dependent filter: selecting a team narrows the group options.
+    var teamSel = document.getElementById('filter-team');
+    var groupSel = document.getElementById('filter-group');
+    if (!teamSel || !groupSel) return;
+
+    function syncGroups() {
+        var teamId = teamSel.value;
+        Array.from(groupSel.options).forEach(function (opt) {
+            if (!opt.value) { opt.hidden = false; return; } // keep "All Groups"
+            var belongs = !teamId || opt.dataset.team === teamId;
+            opt.hidden = !belongs;
+            if (!belongs && opt.selected) { opt.selected = false; groupSel.value = ''; }
+        });
+    }
+    // Only bind visual narrowing; submission is handled by each select's onchange.
+    teamSel.addEventListener('change', syncGroups);
+    syncGroups();
+});
+</script>
 {% endblock %}
