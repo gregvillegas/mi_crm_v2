@@ -19,6 +19,25 @@ from .multi_option_forms import (
 from .views import update_sales_funnel
 
 
+def _parse_option_items(request):
+    """Parse the option_items_json payload into a list of item dicts."""
+    try:
+        items = json.loads(request.POST.get('option_items_json', '[]'))
+    except (json.JSONDecodeError, TypeError):
+        items = []
+    return items if isinstance(items, list) else []
+
+
+def _has_real_option_items(items_data):
+    """True if at least one parsed item has a description or part number."""
+    for item in items_data:
+        if not isinstance(item, dict):
+            continue
+        if (item.get('description') or '').strip() or (item.get('part_number') or '').strip():
+            return True
+    return False
+
+
 @login_required
 def multi_option_proposal_create(request):
     """Create a new multi-option proposal."""
@@ -31,7 +50,10 @@ def multi_option_proposal_create(request):
         form = MultiOptionProposalForm(request.POST, user=request.user)
         attach_formset = MultiOptionAttachmentFormSet(request.POST, request.FILES, prefix='attachments')
 
-        if form.is_valid() and attach_formset.is_valid():
+        parsed_items = _parse_option_items(request)
+        if form.is_valid() and attach_formset.is_valid() and not _has_real_option_items(parsed_items):
+            messages.error(request, 'A proposal must have at least one item.')
+        elif form.is_valid() and attach_formset.is_valid():
             with transaction.atomic():
                 proposal = form.save(commit=False)
                 proposal.created_by = request.user
@@ -158,7 +180,11 @@ def multi_option_proposal_update(request, pk):
         group_formset = OptionGroupFormSet(request.POST, instance=proposal, prefix='groups')
         attach_formset = MultiOptionAttachmentFormSet(request.POST, request.FILES, instance=proposal, prefix='attachments')
 
-        if form.is_valid() and group_formset.is_valid() and attach_formset.is_valid():
+        parsed_items = _parse_option_items(request)
+        formsets_valid = form.is_valid() and group_formset.is_valid() and attach_formset.is_valid()
+        if formsets_valid and not _has_real_option_items(parsed_items):
+            messages.error(request, 'A proposal must have at least one item.')
+        elif formsets_valid:
             with transaction.atomic():
                 proposal = form.save()
 

@@ -34,3 +34,10 @@ How to Test
 •  Salespeople can be assigned to groups
 
 The system should now work as expected for both admin access and team management functionality.
+
+
+---
+
+## Maintenance & Operations
+
+- **[ACTIVITY_LOG_ARCHIVING.md](ACTIVITY_LOG_ARCHIVING.md)** — Archive old `UserActivityLog` records to compressed files (and restore them later) to keep the database lean. Includes the `archive_activity_logs` management command and recommended cron setup.

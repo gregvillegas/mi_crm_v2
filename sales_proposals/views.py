@@ -38,6 +38,25 @@ from email.mime.image import MIMEImage
 from reportlab.lib.utils import ImageReader
 
 
+def _formset_has_valid_items(formset):
+    """
+    Return True if the ProposalItemFormSet contains at least one real line item
+    (not deleted, not an empty extra form). Used to prevent saving an empty proposal.
+    """
+    for subform in formset.forms:
+        if subform in getattr(formset, 'deleted_forms', []):
+            continue
+        cleaned = getattr(subform, 'cleaned_data', None)
+        if not cleaned:
+            continue
+        if cleaned.get('DELETE'):
+            continue
+        # A real item must at least have a description or a unit price.
+        if (cleaned.get('description') or '').strip() or cleaned.get('unit_price') is not None:
+            return True
+    return False
+
+
 def _resolve_email_signature_asset(filename):
     candidate_dirs = [
         Path(settings.BASE_DIR) / 'templates' / 'core' / 'static' / 'core' / 'images' / 'email_signature',
@@ -421,7 +440,11 @@ def proposal_create(request):
         form = ProposalForm(request.POST, user=request.user)
         formset = ProposalItemFormSet(request.POST)
         attach_formset = ProposalAttachmentFormSet(request.POST, request.FILES)
-        if form.is_valid() and formset.is_valid() and attach_formset.is_valid():
+        forms_valid = form.is_valid() and formset.is_valid() and attach_formset.is_valid()
+        has_items = _formset_has_valid_items(formset) if formset.is_valid() else False
+        if forms_valid and not has_items:
+            messages.error(request, 'A proposal must have at least one item.')
+        if forms_valid and has_items:
             with transaction.atomic():
                 proposal = form.save(commit=False)
                 proposal.created_by = request.user
@@ -492,7 +515,11 @@ def proposal_update(request, pk):
         form = ProposalForm(request.POST, instance=proposal, user=request.user)
         formset = ProposalItemFormSet(request.POST, instance=proposal)
         attach_formset = ProposalAttachmentFormSet(request.POST, request.FILES, instance=proposal)
-        if form.is_valid() and formset.is_valid() and attach_formset.is_valid():
+        forms_valid = form.is_valid() and formset.is_valid() and attach_formset.is_valid()
+        has_items = _formset_has_valid_items(formset) if formset.is_valid() else False
+        if forms_valid and not has_items:
+            messages.error(request, 'A proposal must have at least one item.')
+        if forms_valid and has_items:
             with transaction.atomic():
                 before = Proposal.objects.get(pk=proposal.pk)
                 before_use_avail = before.use_availability_column
@@ -857,17 +884,23 @@ def generate_pdf_buffer(proposal):
         # MULTI-OPTION FORMAT: Separate table per option group
         # ===============================================================
         for group in proposal.option_groups.all():
+            # Collect this option's header + table into one block so the
+            # "OPTION N" heading is never stranded at the bottom of a page
+            # away from its table (KeepTogether moves the whole block to the
+            # next page automatically if it doesn't fit in the space left).
+            option_block = []
+
             # Option group header
-            elements.append(Paragraph(group.name.upper(), ParagraphStyle(
+            option_block.append(Paragraph(group.name.upper(), ParagraphStyle(
                 name='OptionGroupHeader', parent=styles['NormalSmall'],
                 fontName=font_bold, fontSize=11, textColor=MIC_RED,
                 spaceBefore=14, spaceAfter=6,
             )))
 
             group_table_data = [[
-                Paragraph("ITEM #", styles['TableHeader']),
-                Paragraph("PART NUMBER", styles['TableHeader']),
-                Paragraph("PRODUCT DESCRIPTION", styles['TableHeader']),
+                Paragraph("ITEM", styles['TableHeader']),
+                Paragraph("PART NO.", styles['TableHeader']),
+                Paragraph("DESCRIPTION", styles['TableHeader']),
                 Paragraph("QTY", styles['TableHeader']),
                 Paragraph("UNIT PRICE", styles['TableHeader']),
                 Paragraph(price_col_header, styles['TableHeader']),
@@ -920,7 +953,11 @@ def generate_pdf_buffer(proposal):
                 ('GRID', (4, -1), (5, -1), 1, MIC_RED),
             ]
             gt.setStyle(TableStyle(gt_style))
-            elements.append(gt)
+            option_block.append(gt)
+
+            # Keep header + its table together; repeatRows=1 still repeats the
+            # column header if a single very large option must split across pages.
+            elements.append(KeepTogether(option_block))
             elements.append(Spacer(1, 14))
 
     else:
@@ -928,9 +965,9 @@ def generate_pdf_buffer(proposal):
         # STANDARD SINGLE FORMAT (existing logic — unchanged)
         # ===============================================================
         table_data = [[
-            Paragraph("ITEM #", styles['TableHeader']),
-            Paragraph("PART NUMBER", styles['TableHeader']),
-            Paragraph("PRODUCT DESCRIPTION", styles['TableHeader']),
+            Paragraph("ITEM", styles['TableHeader']),
+            Paragraph("PART NO.", styles['TableHeader']),
+            Paragraph("DESCRIPTION", styles['TableHeader']),
             Paragraph("QTY", styles['TableHeader']),
             Paragraph("UNIT PRICE", styles['TableHeader']),
             Paragraph(price_col_header, styles['TableHeader']),
@@ -1117,9 +1154,9 @@ def generate_pdf_buffer(proposal):
     closing_elements.append(Paragraph("We trust that you keep this proposal with confidentiality and we hope that you find everything in order.", styles['NormalSmall']))
     closing_elements.append(Paragraph("Please fax Purchase Order/approval/conforme at (632) 894-25-90.", styles['NormalSmall']))
     closing_elements.append(Paragraph("Should you have any additional concern, please feel free to contact us.", styles['NormalSmall']))
-    closing_elements.append(Spacer(1, 30))
+    closing_elements.append(Spacer(1, 18))
     closing_elements.append(Paragraph("Very truly yours,", styles['NormalSmall']))
-    closing_elements.append(Spacer(1, 30))
+    closing_elements.append(Spacer(1, 4))
     
     signature_img = None
     try:
@@ -1148,10 +1185,16 @@ def generate_pdf_buffer(proposal):
     sig_table.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'TOP'),
         ('ALIGN', (0,0), (-1,-1), 'LEFT'),
-        # Place the signature image closer to the line below
+        # Tighten the whole block so it reads as one compact signature area.
+        ('TOPPADDING', (0,0), (-1,-1), 0),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        # Row 0 (Conforme header) — small breathing space only under the header text
+        ('BOTTOMPADDING', (0,0), (-1,0), 2),
+        # Row 1 (signature image) sits right on the line below it
         ('VALIGN', (0,1), (0,1), 'BOTTOM'),
         ('BOTTOMPADDING', (0,1), (-1,1), 0),
-        ('TOPPADDING', (0,2), (-1,2), 0),
+        # Row 3 (name/title block) gets a little space under the line
+        ('TOPPADDING', (0,3), (-1,3), 2),
     ]))
     closing_elements.append(sig_table)
     
@@ -1173,6 +1216,10 @@ def proposal_pdf(request, pk):
 @login_required
 def proposal_email(request, pk):
     proposal = get_object_or_404(Proposal, pk=pk)
+    # Block sending an empty proposal (no line items => ₱0.00 quotation)
+    if not proposal.has_line_items:
+        messages.warning(request, "This proposal has no items. Add at least one item before emailing the customer.")
+        return redirect('proposal_detail', pk=pk)
     if proposal.approval_required and proposal.approval_status != 'approved':
         messages.warning(request, f"Approval required before sending. Current status: {proposal.get_approval_status_display()}")
         return redirect('proposal_detail', pk=pk)

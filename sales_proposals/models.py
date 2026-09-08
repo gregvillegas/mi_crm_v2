@@ -311,6 +311,23 @@ class Proposal(models.Model):
             return self.quoted_total_cost * rate
         return self.quoted_total_cost
 
+    @property
+    def has_line_items(self):
+        """True if the proposal has at least one line item (single or multi-option)."""
+        return self.items.exists()
+
+    @property
+    def can_be_emailed(self):
+        """
+        A proposal may only be emailed to a customer when it has line items
+        and (if approval is required) it has been approved.
+        """
+        if not self.has_line_items:
+            return False
+        if self.approval_required and self.approval_status != 'approved':
+            return False
+        return True
+
     def get_approval_chain(self):
         chain = []
         php_total = self.approval_total_php or 0

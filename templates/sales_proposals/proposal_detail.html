@@ -30,7 +30,11 @@
             <a href="{% url 'proposal_pdf' proposal.pk %}" class="btn btn-outline-secondary" target="_blank">
                 <i class="fas fa-file-pdf"></i> View PDF
             </a>
-            {% if proposal.approval_required and proposal.approval_status != 'approved' %}
+            {% if not proposal.has_line_items %}
+            <a href="#" class="btn btn-success disabled" aria-disabled="true" title="Add at least one item before emailing the customer">
+                <i class="fas fa-envelope"></i> Email Customer
+            </a>
+            {% elif proposal.approval_required and proposal.approval_status != 'approved' %}
             <a href="#" class="btn btn-success disabled" aria-disabled="true" title="Requires approval before sending">
                 <i class="fas fa-envelope"></i> Email Customer
             </a>
@@ -76,8 +80,8 @@
                             <table class="table table-bordered">
                                 <thead class="table-light">
                                     <tr>
-                                        <th class="text-center">Item #</th>
-                                        <th>Part Number</th>
+                                        <th class="text-center">Item</th>
+                                        <th>Part No.</th>
                                         <th>Description</th>
                                         <th class="text-center">Qty</th>
                                         <th class="text-end">Unit Price</th>
@@ -127,8 +131,8 @@
                         <table class="table table-bordered">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="text-center">Item #</th>
-                                    <th>Part Number</th>
+                                    <th class="text-center">Item</th>
+                                    <th>Part No.</th>
                                     <th>Description</th>
                                     <th class="text-center">Qty</th>
                                     <th class="text-end">Unit Price</th>
