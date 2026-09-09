@@ -529,6 +529,12 @@ class ProposalCreateSerializer(serializers.ModelSerializer):
                 changed_by=request.user,
                 summary='Proposal created via Android API',
             )
+        # Notify the first pending approver (e.g. AVP), if approval is required.
+        try:
+            from sales_proposals.views import notify_pending_approver
+            notify_pending_approver(proposal, request=request)
+        except Exception:
+            pass
         return proposal
 
 

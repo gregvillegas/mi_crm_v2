@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Announcements & Events{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-bullhorn text-primary me-2"></i>Announcements &amp; Events</h2>
+        <div class="d-flex gap-2">
+            <a href="{% url 'mass_mailing:campaign_list' %}" class="btn btn-outline-secondary shadow-sm">
+                <i class="fas fa-paper-plane me-1"></i> Campaigns
+            </a>
+            <a href="{% url 'mass_mailing:announcement_create' %}" class="btn btn-primary shadow-sm">
+                <i class="fas fa-plus me-1"></i> New Announcement
+            </a>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted">
+                        <tr>
+                            <th class="ps-4">Title</th>
+                            <th>Type</th>
+                            <th>Event Date</th>
+                            <th>Status</th>
+                            <th>Posted</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in announcements %}
+                        <tr class="{% if not a.is_active %}table-light text-muted{% endif %}">
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">
+                                    {{ a.title }}
+                                    {% if a.is_event and a.is_upcoming %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1">Upcoming</span>
+                                    {% endif %}
+                                </div>
+                                {% if a.body %}<div class="small text-muted text-truncate" style="max-width: 420px;">{{ a.body }}</div>{% endif %}
+                                {% if a.location %}<div class="small text-muted"><i class="fas fa-location-dot me-1"></i>{{ a.location }}</div>{% endif %}
+                            </td>
+                            <td><span class="badge {{ a.badge_class }}">{{ a.get_announcement_type_display }}</span></td>
+                            <td>
+                                {% if a.event_date %}
+                                    {{ a.event_date|date:"M d, Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">&mdash;</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if a.is_active %}
+                                    <span class="badge bg-success">Visible</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Hidden</span>
+                                {% endif %}
+                            </td>
+                            <td class="small text-muted">
+                                {{ a.created_at|date:"M d, Y" }}<br>
+                                <span>by {{ a.created_by.get_full_name|default:a.created_by.username|default:"—" }}</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="{% url 'mass_mailing:announcement_edit' a.pk %}" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="{% url 'mass_mailing:announcement_toggle' a.pk %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary" title="{% if a.is_active %}Hide{% else %}Show{% endif %}">
+                                            <i class="fas {% if a.is_active %}fa-eye-slash{% else %}fa-eye{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="post" action="{% url 'mass_mailing:announcement_delete' a.pk %}" class="d-inline"
+                                          onsubmit="return confirm('Delete this announcement? This cannot be undone.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-bullhorn fa-3x mb-3 text-light"></i>
+                                <h5>No Announcements Yet</h5>
+                                <p>Post your first announcement or upcoming event for the team.</p>
+                                <a href="{% url 'mass_mailing:announcement_create' %}" class="btn btn-outline-primary mt-2">New Announcement</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

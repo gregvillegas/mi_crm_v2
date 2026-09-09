@@ -16,7 +16,7 @@ from .multi_option_forms import (
     OptionGroupFormSet,
     MultiOptionAttachmentFormSet,
 )
-from .views import update_sales_funnel
+from .views import update_sales_funnel, notify_pending_approver
 
 
 def _parse_option_items(request):
@@ -118,6 +118,9 @@ def multi_option_proposal_create(request):
                 proposal.ensure_approval_chain()
                 update_sales_funnel(proposal)
 
+                # Notify the first pending approver (e.g. AVP), if approval is required.
+                notify_pending_approver(proposal, request=request)
+
                 messages.success(request, 'Multi-option proposal created successfully.')
                 return redirect('proposal_detail', pk=proposal.pk)
         else:
@@ -186,6 +189,7 @@ def multi_option_proposal_update(request, pk):
             messages.error(request, 'A proposal must have at least one item.')
         elif formsets_valid:
             with transaction.atomic():
+                before_approval_version = Proposal.objects.filter(pk=proposal.pk).values_list('approval_version', flat=True).first() or 0
                 proposal = form.save()
 
                 # Delete old items (will be recreated from JSON)
@@ -247,6 +251,11 @@ def multi_option_proposal_update(request, pk):
                 _calculate_multi_option_totals(proposal)
                 proposal.ensure_approval_chain()
                 update_sales_funnel(proposal)
+
+                # Notify the current approver only when the workflow (re)started.
+                proposal.refresh_from_db()
+                if proposal.approval_required and proposal.approval_version != before_approval_version:
+                    notify_pending_approver(proposal, request=request)
 
                 messages.success(request, 'Multi-option proposal updated successfully.')
                 return redirect('proposal_detail', pk=proposal.pk)

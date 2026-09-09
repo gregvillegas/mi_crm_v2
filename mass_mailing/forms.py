@@ -2,7 +2,7 @@ import csv
 import io
 from django import forms
 from django.forms import ClearableFileInput, inlineformset_factory
-from .models import Campaign, CampaignAsset, MediaLibraryAsset
+from .models import Campaign, CampaignAsset, MediaLibraryAsset, Announcement
 from customers.models import Customer
 from lead_generation.models import Lead
 
@@ -264,6 +264,34 @@ class MediaLibraryAssetForm(forms.ModelForm):
         if not content_type.startswith('image/'):
             raise forms.ValidationError('Only image files are supported in the media library.')
         return file
+
+class AnnouncementForm(forms.ModelForm):
+    class Meta:
+        model = Announcement
+        fields = ['title', 'announcement_type', 'body', 'event_date', 'location', 'link_url', 'is_active']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Vendor Webinar: HPE Storage 2026'}),
+            'announcement_type': forms.Select(attrs={'class': 'form-select'}),
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Details, agenda, or description...'}),
+            'event_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Makati HQ / Online (Zoom)'}),
+            'link_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://...'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Allow the HTML5 datetime-local format to parse on submit.
+        self.fields['event_date'].input_formats = ['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M']
+        self.fields['event_date'].required = False
+        self.fields['body'].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get('announcement_type') == 'event' and not cleaned.get('event_date'):
+            self.add_error('event_date', 'An event date is required for the "Upcoming Event" type.')
+        return cleaned
+
 
 class UnsubscribeForm(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'readonly': 'readonly'}))

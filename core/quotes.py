@@ -29,6 +29,8 @@ MOTIVATIONAL_QUOTES = [
     "“The way to get started is to quit talking and begin doing.” – Walt Disney",
     "“The secret of getting ahead is getting started.” – Mark Twain",
     "“A goal is a dream with a deadline.” – Napoleon Hill",
+    "“ Begin Always Expecting Good Things To Happen.” – Tom Hopkins",
     "“Well done is better than well said.” – Benjamin Franklin",
+    "”If You Are Not Moving Closer To What You Want In Sales (Or In Life), You Probably Aren't Doing Enough Asking.” - Jack Canfield",
     "“The difference between a successful person and others is not a lack of strength, not a lack of knowledge, but rather a lack of will.” – Vince Lombardi"
 ]

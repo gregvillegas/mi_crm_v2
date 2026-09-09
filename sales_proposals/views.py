@@ -57,6 +57,95 @@ def _formset_has_valid_items(formset):
     return False
 
 
+# Tokens that should stay UPPERCASE in a title-cased name/company/address
+# (legal suffixes, common business acronyms, regional abbreviations).
+_TITLE_KEEP_UPPER = {
+    # Short legal-entity abbreviations conventionally written in caps.
+    # NOTE: fully spelled-out words (Corporation, Incorporated, Company, Limited)
+    # are intentionally NOT here — they should render in Title Case.
+    'inc', 'corp', 'co', 'llc', 'ltd', 'plc', 'gmbh', 'sa', 'ph',
+    'it', 'bpo', 'hr', 'usa', 'uk', 'un', 'ai',
+    'ncr', 'ph.', 'inc.', 'corp.', 'co.', 'ltd.', 'jr', 'sr', 'ii', 'iii', 'iv',
+}
+# Short connector words that stay lowercase when NOT the first word
+# (Filipino/Spanish/English name & place particles).
+_TITLE_KEEP_LOWER = {
+    'de', 'del', 'dela', 'la', 'las', 'los', 'y', 'da', 'di', 'van', 'von',
+    'of', 'and', 'the', 'for', 'at', 'in', 'on', 'to', 'ng', 'sa',
+}
+
+
+def _smart_title_case(text):
+    """
+    Convert an ALL-CAPS (or all-lowercase) value to a clean Title Case for
+    display, while preserving already well-cased values and common acronyms.
+
+    - "JED CARMELI DE RAMOS"            -> "Jed Carmeli de Ramos"
+    - "PRIMELINE PRODUCTS PHILIPPINES INC" -> "Primeline Products Philippines INC"
+    - "LEVEL 3, SOHO CENTRAL CONDOMINIUM SHAW BOULEVARD"
+                                        -> "Level 3, Soho Central Condominium Shaw Boulevard"
+    - "John Iris Latupan" (already mixed case) -> returned unchanged
+
+    Only reformats values that are effectively all-uppercase or all-lowercase,
+    so hand-formatted mixed-case entries are never disturbed.
+    """
+    if not text:
+        return text
+
+    stripped = text.strip()
+    if not stripped:
+        return text
+
+    # Only act on values that carry no intentional mixed-casing:
+    # act if the text is all-caps, or has no lowercase-followed-by-uppercase
+    # (i.e. it's uniformly cased). This leaves "John Iris Latupan" alone.
+    letters = [c for c in stripped if c.isalpha()]
+    if not letters:
+        return text
+    has_upper = any(c.isupper() for c in letters)
+    has_lower = any(c.islower() for c in letters)
+    is_all_caps = has_upper and not has_lower
+    is_all_lower = has_lower and not has_upper
+    if not (is_all_caps or is_all_lower):
+        # Mixed case already — assume it's intentional; leave as-is.
+        return stripped
+
+    def _cap_word(word, is_first):
+        if not word:
+            return word
+        low = word.lower()
+        # Preserve acronyms/suffixes as uppercase
+        core = low.strip('.,')
+        if core in _TITLE_KEEP_UPPER:
+            return word.upper()
+        # Connectors stay lowercase unless they lead the phrase
+        if not is_first and core in _TITLE_KEEP_LOWER:
+            return low
+        # Words containing digits (e.g. "3rd", "g1i") -> lowercase-ish, capitalize first alpha
+        # Default: capitalize first letter, lowercase the rest
+        return low[:1].upper() + low[1:]
+
+    result_lines = []
+    for line in stripped.split('\n'):
+        out_tokens = []
+        # Split on spaces but keep punctuation attached to words
+        for idx, token in enumerate(line.split(' ')):
+            if not token:
+                out_tokens.append(token)
+                continue
+            # Handle hyphenated pieces individually (e.g. "SALCEDO-DELA")
+            if '-' in token:
+                sub = token.split('-')
+                token_cased = '-'.join(
+                    _cap_word(s, is_first=(idx == 0 and i == 0)) for i, s in enumerate(sub)
+                )
+            else:
+                token_cased = _cap_word(token, is_first=(idx == 0))
+            out_tokens.append(token_cased)
+        result_lines.append(' '.join(out_tokens))
+    return '\n'.join(result_lines)
+
+
 def _resolve_email_signature_asset(filename):
     candidate_dirs = [
         Path(settings.BASE_DIR) / 'templates' / 'core' / 'static' / 'core' / 'images' / 'email_signature',
@@ -195,6 +284,162 @@ def _attach_inline_image(email_message, cid, image_path):
     image.add_header('Content-Disposition', 'inline', filename=image_path.name)
     email_message.attach(image)
     return True
+
+
+def notify_pending_approver(proposal, request=None):
+    """
+    Email the CURRENT pending approver (e.g. the AVP) that a proposal is waiting
+    for their decision. Called when a proposal enters the approval workflow and
+    each time it advances to the next approver.
+
+    Fail-safe: never raises — a mail failure must not block the save/approval.
+    Returns True if an email was sent, False otherwise.
+    """
+    try:
+        if not proposal or not proposal.approval_required:
+            return False
+        if proposal.approval_status not in ('pending', 'in_progress'):
+            return False
+
+        step = proposal.get_current_pending_step()
+        if not step or not step.approver:
+            return False
+
+        approver = step.approver
+        to_email = (getattr(approver, 'email', '') or '').strip()
+        if not to_email:
+            return False
+
+        creator = proposal.created_by
+        creator_name = (creator.get_full_name() or creator.username) if creator else 'A salesperson'
+        approver_name = approver.get_full_name() or approver.username
+        currency_symbol = '₱' if proposal.currency == 'PHP' else '$'
+        amount = proposal.total_amount or 0
+        php_amount = proposal.approval_total_php or 0
+
+        # Build a link to the proposal detail page.
+        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+        try:
+            from django.urls import reverse
+            path = reverse('proposal_detail', args=[proposal.pk])
+        except Exception:
+            path = f'/proposals/{proposal.pk}/'
+        if request is not None:
+            proposal_url = request.build_absolute_uri(path)
+        else:
+            proposal_url = f'{site_url}{path}' if site_url else path
+
+        subject = f'[Approval Needed] Proposal {proposal.proposal_number} — {proposal.customer.company_name}'
+
+        body_lines = [
+            f'Hi {approver_name},',
+            '',
+            f'A sales proposal is awaiting your approval (Level {step.level}).',
+            '',
+            f'  Proposal #: {proposal.proposal_number}',
+            f'  Reference : {proposal.reference_number or "—"}',
+            f'  Customer  : {proposal.customer.company_name}',
+            f'  Subject   : {proposal.subject}',
+            f'  Prepared by: {creator_name}',
+            f'  Amount    : {currency_symbol}{amount:,.2f}'
+            + (f' (≈ ₱{php_amount:,.2f})' if proposal.currency != 'PHP' else ''),
+            '',
+            f'Review and decide here: {proposal_url}',
+            '',
+            'You can also open the Approvals Inbox in the CRM to act on this request.',
+            '',
+            '— Micro Image CRM (automated notification)',
+        ]
+        body = '\n'.join(body_lines)
+
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'no-reply@microimageph.com'
+        email = EmailMultiAlternatives(subject, body, from_email, [to_email])
+        email.send(fail_silently=True)
+        return True
+    except Exception:
+        # Notifications are best-effort; swallow all errors.
+        return False
+
+
+def notify_creator_of_decision(proposal, decision, decided_by=None, comment='', request=None):
+    """
+    Email the proposal creator (salesperson) when their proposal has been
+    APPROVED or REJECTED.
+
+    decision: 'approved' or 'rejected'.
+    Fail-safe: never raises — a mail failure must not block the decision.
+    Returns True if an email was sent, False otherwise.
+    """
+    try:
+        if decision not in ('approved', 'rejected'):
+            return False
+        if not proposal:
+            return False
+
+        creator = proposal.created_by
+        to_email = (getattr(creator, 'email', '') or '').strip()
+        if not to_email:
+            return False
+
+        creator_name = creator.get_full_name() or creator.username
+        decider_name = ''
+        if decided_by:
+            decider_name = decided_by.get_full_name() or decided_by.username
+        currency_symbol = '₱' if proposal.currency == 'PHP' else '$'
+        amount = proposal.total_amount or 0
+
+        # Build a link to the proposal detail page.
+        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
+        try:
+            from django.urls import reverse
+            path = reverse('proposal_detail', args=[proposal.pk])
+        except Exception:
+            path = f'/proposals/{proposal.pk}/'
+        if request is not None:
+            proposal_url = request.build_absolute_uri(path)
+        else:
+            proposal_url = f'{site_url}{path}' if site_url else path
+
+        if decision == 'approved':
+            headline = 'has been APPROVED'
+            subject = f'[Approved] Proposal {proposal.proposal_number} — {proposal.customer.company_name}'
+            next_line = 'You may now send this proposal to the customer.'
+        else:
+            headline = 'has been REJECTED'
+            subject = f'[Rejected] Proposal {proposal.proposal_number} — {proposal.customer.company_name}'
+            next_line = 'Please review the feedback, make the necessary changes, and resubmit.'
+
+        body_lines = [
+            f'Hi {creator_name},',
+            '',
+            f'Your sales proposal {headline}'
+            + (f' by {decider_name}.' if decider_name else '.'),
+            '',
+            f'  Proposal #: {proposal.proposal_number}',
+            f'  Reference : {proposal.reference_number or "—"}',
+            f'  Customer  : {proposal.customer.company_name}',
+            f'  Subject   : {proposal.subject}',
+            f'  Amount    : {currency_symbol}{amount:,.2f}',
+        ]
+        if comment:
+            label = 'Comment' if decision == 'approved' else 'Reason'
+            body_lines += ['', f'  {label}: {comment}']
+        body_lines += [
+            '',
+            next_line,
+            '',
+            f'View the proposal here: {proposal_url}',
+            '',
+            '— Micro Image CRM (automated notification)',
+        ]
+        body = '\n'.join(body_lines)
+
+        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'no-reply@microimageph.com'
+        email = EmailMultiAlternatives(subject, body, from_email, [to_email])
+        email.send(fail_silently=True)
+        return True
+    except Exception:
+        return False
 
 @login_required
 def proposal_list(request):
@@ -488,6 +733,9 @@ def proposal_create(request):
                 # Auto-update Sales Funnel
                 update_sales_funnel(proposal)
 
+                # Notify the first pending approver (e.g. AVP), if approval is required.
+                notify_pending_approver(proposal, request=request)
+
                 messages.success(request, 'Proposal created successfully.')
                 return redirect('proposal_detail', pk=proposal.pk)
     else:
@@ -522,6 +770,7 @@ def proposal_update(request, pk):
         if forms_valid and has_items:
             with transaction.atomic():
                 before = Proposal.objects.get(pk=proposal.pk)
+                before_approval_version = before.approval_version
                 before_use_avail = before.use_availability_column
                 before_items = {
                     i.pk: {
@@ -575,6 +824,14 @@ def proposal_update(request, pk):
                 proposal.calculate_totals()
                 proposal.ensure_approval_chain()
                 update_sales_funnel(proposal)
+
+                # Notify the current pending approver only when the approval
+                # workflow (re)started as a result of this edit — i.e. the chain
+                # version changed. Avoids spamming on unrelated edits.
+                proposal.refresh_from_db()
+                if proposal.approval_required and proposal.approval_version != before_approval_version:
+                    notify_pending_approver(proposal, request=request)
+
                 # Change log
                 changes = {}
                 from django.forms.models import model_to_dict
@@ -829,12 +1086,15 @@ def generate_pdf_buffer(proposal):
     elements.append(Spacer(1, 12))
     
     # --- CUSTOMER INFO ---
-    contact_name = proposal.contact_name or proposal.customer.contact_person_name
+    # Display in clean Title Case (contact person, company, address) without
+    # altering the stored data. Values already in mixed case are left untouched.
+    contact_name = _smart_title_case(proposal.contact_name or proposal.customer.contact_person_name)
     contact_email = proposal.contact_email or proposal.customer.email
     contact_phone = proposal.contact_phone or proposal.customer.phone_number
-    customer_address = (proposal.customer.address or '').strip()
+    company_name_display = _smart_title_case(proposal.customer.company_name)
+    customer_address = _smart_title_case((proposal.customer.address or '').strip())
     elements.append(Paragraph(f"{contact_name}", styles['NormalSmall']))
-    elements.append(Paragraph(f"<b>{proposal.customer.company_name}</b>", styles['NormalSmall']))
+    elements.append(Paragraph(f"<b>{company_name_display}</b>", styles['NormalSmall']))
     if customer_address:
         # Constrain the address to half the content width (7.5" usable -> 3.75")
         # so long single-line addresses wrap onto a second line instead of
@@ -1470,8 +1730,15 @@ def approve_proposal(request, pk):
             proposal.approval_status = 'approved'
             proposal.approved_at = timezone.now()
             proposal.save()
+            # Notify the salesperson their proposal is fully approved.
+            notify_creator_of_decision(
+                proposal, 'approved', decided_by=request.user,
+                comment=step.comment, request=request,
+            )
             messages.success(request, 'Proposal fully approved.')
         else:
+            # Notify the next approver in the chain that it's now their turn.
+            notify_pending_approver(proposal, request=request)
             messages.success(request, 'Step approved. Awaiting next approver.')
         return redirect('proposal_detail', pk=pk)
     return render(request, 'sales_proposals/approve_confirm.html', {'proposal': proposal})
@@ -1500,6 +1767,11 @@ def reject_proposal(request, pk):
         step.save()
         proposal.approval_status = 'rejected'
         proposal.save()
+        # Notify the salesperson their proposal was rejected (with the reason).
+        notify_creator_of_decision(
+            proposal, 'rejected', decided_by=request.user,
+            comment=step.comment, request=request,
+        )
         messages.warning(request, 'Proposal rejected.')
         return redirect('proposal_detail', pk=pk)
     return render(request, 'sales_proposals/reject_confirm.html', {'proposal': proposal})

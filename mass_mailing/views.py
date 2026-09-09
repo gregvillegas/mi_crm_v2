@@ -8,8 +8,8 @@ from django.utils import timezone
 from django.db.models import Max
 from django.core.files.base import ContentFile
 from django.conf import settings
-from .models import Campaign, CampaignRecipient, OptOut, MediaLibraryAsset, CampaignAsset
-from .forms import CampaignForm, UnsubscribeForm, CampaignAssetFormSet, MediaLibraryAssetForm
+from .models import Campaign, CampaignRecipient, OptOut, MediaLibraryAsset, CampaignAsset, Announcement
+from .forms import CampaignForm, UnsubscribeForm, CampaignAssetFormSet, MediaLibraryAssetForm, AnnouncementForm
 from .rendering import render_campaign_html
 from customers.models import Customer, CustomerNote
 from lead_generation.models import Lead, LeadActivity
@@ -21,6 +21,11 @@ def can_manage_media_library(user):
 
 def can_view_media_library(user):
     return user.role in ['admin', 'marketing']
+
+
+def can_manage_announcements(user):
+    """Who may create/edit/delete announcements & events."""
+    return getattr(user, 'is_authenticated', False) and user.role in ['admin', 'marketing']
 
 
 def sync_selected_library_assets(campaign, selected_ids, user):
@@ -736,3 +741,94 @@ def interested_recipients_list(request, pk):
         'campaign': campaign,
         'interested_recipients': interested_recipients,
     })
+
+
+# ---------------------------------------------------------------------------
+# Announcements & Events (Marketing)
+# ---------------------------------------------------------------------------
+@login_required
+def announcement_list(request):
+    """List announcements & events. Read-only for non-managers is not needed
+    (this page is only linked for marketing/admin), but we still gate it."""
+    if not can_manage_announcements(request.user):
+        messages.error(request, "You don't have access to announcements.")
+        return redirect('mass_mailing:campaign_list')
+
+    announcements = Announcement.objects.all().select_related('created_by')
+    return render(request, 'mass_mailing/announcement_list.html', {
+        'announcements': announcements,
+        'can_manage_announcements': True,
+    })
+
+
+@login_required
+def announcement_create(request):
+    if not can_manage_announcements(request.user):
+        messages.error(request, "You don't have permission to create announcements.")
+        return redirect('mass_mailing:campaign_list')
+
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST)
+        if form.is_valid():
+            ann = form.save(commit=False)
+            ann.created_by = request.user
+            ann.save()
+            messages.success(request, f'Announcement "{ann.title}" created.')
+            return redirect('mass_mailing:announcement_list')
+    else:
+        form = AnnouncementForm()
+    return render(request, 'mass_mailing/announcement_form.html', {
+        'form': form,
+        'title': 'New Announcement / Event',
+    })
+
+
+@login_required
+def announcement_edit(request, pk):
+    if not can_manage_announcements(request.user):
+        messages.error(request, "You don't have permission to edit announcements.")
+        return redirect('mass_mailing:campaign_list')
+
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'POST':
+        form = AnnouncementForm(request.POST, instance=announcement)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Announcement "{announcement.title}" updated.')
+            return redirect('mass_mailing:announcement_list')
+    else:
+        form = AnnouncementForm(instance=announcement)
+    return render(request, 'mass_mailing/announcement_form.html', {
+        'form': form,
+        'title': 'Edit Announcement / Event',
+        'announcement': announcement,
+    })
+
+
+@login_required
+def announcement_delete(request, pk):
+    if not can_manage_announcements(request.user):
+        messages.error(request, "You don't have permission to delete announcements.")
+        return redirect('mass_mailing:campaign_list')
+
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'POST':
+        title = announcement.title
+        announcement.delete()
+        messages.success(request, f'Announcement "{title}" deleted.')
+    return redirect('mass_mailing:announcement_list')
+
+
+@login_required
+def announcement_toggle(request, pk):
+    if not can_manage_announcements(request.user):
+        messages.error(request, "You don't have permission to update announcements.")
+        return redirect('mass_mailing:campaign_list')
+
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'POST':
+        announcement.is_active = not announcement.is_active
+        announcement.save(update_fields=['is_active'])
+        state = 'shown' if announcement.is_active else 'hidden'
+        messages.success(request, f'"{announcement.title}" is now {state}.')
+    return redirect('mass_mailing:announcement_list')

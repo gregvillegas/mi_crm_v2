@@ -542,20 +542,63 @@ def is_admin(user):
     return user.role in ['admin', 'marketing']
 
 
-def _decode_csv_upload(csv_file):
-    raw = csv_file.read()
-    for encoding in ['utf-8-sig', 'utf-8', 'mac_roman', 'cp437', 'cp1252', 'latin-1']:
+def decode_csv_bytes(raw):
+    """
+    Decode uploaded CSV bytes to text safely, preserving special characters
+    such as the Spanish ñ (e.g. "Parañaque").
+
+    Strategy (best practice — no silent corruption):
+      1. Try UTF-8 (with/without BOM) strictly. This is the recommended format
+         and the only one that unambiguously represents ñ/é/etc.
+      2. If that fails, use charset-normalizer to DETECT the real encoding and
+         decode with it (handles legacy Excel exports like cp1252).
+      3. As an explicit last resort, decode as cp1252 (Windows Excel default).
+         latin-1 is NOT used as a catch-all because it never errors and would
+         silently produce garbled characters.
+
+    Returns the decoded string, or None if the file cannot be decoded
+    confidently — callers should then ask the user to re-save as UTF-8.
+    """
+    if raw is None:
+        return None
+
+    # 1) Strict UTF-8 first (utf-8-sig transparently strips the Excel BOM).
+    #    This is the ONLY encoding that represents ñ unambiguously — always prefer it.
+    for encoding in ('utf-8-sig', 'utf-8'):
         try:
-            decoded = raw.decode(encoding)
-            # Verify Filipino characters decoded properly
-            import re
-            if re.search(r'para[^\w\s]aque', decoded.lower()):
-                continue  # Garbled ñ — try next encoding
-            return decoded
+            return raw.decode(encoding)
         except (UnicodeDecodeError, ValueError):
             continue
-    # Last resort: latin-1 always succeeds (accepts any byte)
-    return raw.decode('latin-1')
+
+    # Not UTF-8. There is no fully reliable way to detect a legacy single-byte
+    # encoding (e.g. the byte 0xF1 is 'ñ' in cp1252/latin-1 but 'ń' in cp1250),
+    # so we prefer cp1252 — the default Windows/Excel export in this region, where
+    # 0xF1 correctly maps to 'ñ'. Detection is only used if cp1252 itself fails.
+
+    # 2) cp1252 (Windows Excel default). Decodes the full 0x80–0xFF range,
+    #    so it won't raise on typical Excel CSVs and yields the correct ñ.
+    try:
+        return raw.decode('cp1252')
+    except (UnicodeDecodeError, ValueError):
+        pass
+
+    # 3) Fallback: let charset-normalizer detect anything more exotic
+    #    (e.g. UTF-16, Shift-JIS). Best-effort only.
+    try:
+        from charset_normalizer import from_bytes
+        best = from_bytes(raw).best()
+        if best is not None:
+            return str(best)
+    except Exception:
+        pass
+
+    # 4) Give up — caller will ask the user to re-save as UTF-8.
+    return None
+
+
+def _decode_csv_upload(csv_file):
+    """Read an uploaded file object and decode it. Returns text or None."""
+    return decode_csv_bytes(csv_file.read())
 
 
 def _normalize_csv_row(row):
@@ -748,29 +791,15 @@ def import_customers(request):
             return redirect('customer_list')
         
         try:
-            # Read CSV file content
-            content = csv_file.read()
-            
-            # Try decoding with different encodings
-            decoded_file = None
-            for encoding in ['utf-8', 'utf-8-sig', 'mac_roman', 'cp437', 'cp1252', 'latin-1']:
-                try:
-                    decoded_file = content.decode(encoding)
-                    # Verify ñ/Ñ characters decoded properly (sanity check for Filipino territory names)
-                    if 'ñ' in decoded_file.lower() or 'paranaque' in decoded_file.lower() or 'parañaque' in decoded_file.lower():
-                        break
-                    # If file has Para + garbled char + aque, wrong encoding — try next
-                    if 'para' in decoded_file.lower() and 'aque' in decoded_file.lower():
-                        # Check if ñ decoded correctly between para and aque
-                        import re
-                        if re.search(r'para[^\w\s]aque', decoded_file.lower()):
-                            continue  # Garbled ñ — try next encoding
-                    break
-                except (UnicodeDecodeError, ValueError):
-                    continue
-            
+            # Decode safely (preserves ñ; no silent corruption).
+            decoded_file = decode_csv_bytes(csv_file.read())
+
             if decoded_file is None:
-                messages.error(request, 'Unable to read the CSV file. Unsupported encoding.')
+                messages.error(
+                    request,
+                    'Unable to read the CSV file. Please re-save it as "CSV UTF-8" '
+                    '(in Excel: Save As → CSV UTF-8) and upload again.'
+                )
                 return redirect('customer_list')
 
             csv_data = csv.reader(io.StringIO(decoded_file))
@@ -958,17 +987,13 @@ def import_customer_contacts(request):
             return redirect('import_customer_contacts')
 
         try:
-            raw = csv_file.read()
-            decoded_text = None
-            for encoding in ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1']:
-                try:
-                    decoded_text = raw.decode(encoding)
-                    break
-                except UnicodeDecodeError:
-                    continue
+            decoded_text = decode_csv_bytes(csv_file.read())
 
             if decoded_text is None:
-                messages.error(request, 'Unable to read the CSV file. Unsupported encoding.')
+                messages.error(
+                    request,
+                    'Unable to read the CSV file. Please re-save it as "CSV UTF-8" and upload again.'
+                )
                 return redirect('import_customer_contacts')
 
             reader = csv.DictReader(io.StringIO(decoded_text))
@@ -1157,7 +1182,10 @@ def import_customers_with_contacts(request):
         try:
             decoded_text = _decode_csv_upload(csv_file)
             if decoded_text is None:
-                messages.error(request, 'Unable to read the CSV file. Unsupported encoding.')
+                messages.error(
+                    request,
+                    'Unable to read the CSV file. Please re-save it as "CSV UTF-8" and upload again.'
+                )
                 return redirect('import_customers_with_contacts')
 
             reader = csv.DictReader(io.StringIO(decoded_text))
@@ -1718,17 +1746,13 @@ def import_delinquencies(request):
             return redirect('delinquent_list')
         try:
             import csv, io
-            # Read raw bytes and try multiple encodings (common for Excel CSV)
-            raw = csv_file.read()
-            decoded_text = None
-            for enc in ['utf-8-sig', 'utf-8', 'cp1252', 'latin-1', 'iso-8859-1', 'utf-16', 'macroman']:
-                try:
-                    decoded_text = raw.decode(enc)
-                    break
-                except Exception:
-                    continue
+            # Decode safely (preserves ñ; no silent corruption).
+            decoded_text = decode_csv_bytes(csv_file.read())
             if decoded_text is None:
-                messages.error(request, 'Unable to read CSV: unsupported encoding.')
+                messages.error(
+                    request,
+                    'Unable to read CSV. Please re-save it as "CSV UTF-8" and upload again.'
+                )
                 return redirect('delinquent_list')
             sio = io.StringIO(decoded_text)
             # Try to sniff delimiter if needed

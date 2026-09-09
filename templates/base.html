@@ -728,11 +728,24 @@
                                 </ul>
                             </li>
                         {% endif %}
+                        {% if user.role in 'admin,marketing' %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="massMailingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Mass Mailing">
+                                <i class="fas fa-paper-plane"></i><span>Mass Mailing</span>
+                            </a>
+                            <ul class="dropdown-menu shadow" aria-labelledby="massMailingDropdown">
+                                <li><a class="dropdown-item" href="{% url 'mass_mailing:campaign_list' %}"><i class="fas fa-paper-plane me-2"></i>Campaigns</a></li>
+                                <li><a class="dropdown-item" href="{% url 'mass_mailing:media_library' %}"><i class="fas fa-photo-film me-2"></i>Media Library</a></li>
+                                <li><a class="dropdown-item" href="{% url 'mass_mailing:announcement_list' %}"><i class="fas fa-bullhorn me-2"></i>Announcements &amp; Events</a></li>
+                            </ul>
+                        </li>
+                        {% else %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'mass_mailing:campaign_list' %}" title="Mass Mailing">
                                 <i class="fas fa-paper-plane"></i><span>Mass Mailing</span>
                             </a>
                         </li>
+                        {% endif %}
                         {% if user.role in 'admin,president,gm,vp,avp' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'missions_list' %}" title="Missions">

@@ -19,6 +19,7 @@
                         <li><strong>Salesperson Username:</strong> Must exist and have role 'salesperson' (leave blank if none)</li>
                         <li><strong>Created/Updated At:</strong> Will be auto-generated (can be left blank)</li>
                         <li>Email addresses must be unique across all customers</li>
+                        <li><strong>Special characters (e.g. ñ in "Parañaque"):</strong> Save the file as <strong>CSV UTF-8</strong> to keep them intact. In Excel choose <em>Save As → CSV UTF-8 (Comma delimited) (*.csv)</em>; Google Sheets already exports UTF-8.</li>
                         <li><a href="{% url 'download_sample_csv' %}" class="alert-link"><i class="fas fa-download"></i> Download sample CSV</a> for the complete format reference</li>
                     </ul>
                 </div>
@@ -40,6 +41,7 @@
                     <div class="mb-3">
                         <label for="csv_file" class="form-label">Select CSV File</label>
                         <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+                        <div class="form-text"><i class="fas fa-info-circle me-1"></i>For names with accents or ñ, save the file as <strong>CSV UTF-8</strong> before uploading.</div>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
                         <button type="submit" class="btn btn-primary">Import Customers</button>

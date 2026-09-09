@@ -87,6 +87,59 @@ class MediaLibraryAsset(models.Model):
     def __str__(self):
         return self.title
 
+
+class Announcement(models.Model):
+    """
+    Marketing-authored announcements and upcoming events shown on the
+    Marketing Officer dashboard.
+    """
+    TYPE_CHOICES = (
+        ('event', 'Upcoming Event'),
+        ('news', 'News / Update'),
+        ('promo', 'Promotion'),
+        ('edm', 'New EDM / Media'),
+    )
+
+    title = models.CharField(max_length=200)
+    body = models.TextField(blank=True, help_text="Details of the announcement or event.")
+    announcement_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='news')
+    event_date = models.DateTimeField(
+        null=True, blank=True,
+        help_text="For events: when it takes place. Leave blank for general announcements.",
+    )
+    location = models.CharField(max_length=255, blank=True, help_text="Optional venue/location for events.")
+    link_url = models.URLField(blank=True, help_text="Optional link (e.g. registration, article, media).")
+    is_active = models.BooleanField(default=True, help_text="Uncheck to hide without deleting.")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='announcements')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_event(self):
+        return self.announcement_type == 'event'
+
+    @property
+    def is_upcoming(self):
+        """True for events whose date is in the future."""
+        from django.utils import timezone
+        return bool(self.event_date and self.event_date >= timezone.now())
+
+    @property
+    def badge_class(self):
+        return {
+            'event': 'bg-primary',
+            'news': 'bg-info text-dark',
+            'promo': 'bg-warning text-dark',
+            'edm': 'bg-success',
+        }.get(self.announcement_type, 'bg-secondary')
+
+
 class OptOut(models.Model):
     """Tracks users who have unsubscribed (DPA Compliance)"""
     email = models.EmailField(unique=True)

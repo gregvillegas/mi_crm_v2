@@ -14,6 +14,7 @@ from teams.models import Team, Group, TeamMembership
 from users.models import User
 from gamification.models import UserMissionProgress
 from gamification.utils import generate_daily_missions, generate_weekly_missions, get_current_week_start
+from mass_mailing.models import Campaign, CampaignRecipient, MediaLibraryAsset, Announcement
 
 @login_required
 def home(request):
@@ -127,6 +128,64 @@ def home(request):
             'can_add_funnel': user.role in ['salesperson', 'supervisor', 'asm', 'avp'],
         })
     
+    # ------------------------------------------------------------------
+    # Marketing Officer Dashboard
+    # ------------------------------------------------------------------
+    if user.role == 'marketing':
+        campaigns = Campaign.objects.all()
+        recipients = CampaignRecipient.objects.all()
+
+        sent_count = recipients.filter(status='sent').count()
+        failed_count = recipients.filter(status='failed').count()
+        interested_count = recipients.filter(interested_at__isnull=False).count()
+        campaigns_sent = campaigns.filter(status='completed').count()
+
+        # Interest rate = interested clicks / successfully sent emails.
+        interest_rate = round((interested_count / sent_count) * 100, 1) if sent_count else 0
+
+        # Recent campaigns (annotate each with its interested-click count)
+        from django.db.models import Count
+        recent_campaigns = campaigns.order_by('-created_at').annotate(
+            interested_clicks=Count('recipients', filter=Q(recipients__interested_at__isnull=False))
+        )[:5]
+
+        # Recently added media / EDMs in the library
+        recent_media = MediaLibraryAsset.objects.order_by('-created_at')[:5]
+
+        # Recent "Interested" clicks to follow up on
+        recent_interested = (
+            recipients.filter(interested_at__isnull=False)
+            .select_related('campaign', 'customer')
+            .order_by('-interested_at')[:6]
+        )
+
+        # Announcements & upcoming events (active only)
+        active_announcements = Announcement.objects.filter(is_active=True)
+        upcoming_events = active_announcements.filter(
+            announcement_type='event', event_date__gte=timezone.now()
+        ).order_by('event_date')[:5]
+        recent_announcements = active_announcements.exclude(
+            announcement_type='event', event_date__gte=timezone.now()
+        ).order_by('-created_at')[:5]
+
+        context.update({
+            'show_marketing_dashboard': True,
+            'mkt_stats': {
+                'campaigns_sent': campaigns_sent,
+                'total_campaigns': campaigns.count(),
+                'sent_count': sent_count,
+                'failed_count': failed_count,
+                'interested_count': interested_count,
+                'interest_rate': interest_rate,
+            },
+            'mkt_recent_campaigns': recent_campaigns,
+            'mkt_recent_media': recent_media,
+            'mkt_recent_interested': recent_interested,
+            'mkt_upcoming_events': upcoming_events,
+            'mkt_recent_announcements': recent_announcements,
+            'mkt_can_manage_announcements': True,
+        })
+
     # ------------------------------------------------------------------
     # Active Users Widget (admin-only)
     # ------------------------------------------------------------------
