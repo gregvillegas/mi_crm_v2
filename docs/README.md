@@ -38,6 +38,11 @@ The system should now work as expected for both admin access and team management
 
 ---
 
+## Feature Guides
+
+- **[CUSTOMERS_APP.md](CUSTOMERS_APP.md)** — How the Customers app works, with a deep dive on duplicate management (normalization, similarity scoring, the "Show Duplicates" filter) and how the create-request approval workflow notifies the AVP/approvers. References the merge design in CUSTOMER_MERGE_ANALYSIS.md.
+- **[CUSTOMER_MERGE_ANALYSIS.md](CUSTOMER_MERGE_ANALYSIS.md)** — Design/feasibility analysis for merging duplicate customers (not yet implemented).
+
 ## Maintenance & Operations
 
 - **[ACTIVITY_LOG_ARCHIVING.md](ACTIVITY_LOG_ARCHIVING.md)** — Archive old `UserActivityLog` records to compressed files (and restore them later) to keep the database lean. Includes the `archive_activity_logs` management command and recommended cron setup.

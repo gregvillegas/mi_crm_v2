@@ -377,19 +377,29 @@
 
             /* ---- 3. MICRO-INTERACTIONS: BUTTON DEPRESS ---- */
             .btn {
-                min-height: var(--m-touch);
+                /* Compact but still tappable on mobile (was 44px / 24px — too bulky) */
+                min-height: 38px;
+                padding-block: 0.3rem;
+                padding-inline: var(--m-space-3);
+                font-size: 0.8rem;
+                line-height: 1.2;
                 border-radius: var(--m-radius-pill);
-                padding-inline: var(--m-space-5);
                 font-weight: 600;
                 transition: transform 0.12s var(--m-ease-spring),
                             filter 0.15s var(--m-ease-smooth),
                             box-shadow var(--m-dur) var(--m-ease-smooth);
                 will-change: transform;
             }
+            .btn i { font-size: 0.85rem; }
             .btn:active { transform: scale(0.95); filter: brightness(0.96); }
-            .btn-sm { min-height: var(--m-touch); padding-inline: var(--m-space-4); }
-            /* 8px safe-space between adjacent buttons */
-            .btn-group > .btn + .btn { margin-left: var(--m-space-2); }
+            /* Small buttons (icon action buttons in tables, toolbars) — extra compact */
+            .btn-sm {
+                min-height: 32px;
+                padding-inline: var(--m-space-2);
+                font-size: 0.75rem;
+            }
+            /* Split button groups (e.g. New Proposal | Multi-Option) stay tighter */
+            .btn-group > .btn + .btn { margin-left: var(--m-space-1); }
 
             /* ---- 3. FLOATING-LABEL INPUTS + KEYBOARD-AWARE FOCUS ---- */
             .form-control, .form-select {
@@ -789,7 +799,7 @@
                 </ul>
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
-                        {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm' or customer_request_notification_count or proposal_approval_notification_count %}
+                        {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm,sm,marketing' or customer_request_notification_count or proposal_approval_notification_count %}
                         <li class="nav-item dropdown me-2">
                             <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
                                 <i class="fas fa-bell"></i>
@@ -927,8 +937,8 @@
         {% if user.role in 'avp,admin,president,gm,vp,salesperson,supervisor,teamlead,asm,marketing' %}
         <a class="m-tabbar__item" href="{% url 'customer_list' %}"><i class="fas fa-users"></i><span>Customers</span></a>
         {% endif %}
-        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp,marketing' %}
-        <a class="m-tabbar__item" href="{% url 'lead_generation:dashboard' %}"><i class="fas fa-user-plus"></i><span>Leads</span></a>
+        {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
+        <a class="m-tabbar__item" href="{% url 'sales_funnel:dashboard' %}"><i class="fas fa-filter"></i><span>Funnel</span></a>
         {% endif %}
         {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
         <a class="m-tabbar__item" href="{% url 'proposal_list' %}"><i class="fas fa-file-invoice-dollar"></i><span>Proposals</span></a>

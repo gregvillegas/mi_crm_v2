@@ -44,6 +44,7 @@
               {% endif %}
             </td>
             <td class="text-nowrap">
+              {% if can_approve %}
               <form method="post" action="{% url 'approve_customer_request' req.id %}" class="d-inline">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-sm btn-success">Approve</button>
@@ -53,6 +54,11 @@
                 <input name="note" type="text" class="form-control form-control-sm d-inline-block" style="width: 180px;" placeholder="Reason (optional)">
                 <button type="submit" class="btn btn-sm btn-outline-danger ms-1">Reject</button>
               </form>
+              {% else %}
+              <span class="badge bg-secondary" title="Awaiting AVP/executive decision">
+                <i class="fas fa-eye me-1"></i>View only
+              </span>
+              {% endif %}
             </td>
           </tr>
           {% empty %}

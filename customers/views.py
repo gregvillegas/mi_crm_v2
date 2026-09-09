@@ -13,6 +13,10 @@ from .permissions import (
     visible_customers_queryset,
     assignment_targets_queryset,
     get_user_team_ids,
+    can_review_customer_requests,
+    can_approve_customer_requests,
+    can_approve_request,
+    pending_requests_for_reviewer,
 )
 from users.models import User
 from teams.models import Team, Group, TeamMembership
@@ -176,9 +180,9 @@ def customer_list(request):
     # AVP, ASM, Supervisor: Transfer access
     can_manage_customers = user.role in ['admin', 'gm', 'vp', 'marketing', 'avp', 'asm', 'sm', 'supervisor']
 
-    pending_create_count = 0
-    if user.role in ['admin', 'avp', 'gm', 'vp', 'marketing', 'asm', 'sm', 'supervisor']:
-        pending_create_count = CustomerCreateRequest.objects.filter(status='pending').count()
+    # Pending create-requests the user is allowed to review.
+    # admin/gm/vp/marketing => all; avp => only their own team's requests.
+    pending_create_count = pending_requests_for_reviewer(user).count()
 
     # Get filter options for the template
     context = {
@@ -441,20 +445,30 @@ def create_customer(request):
 
 @login_required
 def customer_create_requests(request):
-    if request.user.role not in ['admin', 'avp', 'gm', 'vp', 'marketing']:
+    if not can_review_customer_requests(request.user):
         messages.error(request, "You don't have access to approval requests.")
         return redirect('customer_list')
-    qs = CustomerCreateRequest.objects.filter(status='pending')
+    # Scoped to what this reviewer may see: execs => all; AVP/managers => own scope.
+    qs = pending_requests_for_reviewer(request.user).select_related('requested_by')
     for req in qs:
         req.display_similar_matches = _enrich_similar_matches(req.similar_matches)
-    return render(request, 'customers/customer_create_requests.html', {'requests': qs})
+    # Watchers (supervisor/sm/asm) see the list read-only; only approvers act.
+    can_approve = can_approve_customer_requests(request.user)
+    return render(request, 'customers/customer_create_requests.html', {
+        'requests': qs,
+        'can_approve': can_approve,
+    })
 
 @login_required
 def approve_customer_request(request, pk):
-    if request.user.role not in ['admin', 'avp', 'gm', 'vp', 'marketing']:
-        messages.error(request, "You don't have permission to approve.")
+    if not can_approve_customer_requests(request.user):
+        messages.error(request, "You don't have permission to approve customer requests.")
         return redirect('customer_list')
     req = get_object_or_404(CustomerCreateRequest, pk=pk)
+    # AVPs may only act on requests from their own team.
+    if not can_approve_request(request.user, req):
+        messages.error(request, "This request is outside your team and can only be reviewed by its AVP or an executive.")
+        return redirect('customer_create_requests')
     if request.method == 'POST':
         if req.status != 'pending':
             messages.warning(request, f'This request has already been {req.get_status_display().lower()} by {req.reviewed_by.get_full_name() if req.reviewed_by else "another user"}.')
@@ -468,10 +482,14 @@ def approve_customer_request(request, pk):
 
 @login_required
 def reject_customer_request(request, pk):
-    if request.user.role not in ['admin', 'avp', 'gm', 'vp', 'marketing']:
-        messages.error(request, "You don't have permission to reject.")
+    if not can_approve_customer_requests(request.user):
+        messages.error(request, "You don't have permission to reject customer requests.")
         return redirect('customer_list')
     req = get_object_or_404(CustomerCreateRequest, pk=pk)
+    # AVPs may only act on requests from their own team.
+    if not can_approve_request(request.user, req):
+        messages.error(request, "This request is outside your team and can only be reviewed by its AVP or an executive.")
+        return redirect('customer_create_requests')
     if request.method == 'POST':
         note = request.POST.get('note','')
         req.reject(request.user, notes=note)

@@ -3,11 +3,28 @@ from django.db.models import Q
 from teams.models import Group, TeamMembership
 from users.models import User
 
-from .models import Customer
+from .models import Customer, CustomerCreateRequest
 
 
 EXEC_ROLES = {'admin', 'president', 'gm', 'vp', 'marketing'}
 ASSIGNABLE_ROLES = {'salesperson', 'supervisor', 'asm', 'sm', 'avp'}
+
+# --- Customer create-request review model ---------------------------------
+# There are three tiers of "seeing" a pending customer create-request:
+#
+#   GLOBAL_REVIEWER_ROLES  — see ALL pending requests, and may approve/reject.
+#   APPROVER_ROLES         — may approve/reject requests within their scope
+#                            (global for execs; own team for AVP).
+#   WATCHER_ROLES          — may SEE requests within their scope for awareness,
+#                            but may NOT approve/reject (decision stays with the
+#                            AVP/executive).
+#
+# To let a watcher role approve later, simply move it into APPROVER_ROLES.
+GLOBAL_REVIEWER_ROLES = {'admin', 'gm', 'vp', 'marketing'}
+APPROVER_ROLES = GLOBAL_REVIEWER_ROLES | {'avp'}
+WATCHER_ROLES = {'supervisor', 'sm', 'asm'}
+# Anyone who can see the pending queue at all (approvers + watchers).
+REQUEST_REVIEWER_ROLES = APPROVER_ROLES | WATCHER_ROLES
 
 
 def _safe_team_id_from_membership(user):
@@ -213,4 +230,106 @@ def assignment_targets_queryset(user):
         return qs.order_by('first_name', 'last_name', 'username')
 
     return User.objects.none()
+
+
+def _managed_requester_ids(user):
+    """
+    Set of user IDs whose customer create-requests this manager is scoped to see.
+    Mirrors each role's customer visibility so the notification scope matches the
+    data scope.
+
+    - avp / asm: salespeople (and other assignable users) within their team(s).
+    - supervisor / teamlead: members of the groups they manage/lead.
+    - sm: members of their explicitly assigned groups (+ those groups' supervisors).
+    Returns an empty set if the manager has no resolvable scope.
+    """
+    role = getattr(user, 'role', None)
+
+    if role in {'avp', 'asm'}:
+        team_ids = get_user_team_ids(user)
+        if not team_ids:
+            return set()
+        return set(get_team_scoped_users(team_ids).values_list('id', flat=True))
+
+    if role == 'supervisor':
+        groups = Group.objects.filter(supervisor=user)
+        member_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+        return set(member_ids) | {user.id}
+
+    if role == 'teamlead':
+        groups = Group.objects.filter(teamlead=user)
+        member_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
+        return set(member_ids) | {user.id}
+
+    if role == 'sm':
+        sm_groups = user.sm_groups.all()
+        if not sm_groups.exists():
+            return set()
+        member_ids = TeamMembership.objects.filter(group__in=sm_groups).values_list('user_id', flat=True)
+        supervisor_ids = Group.objects.filter(
+            id__in=sm_groups.values_list('id', flat=True),
+            supervisor__isnull=False,
+        ).values_list('supervisor_id', flat=True)
+        return set(member_ids) | set(supervisor_ids) | {user.id}
+
+    return set()
+
+
+def can_review_customer_requests(user):
+    """
+    True if this user may SEE the pending customer create-request queue
+    (approvers AND watchers). Watchers can view but not approve/reject.
+    """
+    return getattr(user, 'is_authenticated', False) and user.role in REQUEST_REVIEWER_ROLES
+
+
+def can_approve_customer_requests(user):
+    """True if this user may APPROVE/REJECT customer create-requests."""
+    return getattr(user, 'is_authenticated', False) and user.role in APPROVER_ROLES
+
+
+def pending_requests_for_reviewer(user):
+    """
+    Return the pending CustomerCreateRequest queryset this user is allowed to SEE.
+
+    - admin/gm/vp/marketing: ALL pending requests (global).
+    - avp/asm/supervisor/teamlead/sm: only requests raised by users within their
+      own team/group scope. A manager with no resolvable scope sees nothing.
+    - anyone else: nothing.
+    """
+    if not can_review_customer_requests(user):
+        return CustomerCreateRequest.objects.none()
+
+    base = CustomerCreateRequest.objects.filter(status='pending')
+
+    if user.role in GLOBAL_REVIEWER_ROLES:
+        return base
+
+    requester_ids = _managed_requester_ids(user)
+    if not requester_ids:
+        return CustomerCreateRequest.objects.none()
+    return base.filter(requested_by_id__in=requester_ids)
+
+
+def can_review_request(user, req):
+    """True if this user may SEE a specific create-request (approver or watcher)."""
+    if not can_review_customer_requests(user):
+        return False
+    if user.role in GLOBAL_REVIEWER_ROLES:
+        return True
+    if not req.requested_by_id:
+        return False
+    return req.requested_by_id in _managed_requester_ids(user)
+
+
+def can_approve_request(user, req):
+    """True if this user may APPROVE/REJECT a specific create-request."""
+    if not can_approve_customer_requests(user):
+        return False
+    if user.role in GLOBAL_REVIEWER_ROLES:
+        return True
+    # AVP — only within their team scope.
+    if not req.requested_by_id:
+        return False
+    return req.requested_by_id in _managed_requester_ids(user)
 

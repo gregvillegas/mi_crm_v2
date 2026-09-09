@@ -1,4 +1,8 @@
 from .models import CustomerCreateRequest
+from .permissions import (
+    can_review_customer_requests,
+    pending_requests_for_reviewer,
+)
 
 
 def customer_request_notifications(request):
@@ -9,8 +13,13 @@ def customer_request_notifications(request):
     pending_qs = CustomerCreateRequest.objects.none()
     requester_qs = CustomerCreateRequest.objects.none()
 
-    if user.role in ['admin', 'avp', 'gm', 'vp', 'marketing']:
-        pending_qs = CustomerCreateRequest.objects.filter(status='pending').select_related('requested_by')[:5]
+    # Reviewers see pending requests scoped to what they're allowed to review.
+    # admin/gm/vp/marketing => all; avp => only their own team's requesters.
+    is_reviewer = can_review_customer_requests(user)
+    reviewer_pending = pending_requests_for_reviewer(user) if is_reviewer else CustomerCreateRequest.objects.none()
+
+    if is_reviewer:
+        pending_qs = reviewer_pending.select_related('requested_by')[:5]
 
     if user.role == 'salesperson':
         requester_qs = CustomerCreateRequest.objects.filter(
@@ -18,7 +27,7 @@ def customer_request_notifications(request):
             requester_seen_at__isnull=True
         ).exclude(status='pending').select_related('reviewed_by').order_by('-reviewed_at', '-created_at')[:5]
 
-    pending_count = CustomerCreateRequest.objects.filter(status='pending').count() if user.role in ['admin', 'avp', 'gm', 'vp', 'marketing'] else 0
+    pending_count = reviewer_pending.count() if is_reviewer else 0
     requester_unread_count = CustomerCreateRequest.objects.filter(
         requested_by=user,
         requester_seen_at__isnull=True
