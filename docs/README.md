@@ -43,6 +43,11 @@ The system should now work as expected for both admin access and team management
 - **[CUSTOMERS_APP.md](CUSTOMERS_APP.md)** — How the Customers app works, with a deep dive on duplicate management (normalization, similarity scoring, the "Show Duplicates" filter) and how the create-request approval workflow notifies the AVP/approvers. References the merge design in CUSTOMER_MERGE_ANALYSIS.md.
 - **[CUSTOMER_MERGE_ANALYSIS.md](CUSTOMER_MERGE_ANALYSIS.md)** — Design/feasibility analysis for merging duplicate customers (not yet implemented).
 
+## Proposals (for review/approval)
+
+- **[BIOMETRIC_AUTHENTICATION_PROPOSAL.md](BIOMETRIC_AUTHENTICATION_PROPOSAL.md)** — Feasibility & phased implementation plan for biometric login (WebAuthn/Passkeys via existing django-allauth). For management review and sign-off; no code changed yet.
+- **[BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md](BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md)** — 1-page staff how-to for enrolling a device (Touch ID / Face ID / Windows Hello / Android) and signing in with biometrics. Ready for the Phase 1 pilot once approved.
+
 ## Maintenance & Operations
 
 - **[ACTIVITY_LOG_ARCHIVING.md](ACTIVITY_LOG_ARCHIVING.md)** — Archive old `UserActivityLog` records to compressed files (and restore them later) to keep the database lean. Includes the `archive_activity_logs` management command and recommended cron setup.

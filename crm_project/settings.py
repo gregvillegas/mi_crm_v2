@@ -199,6 +199,9 @@ ACCOUNT_UNIQUE_EMAIL = True
 
 # MFA
 MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes']
+# Issuer name shown in authenticator apps (e.g. Microsoft/Google Authenticator).
+# Without this, allauth falls back to the Sites framework domain ("example.com").
+MFA_TOTP_ISSUER = 'MI CRM'
 
 # ---------------------------------------------------------------------------
 # Crispy Forms
