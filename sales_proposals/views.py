@@ -1175,7 +1175,7 @@ def generate_pdf_buffer(proposal):
                     Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
                     Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                     Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
-                    Paragraph(_avail_cell(item), styles['TableText']),
+                    Paragraph(_avail_cell(item), styles['TableTextCenter']),
                 ])
                 for component in item.bundle_components:
                     group_table_data.append([
@@ -1249,7 +1249,7 @@ def generate_pdf_buffer(proposal):
                 Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
                 Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                 Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
-                Paragraph(_avail_cell(item), styles['TableText'])
+                Paragraph(_avail_cell(item), styles['TableTextCenter'])
             ])
             for component in item.bundle_components:
                 table_data.append([
