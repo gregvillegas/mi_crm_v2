@@ -1200,6 +1200,8 @@ def generate_pdf_buffer(proposal):
 
             col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
             gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
+            # Anchor the table to the left margin so it lines up with the body text.
+            gt.hAlign = 'LEFT'
             gt_style = [
                 ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -1305,6 +1307,9 @@ def generate_pdf_buffer(proposal):
         # Column widths: last column widened to 1.1" so "AVAILABILITY" fits on one line
         col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
+        # Anchor the table to the left margin so it lines up with the body text
+        # (default is CENTER, which pushes the left edge past the text margin).
+        t.hAlign = 'LEFT'
     
         # Styling
         table_grid_end_row = -2 if not proposal.has_optional_items else -1

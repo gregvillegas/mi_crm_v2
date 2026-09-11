@@ -18,6 +18,7 @@
 8. [Approval Workflow](#8-approval-workflow)
 9. [PDF Generation](#9-pdf-generation)
 10. [Email Sending](#10-email-sending)
+10a. [Approval Email Notifications](#10a-approval-email-notifications)
 11. [Sales Funnel Integration](#11-sales-funnel-integration)
 12. [Change Log Tracking](#12-change-log-tracking)
 13. [Role-Based Access](#13-role-based-access)
@@ -567,6 +568,94 @@ Attachments with filenames containing "costing" or "matrix" (case-insensitive):
 - `include_in_email` auto-disabled in the form
 - Cannot be sent to customers even if checkbox is somehow checked
 - Marked with "Confidential" warning label in the UI
+
+---
+
+## 10a. Approval Email Notifications
+
+Separate from the customer-facing email above, the approval workflow sends
+**internal notification emails** at each stage so approvers and salespeople don't
+have to keep checking the CRM. These are automatic, plain-text emails.
+
+> These notifications complement (do not replace) the in-app approvals inbox and
+> the navbar notification bell. They reuse the same SMTP configuration
+> (`EMAIL_HOST`, `DEFAULT_FROM_EMAIL`) and the `SITE_URL` setting for building
+> links.
+
+### 10a.1 Two notification helpers
+
+Both live in `sales_proposals/views.py`.
+
+| Helper | Emails whom | When |
+|---|---|---|
+| `notify_pending_approver(proposal, request=None)` | The **current pending approver** (e.g. the AVP) | A proposal enters approval, and each time it advances to the next approver |
+| `notify_creator_of_decision(proposal, decision, decided_by=None, comment='', request=None)` | The **proposal creator (salesperson)** | The proposal is **fully approved** or **rejected** |
+
+### 10a.2 When each email fires
+
+| Event | Trigger location | Recipient | Email |
+|---|---|---|---|
+| Proposal created and requires approval | `proposal_create`, `multi_option_proposal_create`, Android API `ProposalCreateSerializer` | First pending approver | "Approval Needed" |
+| Proposal edited so the approval chain (re)starts | `proposal_update`, `multi_option_proposal_update` (only when `approval_version` changed) | Current pending approver | "Approval Needed" |
+| An approver approves and it moves to the next level | `approve_proposal` | **Next** approver | "Approval Needed" |
+| Final approver approves (fully approved) | `approve_proposal` | Salesperson (creator) | "Approved" |
+| Any approver rejects | `reject_proposal` | Salesperson (creator) | "Rejected" |
+
+**Notes on timing:**
+- On **edit**, the approver is emailed **only if the edit actually restarted the
+  workflow** (detected via a change in `approval_version`). Trivial edits to an
+  already-decided proposal do **not** spam approvers.
+- The salesperson is emailed on **final approval only** (not on each intermediate
+  step) and on rejection.
+
+### 10a.3 Email contents
+
+**"Approval Needed"** (to the approver):
+- Subject: `[Approval Needed] Proposal {proposal_number} — {customer}`
+- Body: approval level, proposal #, reference #, customer, subject, prepared-by,
+  amount (with PHP equivalent if USD), and a direct link to the proposal detail
+  page. Reminds them the Approvals Inbox is also available.
+
+**"Approved"** (to the salesperson):
+- Subject: `[Approved] Proposal {proposal_number} — {customer}`
+- Body: confirms who approved it, the proposal summary, any approver comment, and
+  the note *"You may now send this proposal to the customer."*
+
+**"Rejected"** (to the salesperson):
+- Subject: `[Rejected] Proposal {proposal_number} — {customer}`
+- Body: confirms who rejected it, the proposal summary, the **rejection reason**
+  (the approver's comment), and the note to revise and resubmit.
+
+### 10a.4 Guards & fail-safe behavior
+
+Both helpers are deliberately **best-effort and non-blocking**:
+
+- Wrapped in `try/except` and sent with `fail_silently=True`, so a mail server
+  problem can **never** block a proposal save, approval, or rejection.
+- `notify_pending_approver` sends **only when**: the proposal requires approval,
+  its status is `pending`/`in_progress`, a current pending step exists, and that
+  approver has an email address on file.
+- `notify_creator_of_decision` sends **only when**: the decision is `approved` or
+  `rejected` and the creator has an email address.
+- Each returns `True` if an email was sent, `False` otherwise (useful for tests).
+
+### 10a.5 Links in emails
+
+Every notification includes a link to the proposal:
+- If a `request` is available (web flows), the link uses the actual host via
+  `request.build_absolute_uri(...)`.
+- Otherwise (e.g. API flow) it falls back to `settings.SITE_URL + path`.
+
+**Production requirement:** `SITE_URL` must be set correctly (e.g.
+`https://micrm.microimageph.com`) so links in emails point to production rather
+than the dev default.
+
+### 10a.6 What is NOT emailed
+
+- **Approvers are not notified on rejection** (rejection ends the flow; the
+  salesperson is the one who needs to act).
+- **The customer** is never involved in approval notifications — those are the
+  separate customer-facing send documented in §10.
 
 ---
 
