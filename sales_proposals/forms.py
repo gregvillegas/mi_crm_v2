@@ -168,7 +168,10 @@ class ProposalItemForm(forms.ModelForm):
             'quantity': NumberInput(attrs={'class': 'no-spin', 'step': '1', 'min': '1', 'inputmode': 'numeric'}),
             'unit_cost': TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
             'unit_price': TextInput(attrs={'class': 'price-input no-spin', 'inputmode': 'decimal', 'autocomplete': 'off'}),
-            'warranty': TextInput(attrs={'class': 'form-control'}),
+            'warranty': TextInput(attrs={
+                'class': 'form-control',
+                'maxlength': ProposalItem.AVAILABILITY_WARRANTY_MAX_LENGTH,
+            }),
             'bundled_items': Textarea(attrs={
                 'rows': 5,
                 'placeholder': 'Paste 3–5 columns from Excel (Part Number, Description, Qty, [Unit Price], [Total Price]).\nPricing columns are ignored — only Part Number, Description, and Qty are kept.\nB4YT6AV | HP IDS DSC RTX PRO 2000 8GB Ultra 9 285HX 16 inch G1i Base NB PC | 2\n8C9M7AV | No Country of Origin Restriction | 2',
@@ -179,6 +182,19 @@ class ProposalItemForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['unit_cost'].required = False
         self.fields['bundled_items'].required = False
+        # Enforce the shared Availability/Warranty limit at the form level so the
+        # value can never exceed the DB column (this field feeds both columns).
+        self.fields['warranty'].max_length = ProposalItem.AVAILABILITY_WARRANTY_MAX_LENGTH
+
+    def clean_warranty(self):
+        value = (self.cleaned_data.get('warranty') or '').strip()
+        limit = ProposalItem.AVAILABILITY_WARRANTY_MAX_LENGTH
+        if len(value) > limit:
+            raise forms.ValidationError(
+                f'This value is too long ({len(value)} characters). '
+                f'Please keep it under {limit} characters.'
+            )
+        return value
 
     def _clean_decimal_text(self, field_name):
         raw_value = self.cleaned_data.get(field_name)

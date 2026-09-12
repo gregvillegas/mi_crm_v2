@@ -539,6 +539,11 @@ class ProposalOptionGroup(models.Model):
 
 
 class ProposalItem(models.Model):
+    # Shared max length for the Availability / Warranty text so the value can move
+    # freely between the two columns without overflowing, and so MySQL (which
+    # strictly enforces VARCHAR length, unlike SQLite) accepts every row.
+    AVAILABILITY_WARRANTY_MAX_LENGTH = 150
+
     proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name='items')
     option_group = models.ForeignKey(
         ProposalOptionGroup, on_delete=models.CASCADE,
@@ -550,8 +555,8 @@ class ProposalItem(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2, default=1)
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Internal")
-    availability = models.CharField(max_length=100, blank=True, help_text="Product availability (e.g. In Stock, 2-3 weeks)")
-    warranty = models.CharField(max_length=150, blank=True, help_text="Per-item warranty (e.g., 1 year parts/labor)")
+    availability = models.CharField(max_length=AVAILABILITY_WARRANTY_MAX_LENGTH, blank=True, help_text="Product availability (e.g. In Stock, 2-3 weeks)")
+    warranty = models.CharField(max_length=AVAILABILITY_WARRANTY_MAX_LENGTH, blank=True, help_text="Per-item warranty (e.g., 1 year parts/labor)")
     is_optional = models.BooleanField(default=False, help_text="Mark this line as optional so it is excluded from the proposal total")
     is_bundle = models.BooleanField(default=False, help_text="Show bundled component part numbers under this priced item")
     bundled_items = models.TextField(blank=True, help_text="One bundled component per line. Format: PART NUMBER | Description | Qty")
@@ -679,6 +684,14 @@ class ProposalItem(models.Model):
             self.bundled_items = ''
         self.amount = self.quantity * self.unit_price
         self.total_cost = self.quantity * self.unit_cost
+        # Final safety net: hard-cap Availability/Warranty length on EVERY save path
+        # (form, multi-option JSON, API, admin, shell) so a value can never exceed the
+        # DB column. SQLite ignores VARCHAR length but MySQL enforces it strictly.
+        limit = self.AVAILABILITY_WARRANTY_MAX_LENGTH
+        if self.availability and len(self.availability) > limit:
+            self.availability = self.availability[:limit]
+        if self.warranty and len(self.warranty) > limit:
+            self.warranty = self.warranty[:limit]
         super().save(*args, **kwargs)
 
 class ProposalAttachment(models.Model):

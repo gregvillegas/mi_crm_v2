@@ -132,6 +132,7 @@
                                         <div class="mb-3 warranty-field-wrapper">
                                             <label class="form-label warranty-label" for="{{ form.warranty.id_for_label }}">Availability</label>
                                             {{ form.warranty }}
+                                            <small class="form-text text-muted warranty-help d-block mt-1"></small>
                                         </div>
                                     </div>
                                     <div class="col-md-2 d-flex align-items-center pt-3">
@@ -205,6 +206,7 @@
                                     <div class="mb-3 warranty-field-wrapper">
                                         <label class="form-label warranty-label" for="{{ formset.empty_form.warranty.id_for_label }}">Availability</label>
                                         {{ formset.empty_form.warranty }}
+                                        <small class="form-text text-muted warranty-help d-block mt-1"></small>
                                     </div>
                                 </div>
                                 <div class="col-md-2 d-flex align-items-center pt-3">
@@ -511,8 +513,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateWarrantyLabels() {
         const isAvail = availChk ? availChk.checked : true;
         const labelText = isAvail ? 'Availability' : 'Warranty';
+        const helpText = isAvail
+            ? 'Enter stock/lead time, e.g. "On Stock" or "3-5 business days" — not warranty terms.'
+            : 'Enter warranty terms, e.g. "1 year parts & labor" — not availability/lead time.';
+        const placeholderText = isAvail ? 'e.g. On Stock / 3-5 business days' : 'e.g. 1 year parts & labor';
         document.querySelectorAll('.warranty-label').forEach(function(el) {
             el.textContent = labelText;
+        });
+        document.querySelectorAll('.warranty-help').forEach(function(el) {
+            el.textContent = helpText;
+        });
+        document.querySelectorAll('.warranty-field-wrapper input, .warranty-field-wrapper textarea').forEach(function(el) {
+            el.setAttribute('placeholder', placeholderText);
         });
     }
 

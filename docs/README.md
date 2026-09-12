@@ -46,6 +46,7 @@ The system should now work as expected for both admin access and team management
 ## Proposals (for review/approval)
 
 - **[PROPOSAL_REJECTION_HANDLING.md](PROPOSAL_REJECTION_HANDLING.md)** — What happens to a rejected sales proposal (it can be edited, and editing auto-resets the approval workflow), the edge cases (e.g. trimming under the ₱500K threshold bypasses approval), and proposed options for management sign-off.
+- **[PROPOSAL_OPTIONAL_ITEMS_APPROVAL.md](PROPOSAL_OPTIONAL_ITEMS_APPROVAL.md)** — Why proposals whose value comes from "Optional" line items skip the ₱500K approval threshold (optional items are excluded from the binding total used for approval), with options for management sign-off.
 - **[BIOMETRIC_AUTHENTICATION_PROPOSAL.md](BIOMETRIC_AUTHENTICATION_PROPOSAL.md)** — Feasibility & phased implementation plan for biometric login (WebAuthn/Passkeys via existing django-allauth). For management review and sign-off; no code changed yet.
 - **[BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md](BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md)** — 1-page staff how-to for enrolling a device (Touch ID / Face ID / Windows Hello / Android) and signing in with biometrics. Ready for the Phase 1 pilot once approved.
 

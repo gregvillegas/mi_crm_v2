@@ -175,6 +175,16 @@ class MultiOptionItemForm(forms.ModelForm):
             raise forms.ValidationError('This field is required.')
         return value
 
+    def clean_warranty(self):
+        value = (self.cleaned_data.get('warranty') or '').strip()
+        limit = ProposalItem.AVAILABILITY_WARRANTY_MAX_LENGTH
+        if len(value) > limit:
+            raise forms.ValidationError(
+                f'This value is too long ({len(value)} characters). '
+                f'Please keep it under {limit} characters.'
+            )
+        return value
+
 
 MultiOptionItemFormSet = inlineformset_factory(
     Proposal,

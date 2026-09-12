@@ -390,8 +390,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateWarrantyColHeaders() {
         const isAvail = availChk ? availChk.checked : true;
         const labelText = isAvail ? 'Availability' : 'Warranty';
+        const placeholderText = isAvail ? 'e.g. On Stock / 3-5 business days' : 'e.g. 1 year parts & labor';
         document.querySelectorAll('.warranty-col-header').forEach(function(el) {
             el.textContent = labelText;
+        });
+        document.querySelectorAll('.item-warranty').forEach(function(el) {
+            el.setAttribute('placeholder', placeholderText);
         });
     }
 
@@ -596,6 +600,13 @@ document.addEventListener('DOMContentLoaded', function() {
         // Append both rows (item + its paired bundle row)
         tbody.appendChild(itemRow);
         tbody.appendChild(bundleRow);
+
+        // Sync the warranty/availability placeholder to the current toggle state
+        const isAvail = availChk ? availChk.checked : true;
+        const wInput = itemRow.querySelector('.item-warranty');
+        if (wInput) {
+            wInput.setAttribute('placeholder', isAvail ? 'e.g. On Stock / 3-5 business days' : 'e.g. 1 year parts & labor');
+        }
     }
 
     function updateSubtotals() {
