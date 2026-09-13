@@ -26,7 +26,7 @@ from .forms import (
     EmailActivityForm, ProposalActivityForm, TaskActivityForm,
     ProofOfConceptForm
 )
-from teams.models import Group, TeamMembership, SupervisorCommitment
+from teams.models import Group, TeamMembership, SupervisorCommitment, asm_scoped_groups
 from users.models import User
 from customers.models import Customer
 
@@ -244,7 +244,7 @@ def supervisor_dashboard(request):
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
     elif user.role == 'asm':
-        supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        supervised_groups = asm_scoped_groups(user)
     elif user.role == 'sm':
         supervised_groups = user.sm_groups.all()
     else:
@@ -994,7 +994,7 @@ def activity_detail(request, pk):
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
         elif user.role == 'asm':
-            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+            supervised_groups = asm_scoped_groups(user)
         elif user.role == 'sm':
             supervised_groups = user.sm_groups.all()
         else:
@@ -1313,14 +1313,9 @@ def group_performance(request):
         # Teamleads access groups through led_groups relationship
         supervised_groups = user.led_groups.all()
     elif user.role == 'asm':
-        # ASM sees only their explicitly assigned groups (via sm_managers).
-        # If the ASM has no specific group assignments, fall back to the whole
-        # team (legacy behavior for ASMs who oversee an entire team).
-        assigned_groups = user.sm_groups.all()
-        if assigned_groups.exists():
-            supervised_groups = assigned_groups
-        else:
-            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+        # ASM sees only their explicitly assigned groups (via sm_managers), with a
+        # fallback to the whole team when no groups are assigned. See asm_scoped_groups.
+        supervised_groups = asm_scoped_groups(user)
     elif user.role == 'sm':
         # SM sees only their explicitly assigned groups
         supervised_groups = user.sm_groups.all()
@@ -1565,7 +1560,7 @@ def generate_activity_report(user, period_start, period_end, include_breakdown=T
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
         elif user.role == 'asm':
-            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+            supervised_groups = asm_scoped_groups(user)
         elif user.role == 'sm':
             supervised_groups = user.sm_groups.all()
         else:
@@ -1721,7 +1716,7 @@ def activity_calendar(request):
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
         elif user.role == 'asm':
-            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+            supervised_groups = asm_scoped_groups(user)
         elif user.role == 'sm':
             supervised_groups = user.sm_groups.all()
         else:
@@ -2347,7 +2342,7 @@ def export_activities(request):
         if user.role == 'teamlead':
             supervised_groups = user.led_groups.all()
         elif user.role == 'asm':
-            supervised_groups = Group.objects.filter(team__in=user.asm_teams.all())
+            supervised_groups = asm_scoped_groups(user)
         elif user.role == 'sm':
             supervised_groups = user.sm_groups.all()
         else:

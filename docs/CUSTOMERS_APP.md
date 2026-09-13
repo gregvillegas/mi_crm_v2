@@ -16,8 +16,7 @@ the AVP (and other approvers)** when a new customer needs review.
   notes, full audit history, backups, delinquency records, and a
   **create-request approval workflow**.
 - **Who sees what:** visibility is role-scoped (see §6). Executives see all
-  customers; salespeople see only their own; supervisors/AVP/ASM/SM see their
-  team's customers.
+  customers; salespeople see only their own; supervisors/AVP/ASM/SM see their team's customers.
 - **Key files:**
   | File | Responsibility |
   |------|----------------|
@@ -128,8 +127,7 @@ supervisor` — not salespeople). The view:
 4. Shows just those customers, ordered by company name so duplicates sit next to
    each other, and reports `duplicate_group_count`.
 
-Because it starts from the scoped queryset, an AVP only sees duplicates **within
-their own teams**; executives see all.
+Because it starts from the scoped queryset, an AVP only sees duplicates **within their own teams**; executives see all.
 
 ### 3d. Merging duplicates — DESIGNED, NOT YET IMPLEMENTED
 
@@ -138,12 +136,11 @@ template, or management command exists. The "Show Duplicates" filter only
 *surfaces* duplicates; combining them is still a manual decision.
 
 A complete implementation plan lives in
-[`CUSTOMER_MERGE_ANALYSIS.md`](CUSTOMER_MERGE_ANALYSIS.md). Key points from that
-analysis, important to understand before anyone attempts cleanup:
+[`CUSTOMER_MERGE_ANALYSIS.md`](CUSTOMER_MERGE_ANALYSIS.md). Key points from that analysis, important to understand before anyone attempts cleanup:
 
-- Most models point to `Customer` with `on_delete=CASCADE` (proposals, funnel
-  entries, sales activities, POCs, tickets, campaign recipients, notes, history,
-  backups). **Deleting a duplicate directly would destroy all of that business
+- Most models point to `Customer` with `on_delete=CASCADE` (proposals, funnel entries, sales activities, POCs, tickets, campaign recipients, notes, history, backups). 
+
+**Deleting a duplicate directly would destroy all of that business
   data.**
 - A safe merge must, inside a transaction, re-point every related record to the
   surviving customer *before* deleting the duplicate, migrate contacts (respecting

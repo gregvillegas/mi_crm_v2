@@ -1143,21 +1143,27 @@ def generate_pdf_buffer(proposal):
         # ===============================================================
         # MULTI-OPTION FORMAT: Separate table per option group
         # ===============================================================
+        # Style for the "OPTION N" heading, rendered as a spanning first row
+        # INSIDE each option table (see below). Making the heading part of the
+        # table means the heading + column header + data rows are a single
+        # splittable flowable: it fills the current page and only breaks when
+        # the page is actually full — so the heading can never be orphaned AND
+        # there is no large blank gap from pushing a whole block to a new page.
+        option_title_style = ParagraphStyle(
+            name='OptionTitleCell', parent=styles['NormalSmall'],
+            fontName=font_bold, fontSize=11, textColor=MIC_RED,
+            spaceBefore=0, spaceAfter=0, leading=14,
+        )
+
         for group in proposal.option_groups.all():
-            # Collect this option's header + table into one block so the
-            # "OPTION N" heading is never stranded at the bottom of a page
-            # away from its table (KeepTogether moves the whole block to the
-            # next page automatically if it doesn't fit in the space left).
-            option_block = []
-
-            # Option group header
-            option_block.append(Paragraph(group.name.upper(), ParagraphStyle(
-                name='OptionGroupHeader', parent=styles['NormalSmall'],
-                fontName=font_bold, fontSize=11, textColor=MIC_RED,
-                spaceBefore=14, spaceAfter=6,
-            )))
-
+            # Row 0: full-width "OPTION N" heading cell (spanned across all cols)
             group_table_data = [[
+                Paragraph(group.name.upper(), option_title_style),
+                '', '', '', '', '', '',
+            ]]
+
+            # Row 1: column header
+            group_table_data.append([
                 Paragraph("ITEM", styles['TableHeader']),
                 Paragraph("PART NO.", styles['TableHeader']),
                 Paragraph("DESCRIPTION", styles['TableHeader']),
@@ -1165,7 +1171,7 @@ def generate_pdf_buffer(proposal):
                 Paragraph("UNIT PRICE", styles['TableHeader']),
                 Paragraph(price_col_header, styles['TableHeader']),
                 Paragraph(avail_col_header, styles['TableHeader']),
-            ]]
+            ])
 
             for idx, item in enumerate(group.group_items.all(), start=1):
                 group_table_data.append([
@@ -1199,27 +1205,40 @@ def generate_pdf_buffer(proposal):
             ])
 
             col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
-            gt = Table(group_table_data, colWidths=col_widths, repeatRows=1)
+            # repeatRows=2 repeats the OPTION heading (row 0) + column header
+            # (row 1) at the top of each continuation page if the table splits.
+            gt = Table(group_table_data, colWidths=col_widths, repeatRows=2)
             # Anchor the table to the left margin so it lines up with the body text.
             gt.hAlign = 'LEFT'
             gt_style = [
-                ('BACKGROUND', (0, 0), (-1, 0), MIC_RED),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -2), 1, colors.black),
-                ('ALIGN', (2, 1), (2, -2), 'LEFT'),
+                # Row 0: "OPTION N" heading — spans all columns, no fill, red
+                # text, left-aligned, and NO grid lines (matches prior look).
+                ('SPAN', (0, 0), (-1, 0)),
+                ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+                ('LEFTPADDING', (0, 0), (0, 0), 0),
+                ('TOPPADDING', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 4),
+                # Row 1: column header (red background, white text).
+                ('BACKGROUND', (0, 1), (-1, 1), MIC_RED),
+                ('TEXTCOLOR', (0, 1), (-1, 1), colors.white),
+                ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+                # Grid on the column header + data rows only (skip heading row 0
+                # and the Total Investment row -2..-1 handled below).
+                ('GRID', (0, 1), (-1, -2), 1, colors.black),
+                ('ALIGN', (2, 2), (2, -2), 'LEFT'),
                 # Total Investment row styling (red background, white text)
                 ('BACKGROUND', (4, -1), (5, -1), MIC_RED),
                 ('TEXTCOLOR', (4, -1), (5, -1), colors.white),
                 ('GRID', (4, -1), (5, -1), 1, MIC_RED),
             ]
             gt.setStyle(TableStyle(gt_style))
-            option_block.append(gt)
 
-            # Keep header + its table together; repeatRows=1 still repeats the
-            # column header if a single very large option must split across pages.
-            elements.append(KeepTogether(option_block))
+            # Single splittable table per option. Because the heading is row 0
+            # of the table, ReportLab keeps it with the following rows and fills
+            # the current page, breaking only when the page is full. No
+            # KeepTogether/keepWithNext, so no large blank gap on the prior page.
+            elements.append(gt)
             elements.append(Spacer(1, 14))
 
     else:

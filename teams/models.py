@@ -234,3 +234,23 @@ class CompanyAnnualTargetLog(models.Model):
     
     def __str__(self):
         return f"{self.target.year} change: ₱{self.previous_amount} → ₱{self.new_amount}"
+
+
+def asm_scoped_groups(user):
+    """
+    Return the set of Groups an ASM should be scoped to (Option A behavior).
+
+    - If the ASM is explicitly assigned to specific groups via Group.sm_managers
+      (reverse accessor ``user.sm_groups``), return ONLY those groups.
+    - Otherwise (no explicit assignments), fall back to ALL groups in the ASM's
+      team(s) (``user.asm_teams``) — this preserves legacy behavior for ASMs who
+      genuinely oversee an entire team.
+
+    This lets an ASM (whose job title is "Sales Manager") be restricted to just
+    the groups they handle, while never accidentally hiding data for an ASM who
+    has not been assigned to specific groups yet.
+    """
+    assigned = user.sm_groups.all()
+    if assigned.exists():
+        return assigned
+    return Group.objects.filter(team__in=user.asm_teams.all())

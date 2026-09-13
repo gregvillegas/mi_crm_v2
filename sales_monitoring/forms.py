@@ -10,7 +10,7 @@ from .models import (
 )
 from customers.models import Customer
 from users.models import User
-from teams.models import Group
+from teams.models import Group, asm_scoped_groups
 
 class SalesActivityForm(forms.ModelForm):
     salesperson = forms.ModelChoiceField(
@@ -60,19 +60,17 @@ class SalesActivityForm(forms.ModelForm):
             self.fields['salesperson'].queryset = User.objects.filter(id__in=set(salesperson_ids), is_active=True)
         elif self.user and self.user.role == 'asm':
             salesperson_ids = []
-            for team in self.user.asm_teams.all():
-                for group in team.groups.all():
-                    salesperson_ids.extend(
-                        group.members.filter(user__role='salesperson').values_list('user_id', flat=True)
-                    )
+            for group in asm_scoped_groups(self.user):
+                salesperson_ids.extend(
+                    group.members.filter(user__role='salesperson').values_list('user_id', flat=True)
+                )
             self.fields['salesperson'].queryset = User.objects.filter(id__in=set(salesperson_ids), is_active=True)
         elif self.user and self.user.role == 'sm':
             salesperson_ids = []
-            for team in self.user.asm_teams.all():
-                for group in team.groups.all():
-                    salesperson_ids.extend(
-                        group.members.filter(user__role='salesperson').values_list('user_id', flat=True)
-                    )
+            for group in self.user.sm_groups.all():
+                salesperson_ids.extend(
+                    group.members.filter(user__role='salesperson').values_list('user_id', flat=True)
+                )
             self.fields['salesperson'].queryset = User.objects.filter(id__in=set(salesperson_ids), is_active=True)
         elif self.user and self.user.role == 'avp':
             salesperson_ids = []
@@ -490,7 +488,10 @@ class ActivityFilterForm(forms.Form):
                 is_active=True
             )
         elif supervisor_user and supervisor_user.role in ['asm', 'sm']:
-            supervised_groups = Group.objects.filter(team__in=supervisor_user.asm_teams.all())
+            if supervisor_user.role == 'asm':
+                supervised_groups = asm_scoped_groups(supervisor_user)
+            else:
+                supervised_groups = supervisor_user.sm_groups.all()
             salesperson_ids = []
             for group in supervised_groups:
                 salesperson_ids.extend(
