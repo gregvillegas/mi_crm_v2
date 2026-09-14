@@ -44,9 +44,12 @@ class GroupForm(forms.ModelForm):
         self.fields['supervisor'].help_text = 'Select a supervisor or ASM. For TSG groups, leave supervisor empty — they are managed by the team Technical Manager.'
         self.fields['teamlead'].queryset = User.objects.filter(role='teamlead')
         self.fields['teamlead'].required = False
+        # Set the widget BEFORE the queryset: assigning .queryset re-binds the
+        # widget's choices via ModelChoiceIterator. If the widget is swapped AFTER
+        # the queryset, the fresh widget keeps empty choices and renders no boxes.
+        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
         self.fields['sm_managers'].queryset = User.objects.filter(role__in=['sm', 'asm'], is_active=True).order_by('first_name', 'last_name')
         self.fields['sm_managers'].required = False
-        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
         self.fields['sm_managers'].help_text = 'Assign one or more Sales Managers (SM/ASM) to oversee this group. A manager can oversee multiple groups within the same team, and will only see the groups assigned here.'
         
         self.helper = FormHelper()
@@ -85,9 +88,12 @@ class GroupEditForm(forms.ModelForm):
         self.fields['supervisor'].help_text = 'Select a supervisor or ASM. ASMs can act as temporary supervisors until a permanent supervisor is hired.'
         self.fields['teamlead'].queryset = User.objects.filter(role='teamlead')
         self.fields['teamlead'].required = False
+        # Set the widget BEFORE the queryset: assigning .queryset re-binds the
+        # widget's choices via ModelChoiceIterator. If the widget is swapped AFTER
+        # the queryset, the fresh widget keeps empty choices and renders no boxes.
+        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
         self.fields['sm_managers'].queryset = User.objects.filter(role__in=['sm', 'asm'], is_active=True).order_by('first_name', 'last_name')
         self.fields['sm_managers'].required = False
-        self.fields['sm_managers'].widget = forms.CheckboxSelectMultiple()
         self.fields['sm_managers'].help_text = 'Assign one or more Sales Managers (SM/ASM) to oversee this group. Managers will only see the groups assigned here.'
         
         # Filter available salespeople (exclude those already in other groups)

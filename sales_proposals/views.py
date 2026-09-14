@@ -475,17 +475,18 @@ def proposal_list(request):
         member_ids.append(request.user.id)
         proposals = Proposal.objects.filter(created_by_id__in=member_ids)
     elif request.user.role == 'asm':
-        # ASMs see all groups in their assigned teams
-        from teams.models import Group
-        assigned_teams = request.user.asm_teams.all()
-        
+        # ASM sees proposals only from the groups they handle (sm_managers), with
+        # a fallback to the whole team when no groups are assigned. Mirrors the SM
+        # branch below and the shared asm_scoped_groups() helper used app-wide.
+        from teams.models import asm_scoped_groups
+        asm_groups = asm_scoped_groups(request.user)
+
         member_ids = []
-        for team in assigned_teams:
-            for group in team.groups.all():
-                member_ids.extend(group.members.values_list('user_id', flat=True))
-                if group.supervisor:
-                    member_ids.append(group.supervisor.id)
-        
+        for group in asm_groups:
+            member_ids.extend(group.members.values_list('user_id', flat=True))
+            if group.supervisor:
+                member_ids.append(group.supervisor.id)
+
         member_ids.append(request.user.id)
         proposals = Proposal.objects.filter(created_by_id__in=member_ids)
     elif request.user.role == 'sm':
@@ -536,14 +537,22 @@ def proposal_list(request):
         except ValueError:
             selected_month = None
 
-    # --- Team / Group granular filters (executive roles + AVP) ---
+    # --- Team / Group granular filters ---
     # Path: Proposal.created_by -> TeamMembership.group -> Group.team
-    from teams.models import Team as _TeamModel, Group as _GroupModel
+    #
+    # Two audiences:
+    #   * Execs + AVP  -> BOTH a Team and a Group dropdown (broad scope).
+    #   * ASM + SM      -> ONLY a Group dropdown, limited to the groups THEY handle
+    #                      (option A). The selected group is validated against that
+    #                      allowed set so a hand-typed ?group= can't widen the view.
+    from teams.models import Team as _TeamModel, Group as _GroupModel, asm_scoped_groups
     show_team_group_filters = request.user.role in ['admin', 'gm', 'vp', 'president', 'avp']
+    show_group_filter = request.user.role in ['asm', 'sm']
     selected_team = request.GET.get('team') or ''
     selected_group = request.GET.get('group') or ''
     available_teams = []
     available_groups = []
+
     if show_team_group_filters:
         if selected_team:
             try:
@@ -571,6 +580,29 @@ def proposal_list(request):
         else:
             available_teams = _TeamModel.objects.all().order_by('name')
             available_groups = _GroupModel.objects.select_related('team').all().order_by('team__name', 'name')
+
+    elif show_group_filter:
+        # Group dropdown limited to the manager's OWN handled groups.
+        if request.user.role == 'asm':
+            allowed_groups = asm_scoped_groups(request.user)
+        else:  # sm
+            allowed_groups = request.user.sm_groups.all()
+        allowed_group_ids = set(allowed_groups.values_list('id', flat=True))
+        available_groups = (
+            _GroupModel.objects.select_related('team')
+            .filter(id__in=allowed_group_ids).order_by('team__name', 'name')
+        )
+        # Apply the group filter only if the chosen group is within the allowed set.
+        if selected_group:
+            try:
+                if int(selected_group) in allowed_group_ids:
+                    proposals = proposals.filter(
+                        created_by__team_membership__group_id=int(selected_group)
+                    )
+                else:
+                    selected_group = ''
+            except (ValueError, TypeError):
+                selected_group = ''
 
     # --- Format filter (single vs multi-option) ---
     selected_format = request.GET.get('format') or ''
@@ -665,6 +697,7 @@ def proposal_list(request):
         'show_team_grouping': show_team_grouping,
         'grouped_proposals': grouped_proposals,
         'show_team_group_filters': show_team_group_filters,
+        'show_group_filter': show_group_filter,
         'available_teams': available_teams,
         'available_groups': available_groups,
         'selected_team': selected_team,

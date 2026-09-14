@@ -41,6 +41,7 @@ The system should now work as expected for both admin access and team management
 ## Feature Guides
 
 - **[TEAMS_APP.md](TEAMS_APP.md)** — How the Teams app works (Team → Group → TeamMembership hierarchy, plus quota/commitment models) and a full breakdown of what **AVP, SM, ASM, and Supervisor** can see and do across **Customers, Sales Funnel, and Proposals** — including the customer create-request approvals (AVP scoped to their own team) and the proposal approval chain (Supervisor → SM-if-required → AVP). Includes an at-a-glance permissions matrix.
+- **[SALES_MANAGER_GROUP_SCOPING.md](SALES_MANAGER_GROUP_SCOPING.md)** — How a Sales Manager (role `asm`) is scoped to only the groups they handle across Teams, Sales Monitoring, and Sales Proposals (the shared `asm_scoped_groups()` helper, Option A whole-team fallback), what changed, and a **no-code playbook** for assigning another group to a Sales Manager via the Edit Group screen / Django admin (with a data-migration option for scripted rollouts).
 - **[CUSTOMERS_APP.md](CUSTOMERS_APP.md)** — How the Customers app works, with a deep dive on duplicate management (normalization, similarity scoring, the "Show Duplicates" filter) and how the create-request approval workflow notifies the AVP/approvers. References the merge design in CUSTOMER_MERGE_ANALYSIS.md.
 - **[CUSTOMER_MERGE_ANALYSIS.md](CUSTOMER_MERGE_ANALYSIS.md)** — Design/feasibility analysis for merging duplicate customers (not yet implemented).
 
