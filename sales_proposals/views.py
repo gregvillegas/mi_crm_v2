@@ -1196,6 +1196,33 @@ def generate_pdf_buffer(proposal):
             return item.availability or ''
         return item.warranty or proposal.warranty or ''
 
+    # --- Column layout (per-proposal "Hide Part No." toggle) ---
+    # The natural 7 columns are: ITEM, PART NO., DESCRIPTION, QTY, UNIT PRICE,
+    # (TOTAL) PRICE, AVAILABILITY/WARRANTY. When hide_part_number is set we drop
+    # the PART NO. column (index 1) from every row and hand its width to
+    # DESCRIPTION. To keep the index-based TableStyle coordinates correct in both
+    # cases, we compute them symbolically here.
+    hide_pn = bool(getattr(proposal, 'hide_part_number', False))
+
+    def _row(cells):
+        """Given the full 7-cell row (with the Part No. cell at index 1), return
+        the row with that cell removed when the Part No. column is hidden."""
+        return [c for i, c in enumerate(cells) if not (hide_pn and i == 1)]
+
+    # Symbolic column indices AFTER any drop (used by TableStyle coordinates).
+    # Full:   0=ITEM 1=PART 2=DESC 3=QTY 4=UNIT 5=PRICE 6=AVAIL
+    # Hidden: 0=ITEM        1=DESC 2=QTY 3=UNIT 4=PRICE 5=AVAIL
+    COL_DESC = 1 if hide_pn else 2          # description column (left-aligned)
+    COL_PRICE_LABEL = 3 if hide_pn else 4   # "Subtotal/Total Investment" label cell
+    COL_PRICE_VALUE = 4 if hide_pn else 5   # the amount cell
+    COL_LAST = 5 if hide_pn else 6          # last column index (availability)
+
+    # Column widths — Part No.'s 1.1" is added to Description when hidden.
+    if hide_pn:
+        col_widths = [0.55*inch, (1.9 + 1.1)*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
+    else:
+        col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
+
     if proposal.is_multi_option:
         # ===============================================================
         # MULTI-OPTION FORMAT: Separate table per option group
@@ -1214,13 +1241,13 @@ def generate_pdf_buffer(proposal):
 
         for group in proposal.option_groups.all():
             # Row 0: full-width "OPTION N" heading cell (spanned across all cols)
-            group_table_data = [[
+            group_table_data = [_row([
                 Paragraph(group.name.upper(), option_title_style),
                 '', '', '', '', '', '',
-            ]]
+            ])]
 
             # Row 1: column header
-            group_table_data.append([
+            group_table_data.append(_row([
                 Paragraph("ITEM", styles['TableHeader']),
                 Paragraph("PART NO.", styles['TableHeader']),
                 Paragraph("DESCRIPTION", styles['TableHeader']),
@@ -1228,10 +1255,10 @@ def generate_pdf_buffer(proposal):
                 Paragraph("UNIT PRICE", styles['TableHeader']),
                 Paragraph(price_col_header, styles['TableHeader']),
                 Paragraph(avail_col_header, styles['TableHeader']),
-            ])
+            ]))
 
             for idx, item in enumerate(group.group_items.all(), start=1):
-                group_table_data.append([
+                group_table_data.append(_row([
                     Paragraph(str(idx), styles['TableTextCenter']),
                     Paragraph(item.part_number or '', styles['TableText']),
                     Paragraph(_pdf_description(item.description), styles['TableText']),
@@ -1239,9 +1266,9 @@ def generate_pdf_buffer(proposal):
                     Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                     Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
                     Paragraph(_avail_cell(item), styles['TableTextCenter']),
-                ])
+                ]))
                 for component in item.bundle_components:
-                    group_table_data.append([
+                    group_table_data.append(_row([
                         '', 
                         Paragraph(component['part_number'] or '', styles['TableText']),
                         Paragraph(_pdf_description(component['description']), styles['TableText']),
@@ -1251,17 +1278,16 @@ def generate_pdf_buffer(proposal):
                             styles['TableTextCenter'],
                         ),
                         '', '', '',
-                    ])
+                    ]))
 
             # Total Investment row for this option
-            group_table_data.append([
+            group_table_data.append(_row([
                 '', '', '', '',
                 Paragraph("Total Investment", styles['TableHeader']),
                 Paragraph(f"{currency_symbol}{group.subtotal:,.2f}", styles['TableHeaderRight']),
                 '',
-            ])
+            ]))
 
-            col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
             # repeatRows=2 repeats the OPTION heading (row 0) + column header
             # (row 1) at the top of each continuation page if the table splits.
             # Rows break WHOLE across pages (no splitInRow): a data row that doesn't
@@ -1288,11 +1314,11 @@ def generate_pdf_buffer(proposal):
                 # Grid on the column header + data rows only (skip heading row 0
                 # and the Total Investment row -2..-1 handled below).
                 ('GRID', (0, 1), (-1, -2), 1, colors.black),
-                ('ALIGN', (2, 2), (2, -2), 'LEFT'),
+                ('ALIGN', (COL_DESC, 2), (COL_DESC, -2), 'LEFT'),
                 # Total Investment row styling (red background, white text)
-                ('BACKGROUND', (4, -1), (5, -1), MIC_RED),
-                ('TEXTCOLOR', (4, -1), (5, -1), colors.white),
-                ('GRID', (4, -1), (5, -1), 1, MIC_RED),
+                ('BACKGROUND', (COL_PRICE_LABEL, -1), (COL_PRICE_VALUE, -1), MIC_RED),
+                ('TEXTCOLOR', (COL_PRICE_LABEL, -1), (COL_PRICE_VALUE, -1), colors.white),
+                ('GRID', (COL_PRICE_LABEL, -1), (COL_PRICE_VALUE, -1), 1, MIC_RED),
             ]
             gt.setStyle(TableStyle(gt_style))
 
@@ -1307,7 +1333,7 @@ def generate_pdf_buffer(proposal):
         # ===============================================================
         # STANDARD SINGLE FORMAT (existing logic — unchanged)
         # ===============================================================
-        table_data = [[
+        table_data = [_row([
             Paragraph("ITEM", styles['TableHeader']),
             Paragraph("PART NO.", styles['TableHeader']),
             Paragraph("DESCRIPTION", styles['TableHeader']),
@@ -1315,10 +1341,10 @@ def generate_pdf_buffer(proposal):
             Paragraph("UNIT PRICE", styles['TableHeader']),
             Paragraph(price_col_header, styles['TableHeader']),
             Paragraph(avail_col_header, styles['TableHeader'])
-        ]]
+        ])]
     
         for idx, item in enumerate(proposal.items.all(), start=1):
-            table_data.append([
+            table_data.append(_row([
                 Paragraph(str(idx), styles['TableTextCenter']),
                 Paragraph(item.part_number or '', styles['TableText']),
                 Paragraph(
@@ -1333,9 +1359,9 @@ def generate_pdf_buffer(proposal):
                 Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                 Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
                 Paragraph(_avail_cell(item), styles['TableTextCenter'])
-            ])
+            ]))
             for component in item.bundle_components:
-                table_data.append([
+                table_data.append(_row([
                     '',
                     Paragraph(component['part_number'] or '', styles['TableText']),
                     Paragraph(_pdf_description(component['description']), styles['TableText']),
@@ -1349,44 +1375,44 @@ def generate_pdf_buffer(proposal):
                     '',
                     '',
                     '',
-                ])
+                ]))
     
         if not proposal.has_optional_items:
             # Subtotal
-            table_data.append([
+            table_data.append(_row([
                 '', '', '', '', 
                 Paragraph("Subtotal", styles['TableText']), 
                 Paragraph(f"{currency_symbol}{proposal.subtotal:,.2f}", styles['TableTextRight']), 
                 ''
-            ])
+            ]))
 
             if proposal.show_discount and (proposal.discount_amount or 0) > 0:
-                table_data.append([
+                table_data.append(_row([
                     '', '', '', '',
                     Paragraph("Discount", styles['TableText']),
                     Paragraph(f"-{currency_symbol}{proposal.discount_amount:,.2f}", styles['TableTextRight']),
                     ''
-                ])
+                ]))
 
             if proposal.show_vat:
-                table_data.append([
+                table_data.append(_row([
                     '', '', '', '',
                     Paragraph("VAT (12%)", styles['TableText']),
                     Paragraph(f"{currency_symbol}{proposal.tax_amount:,.2f}", styles['TableTextRight']),
                     ''
-                ])
+                ]))
 
             grand_total_label = "Grand Total (VAT incl.)" if proposal.show_vat else "Grand Total"
             # Grand Total Row
-            table_data.append([
+            table_data.append(_row([
                 '', '', '', '', 
                 Paragraph(grand_total_label, styles['TableHeader']), 
                 Paragraph(f"{currency_symbol}{proposal.total_amount:,.2f}", styles['TableHeaderRight']), 
                 ''
-            ])
+            ]))
     
-        # Column widths: last column widened to 1.1" so "AVAILABILITY" fits on one line
-        col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
+        # col_widths was computed above (Part No.'s width folds into Description
+        # when hide_part_number is set).
         # Rows break WHOLE across pages (no splitInRow): a data row that doesn't fit
         # moves entirely to the next page, avoiding an orphaned header stripe +
         # partial row at the bottom of a page. Descriptions are length-capped by
@@ -1406,13 +1432,13 @@ def generate_pdf_buffer(proposal):
             ('ALIGN', (0,0), (-1,-1), 'CENTER'),
             ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
             ('GRID', (0,0), (-1,table_grid_end_row), 1, colors.black),
-            ('ALIGN', (2,1), (2,table_align_end_row), 'LEFT'),
+            ('ALIGN', (COL_DESC,1), (COL_DESC,table_align_end_row), 'LEFT'),
         ]
         if not proposal.has_optional_items:
             table_style.extend([
-                ('BACKGROUND', (4,-1), (6,-1), MIC_RED),
-                ('TEXTCOLOR', (4,-1), (6,-1), colors.white),
-                ('GRID', (4,-1), (6,-1), 1, MIC_RED),
+                ('BACKGROUND', (COL_PRICE_LABEL,-1), (COL_LAST,-1), MIC_RED),
+                ('TEXTCOLOR', (COL_PRICE_LABEL,-1), (COL_LAST,-1), colors.white),
+                ('GRID', (COL_PRICE_LABEL,-1), (COL_LAST,-1), 1, MIC_RED),
             ])
         t.setStyle(TableStyle(table_style))
         elements.append(t)

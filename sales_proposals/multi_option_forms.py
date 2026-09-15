@@ -31,6 +31,7 @@ class MultiOptionProposalForm(ProposalForm):
             'delivery_lead_time',
             'show_vat',
             'use_availability_column',
+            'hide_part_number',
             'include_bank_details',
             # Bank details
             'php_bank_name', 'php_account_name', 'php_account_number', 'php_account_type',

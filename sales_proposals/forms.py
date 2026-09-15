@@ -29,6 +29,7 @@ class ProposalForm(forms.ModelForm):
             'show_discount',
             'show_vat',
             'use_availability_column',
+            'hide_part_number',
             'discount_amount',
             # Bank details (editable)
             # BDO PHP
@@ -74,6 +75,7 @@ class ProposalForm(forms.ModelForm):
             'show_discount': 'Show discount (PDF)',
             'show_vat': 'Include VAT 12%',
             'use_availability_column': 'Show Availability column (uncheck for Warranty)',
+            'hide_part_number': 'Hide Part No. column (PDF)',
             'discount_amount': 'Discount amount',
         }
         widgets = {

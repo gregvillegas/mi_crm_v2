@@ -77,6 +77,10 @@ class Proposal(models.Model):
         help_text="Show 'Availability' column in the proposal (uncheck to show 'Warranty' column instead)"
     )
     use_total_price_label = models.BooleanField(default=False, help_text="Use 'Total Price' instead of 'Extended Price' as column header in PDF and detail view")
+    hide_part_number = models.BooleanField(
+        default=False,
+        help_text="Hide the 'Part No.' column in the proposal PDF and detail view; the freed space is given to the Description column. Use for proposals that don't quote part numbers."
+    )
     discount_amount = models.DecimalField(
         max_digits=12,
         decimal_places=2,
