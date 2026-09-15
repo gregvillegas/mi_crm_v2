@@ -19,7 +19,7 @@ from .permissions import (
     pending_requests_for_reviewer,
 )
 from users.models import User
-from teams.models import Team, Group, TeamMembership
+from teams.models import Team, Group, TeamMembership, asm_scoped_groups
 from sales_funnel.models import SalesFunnel
 from sales_proposals.models import Proposal
 from sales_monitoring.models import SalesActivity, ProofOfConcept
@@ -107,7 +107,13 @@ def customer_list(request):
 
     # Team / Group filters (granular search for executive roles + AVP).
     # Path: Customer.salesperson -> TeamMembership.group -> Group.team
+    #
+    # Execs + AVP get BOTH a Team and a Group dropdown. ASM/SM get ONLY a Group
+    # dropdown, limited to the groups THEY handle (option A) — mirroring the
+    # Sales Proposals dashboard. The selected group is validated against that
+    # allowed set so a hand-typed ?group= can't widen the (already-scoped) view.
     show_team_group_filters = user.role in ['admin', 'gm', 'vp', 'president', 'avp']
+    show_group_filter = user.role in ['asm', 'sm']
     if show_team_group_filters:
         if team_filter:
             try:
@@ -123,6 +129,22 @@ def customer_list(request):
                 )
             except (ValueError, TypeError):
                 pass
+    elif show_group_filter:
+        if user.role == 'asm':
+            allowed_groups = asm_scoped_groups(user)
+        else:  # sm
+            allowed_groups = user.sm_groups.all()
+        allowed_group_ids = set(allowed_groups.values_list('id', flat=True))
+        if group_filter:
+            try:
+                if int(group_filter) in allowed_group_ids:
+                    customers = customers.filter(
+                        salesperson__team_membership__group_id=int(group_filter)
+                    )
+                else:
+                    group_filter = ''
+            except (ValueError, TypeError):
+                group_filter = ''
     
     # Duplicates filter — show only customers with similar/duplicate company names
     duplicates_filter = request.GET.get('duplicates', '')
@@ -174,6 +196,17 @@ def customer_list(request):
         else:
             available_teams = Team.objects.all().order_by('name')
             available_groups = Group.objects.select_related('team').all().order_by('team__name', 'name')
+    elif show_group_filter:
+        # ASM/SM: Group dropdown limited to the groups they handle.
+        if user.role == 'asm':
+            scoped_groups = asm_scoped_groups(user)
+        else:  # sm
+            scoped_groups = user.sm_groups.all()
+        available_groups = (
+            Group.objects.select_related('team')
+            .filter(id__in=scoped_groups.values_list('id', flat=True))
+            .order_by('team__name', 'name')
+        )
     
     # Determine if user can see admin actions column
     # Admin, VP, GM, Marketing: Full access
@@ -195,6 +228,7 @@ def customer_list(request):
         'available_teams': available_teams,
         'available_groups': available_groups,
         'show_team_group_filters': show_team_group_filters,
+        'show_group_filter': show_group_filter,
         'current_filters': {
             'status': status_filter,
             'millionaire': millionaire_filter,
@@ -1576,15 +1610,10 @@ def customer_history(request, pk):
         groups = Group.objects.filter(team__in=teams)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
-    elif user.role == 'asm':
-        asm_teams = user.asm_teams.all()
-        groups = Group.objects.filter(team__in=asm_teams)
-        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
-    elif user.role == 'sm':
-        groups = user.sm_groups.all()
-        salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
-        has_access = customer.salesperson_id in salespeople_ids or customer.salesperson_id == user.id
+    elif user.role in ['asm', 'sm']:
+        # Group-scoped: only customers within the groups the ASM/SM handles.
+        from customers.permissions import group_scoped_member_ids
+        has_access = customer.salesperson_id in group_scoped_member_ids(user)
     elif user.role == 'supervisor':
         groups = Group.objects.filter(supervisor=user)
         salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)

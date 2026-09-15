@@ -746,6 +746,15 @@
                             </a>
                         </li>
                         {% endif %}
+                        {# Company-wide Marketing announcements/events — visible to all roles #}
+                        <li class="nav-item">
+                            <a class="nav-link position-relative" href="{% url 'mass_mailing:announcement_feed' %}" title="Announcements &amp; Events">
+                                <i class="fas fa-bullhorn"></i><span>Announcements</span>
+                                {% if marketing_updates_count %}
+                                <span class="badge rounded-pill bg-danger" style="font-size:0.6rem;">{{ marketing_updates_count }}</span>
+                                {% endif %}
+                            </a>
+                        </li>
                         {% if user.role in 'admin,president,gm,vp,avp' %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'missions_list' %}" title="Missions">
@@ -812,11 +821,11 @@
                 </ul>
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
-                        {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm,sm,marketing' or customer_request_notification_count or proposal_approval_notification_count %}
+                        {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm,sm,marketing' or customer_request_notification_count or proposal_approval_notification_count or marketing_updates_count %}
                         <li class="nav-item dropdown me-2">
                             <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
                                 <i class="fas fa-bell"></i>
-                                {% with total_notification_count=customer_request_notification_count|add:proposal_approval_notification_count %}
+                                {% with total_notification_count=customer_request_notification_count|add:proposal_approval_notification_count|add:marketing_updates_count %}
                                 {% if total_notification_count %}
                                 <span class="badge rounded-pill bg-danger notification-badge">{{ total_notification_count }}</span>
                                 {% endif %}
@@ -856,11 +865,32 @@
                                 {% endfor %}
                                 {% endif %}
 
-                                {% if not customer_request_notifications and not proposal_approval_notifications %}
+                                {% if marketing_updates %}
+                                {% if customer_request_notifications or proposal_approval_notifications %}
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><h6 class="dropdown-header">Marketing Updates</h6></li>
+                                {% for item in marketing_updates %}
+                                <li>
+                                    <a class="dropdown-item notification-item" href="{% url 'mass_mailing:announcement_feed' %}">
+                                        <div class="fw-bold">
+                                            <span class="badge {{ item.badge_class }} me-1">{{ item.type_label }}</span>{{ item.title }}
+                                            {% if item.is_new %}<span class="badge bg-danger ms-1">New</span>{% endif %}
+                                        </div>
+                                        {% if item.event_date %}
+                                        <div class="small text-muted"><i class="fas fa-clock me-1"></i>{{ item.event_date|date:"M d, Y H:i" }}</div>
+                                        {% endif %}
+                                        <div class="small text-muted">{{ item.timestamp|date:"M d, Y H:i" }}</div>
+                                    </a>
+                                </li>
+                                {% endfor %}
+                                {% endif %}
+
+                                {% if not customer_request_notifications and not proposal_approval_notifications and not marketing_updates %}
                                 <li><span class="dropdown-item-text text-muted">No notifications.</span></li>
                                 {% endif %}
 
-                                {% if customer_request_notifications or proposal_approval_notifications %}
+                                {% if customer_request_notifications or proposal_approval_notifications or marketing_updates %}
                                 <li><hr class="dropdown-divider"></li>
                                 {% endif %}
                                 {% if customer_request_notifications %}
@@ -883,6 +913,11 @@
                                     </a>
                                 </li>
                                 {% endif %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'mass_mailing:announcement_feed' %}">
+                                        <i class="fas fa-bullhorn me-2"></i>View Announcements &amp; Events
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         {% endif %}

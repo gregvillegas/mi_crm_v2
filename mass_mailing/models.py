@@ -212,3 +212,20 @@ class CampaignAsset(models.Model):
 
     def __str__(self):
         return self.display_name or self.file.name.rsplit('/', 1)[-1]
+
+
+class AnnouncementView(models.Model):
+    """
+    Per-user "last seen" marker for the Marketing announcements/events feed.
+
+    Simple unread tracking: a user's unread count is the number of active
+    announcements created after their last_seen_at. Opening the feed (or the
+    bell's Marketing Updates section) stamps last_seen_at = now(), clearing the
+    badge. One row per user.
+    """
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='announcement_view')
+    last_seen_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user} last saw announcements at {self.last_seen_at}"

@@ -122,3 +122,42 @@ def clear_failed_attempts_on_success(sender, request, user, **kwargs):
         username__iexact=user.username,
         timestamp__gte=window_start,
     ).delete()
+
+
+def record_reset_audit(action, request=None, target_user=None, target_identifier='',
+                       performed_by=None, notes=''):
+    """
+    Write a PasswordResetAudit row. Never raises — auditing must not break the flow.
+    """
+    from .models import PasswordResetAudit
+
+    ip_address, user_agent = _get_request_meta(request)
+    try:
+        PasswordResetAudit.objects.create(
+            action=action,
+            target_user=target_user,
+            target_identifier=(target_identifier or '')[:254],
+            performed_by=performed_by,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            notes=(notes or '')[:255],
+        )
+    except Exception as exc:
+        logger.error('Failed to record password reset audit (%s): %s', action, exc)
+
+
+try:
+    from allauth.account.signals import password_reset as allauth_password_reset
+
+    @receiver(allauth_password_reset)
+    def log_self_service_reset_completed(request, user, **kwargs):
+        """Fired by allauth when a user completes a self-service password reset."""
+        record_reset_audit(
+            'self_completed',
+            request=request,
+            target_user=user,
+            target_identifier=getattr(user, 'email', '') or getattr(user, 'username', ''),
+            notes='Self-service password reset completed.',
+        )
+except Exception:  # pragma: no cover — allauth signal not available
+    logger.warning('allauth password_reset signal unavailable; self-service completion will not be audited.')

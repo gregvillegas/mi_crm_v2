@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from teams.models import Group, TeamMembership
+from teams.models import Group, TeamMembership, asm_scoped_groups
 from users.models import User
 
 from .models import Customer, CustomerCreateRequest
@@ -8,6 +8,41 @@ from .models import Customer, CustomerCreateRequest
 
 EXEC_ROLES = {'admin', 'president', 'gm', 'vp', 'marketing'}
 ASSIGNABLE_ROLES = {'salesperson', 'supervisor', 'asm', 'sm', 'avp'}
+
+
+def group_scoped_member_ids(user):
+    """
+    The exact set of user IDs whose customers a GROUP-scoped manager may see:
+    the group members + those groups' supervisors + the manager themselves.
+
+    Used for ASM and SM so their customer visibility matches the group-based
+    scope already enforced in Sales Proposals and Sales Monitoring — NOT the
+    whole team. Which groups apply depends on the role:
+
+      * asm -> teams.models.asm_scoped_groups(user)  (assigned groups, else team)
+      * sm  -> user.sm_groups (their explicitly assigned groups only)
+
+    Returns an empty set if the manager has no resolvable groups.
+    """
+    role = getattr(user, 'role', None)
+    if role == 'asm':
+        groups = asm_scoped_groups(user)
+    elif role == 'sm':
+        groups = user.sm_groups.all()
+    else:
+        return set()
+
+    group_ids = list(groups.values_list('id', flat=True))
+    if not group_ids:
+        return set()
+
+    member_ids = TeamMembership.objects.filter(
+        group_id__in=group_ids
+    ).values_list('user_id', flat=True)
+    supervisor_ids = Group.objects.filter(
+        id__in=group_ids, supervisor__isnull=False
+    ).values_list('supervisor_id', flat=True)
+    return set(member_ids) | set(supervisor_ids) | {user.id}
 
 # --- Customer create-request review model ---------------------------------
 # There are three tiers of "seeing" a pending customer create-request:
@@ -141,25 +176,13 @@ def visible_customers_queryset(user):
         scoped_users = get_team_scoped_users(team_ids, roles=ASSIGNABLE_ROLES)
         return Customer.objects.filter(salesperson_id__in=scoped_users.values_list('id', flat=True))
 
-    if user.role == 'asm':
-        team_ids = get_user_team_ids(user)
-        if not team_ids:
+    if user.role in {'asm', 'sm'}:
+        # ASM/SM see only customers of salespeople (and supervisors) in the groups
+        # they handle — mirroring Sales Proposals / Sales Monitoring, NOT the whole
+        # team. This prevents an ASM from seeing other groups' or the AVP's customers.
+        visible_ids = group_scoped_member_ids(user)
+        if not visible_ids:
             return Customer.objects.none()
-        scoped_users = get_team_scoped_users(team_ids, roles=ASSIGNABLE_ROLES)
-        return Customer.objects.filter(salesperson_id__in=scoped_users.values_list('id', flat=True))
-
-    if user.role == 'sm':
-        # SM sees only customers assigned to salespeople in their specifically assigned groups
-        sm_groups = user.sm_groups.all()
-        if not sm_groups.exists():
-            return Customer.objects.none()
-        member_ids = TeamMembership.objects.filter(group__in=sm_groups).values_list('user_id', flat=True)
-        # Also include supervisors of those groups and the SM themselves if they hold customers
-        supervisor_ids = Group.objects.filter(
-            id__in=sm_groups.values_list('id', flat=True),
-            supervisor__isnull=False
-        ).values_list('supervisor_id', flat=True)
-        visible_ids = set(member_ids) | set(supervisor_ids) | {user.id}
         return Customer.objects.filter(salesperson_id__in=visible_ids)
 
     return Customer.objects.none()
@@ -196,7 +219,14 @@ def can_edit_customer(user, customer):
         member_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         return assigned.id in set(member_ids) and can_manage_role('supervisor', assigned.role)
 
-    if user.role in {'avp', 'asm', 'sm'}:
+    if user.role in {'asm', 'sm'}:
+        # Group-scoped: may only edit customers whose salesperson is within the
+        # groups they handle (not the whole team).
+        if assigned.id not in group_scoped_member_ids(user):
+            return False
+        return can_manage_role(user.role, assigned.role)
+
+    if user.role == 'avp':
         team_ids = get_user_team_ids(user)
         if not team_ids:
             return False
@@ -224,7 +254,15 @@ def assignment_targets_queryset(user):
         member_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
         return User.objects.filter(is_active=True).filter(Q(id=user.id) | Q(id__in=member_ids)).order_by('first_name', 'last_name', 'username')
 
-    if user.role in {'avp', 'asm', 'sm'}:
+    if user.role in {'asm', 'sm'}:
+        # Reassignment targets limited to users within the groups they handle.
+        member_ids = group_scoped_member_ids(user)
+        return (
+            User.objects.filter(is_active=True, id__in=member_ids)
+            .order_by('first_name', 'last_name', 'username')
+        )
+
+    if user.role == 'avp':
         team_ids = get_user_team_ids(user)
         qs = get_team_scoped_users(team_ids, roles=ASSIGNABLE_ROLES)
         return qs.order_by('first_name', 'last_name', 'username')
@@ -238,18 +276,22 @@ def _managed_requester_ids(user):
     Mirrors each role's customer visibility so the notification scope matches the
     data scope.
 
-    - avp / asm: salespeople (and other assignable users) within their team(s).
+    - avp: salespeople (and other assignable users) within their team(s).
+    - asm / sm: members (+ supervisors) of the groups they handle.
     - supervisor / teamlead: members of the groups they manage/lead.
-    - sm: members of their explicitly assigned groups (+ those groups' supervisors).
     Returns an empty set if the manager has no resolvable scope.
     """
     role = getattr(user, 'role', None)
 
-    if role in {'avp', 'asm'}:
+    if role == 'avp':
         team_ids = get_user_team_ids(user)
         if not team_ids:
             return set()
         return set(get_team_scoped_users(team_ids).values_list('id', flat=True))
+
+    if role == 'asm':
+        # Group-scoped like the customer visibility above.
+        return group_scoped_member_ids(user)
 
     if role == 'supervisor':
         groups = Group.objects.filter(supervisor=user)
@@ -262,15 +304,8 @@ def _managed_requester_ids(user):
         return set(member_ids) | {user.id}
 
     if role == 'sm':
-        sm_groups = user.sm_groups.all()
-        if not sm_groups.exists():
-            return set()
-        member_ids = TeamMembership.objects.filter(group__in=sm_groups).values_list('user_id', flat=True)
-        supervisor_ids = Group.objects.filter(
-            id__in=sm_groups.values_list('id', flat=True),
-            supervisor__isnull=False,
-        ).values_list('supervisor_id', flat=True)
-        return set(member_ids) | set(supervisor_ids) | {user.id}
+        # Group-scoped (same helper as ASM; groups come from user.sm_groups).
+        return group_scoped_member_ids(user)
 
     return set()
 

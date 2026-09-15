@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.db.models import Max
 from django.core.files.base import ContentFile
 from django.conf import settings
-from .models import Campaign, CampaignRecipient, OptOut, MediaLibraryAsset, CampaignAsset, Announcement
+from .models import Campaign, CampaignRecipient, OptOut, MediaLibraryAsset, CampaignAsset, Announcement, AnnouncementView
 from .forms import CampaignForm, UnsubscribeForm, CampaignAssetFormSet, MediaLibraryAssetForm, AnnouncementForm
 from .rendering import render_campaign_html
 from customers.models import Customer, CustomerNote
@@ -26,6 +26,35 @@ def can_view_media_library(user):
 def can_manage_announcements(user):
     """Who may create/edit/delete announcements & events."""
     return getattr(user, 'is_authenticated', False) and user.role in ['admin', 'marketing']
+
+
+def active_announcements_qs():
+    """Active announcements/events, newest first — the company-wide feed source."""
+    return Announcement.objects.filter(is_active=True).select_related('created_by')
+
+
+def unread_announcement_count(user):
+    """
+    Number of active announcements created after the user's last_seen_at.
+    If the user has never viewed the feed, all active announcements are unread.
+    """
+    if not getattr(user, 'is_authenticated', False):
+        return 0
+    qs = Announcement.objects.filter(is_active=True)
+    view = AnnouncementView.objects.filter(user=user).first()
+    if view and view.last_seen_at:
+        return qs.filter(created_at__gt=view.last_seen_at).count()
+    return qs.count()
+
+
+def mark_announcements_seen(user):
+    """Stamp the user's last_seen_at = now(), clearing their unread badge."""
+    if not getattr(user, 'is_authenticated', False):
+        return
+    AnnouncementView.objects.update_or_create(
+        user=user,
+        defaults={'last_seen_at': timezone.now()},
+    )
 
 
 def sync_selected_library_assets(campaign, selected_ids, user):
@@ -832,3 +861,36 @@ def announcement_toggle(request, pk):
         state = 'shown' if announcement.is_active else 'hidden'
         messages.success(request, f'"{announcement.title}" is now {state}.')
     return redirect('mass_mailing:announcement_list')
+
+
+@login_required
+def announcement_feed(request):
+    """
+    Company-wide, read-only feed of Marketing announcements & events.
+    Visible to ALL authenticated users. Opening it marks announcements as seen
+    (clears the notification-bell unread badge). Marketing/Admin also see Edit
+    links (their existing manage views are unchanged).
+    """
+    type_filter = (request.GET.get('type') or '').strip()
+
+    announcements = active_announcements_qs()
+    if type_filter in dict(Announcement.TYPE_CHOICES):
+        announcements = announcements.filter(announcement_type=type_filter)
+
+    # Split events out so upcoming events can be surfaced/sorted by date.
+    upcoming_events = (
+        active_announcements_qs()
+        .filter(announcement_type='event', event_date__gte=timezone.now())
+        .order_by('event_date')
+    )
+
+    # Mark as seen AFTER computing the current unread state for this request.
+    mark_announcements_seen(request.user)
+
+    return render(request, 'mass_mailing/announcement_feed.html', {
+        'announcements': announcements,
+        'upcoming_events': upcoming_events,
+        'type_filter': type_filter,
+        'type_choices': Announcement.TYPE_CHOICES,
+        'can_manage_announcements': can_manage_announcements(request.user),
+    })

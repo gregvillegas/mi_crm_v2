@@ -156,7 +156,31 @@
                                         </a>
                                     </li>
                                 {% endif %}
-                                
+
+                                {% if user.role == 'admin' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{% url 'send_password_reset' u.id %}"
+                                          onsubmit="return confirm('Email a password reset link to {{ u.get_full_name|default:u.username|escapejs }}? They set their own new password — you never see it.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item" style="border:none;background:none;"
+                                                {% if not u.email %}disabled title="No email on file"{% else %}title="Email a reset link to the user"{% endif %}>
+                                            <i class="fas fa-key me-2 text-primary"></i>Send Password Reset Link
+                                        </button>
+                                    </form>
+                                </li>
+                                <li>
+                                    <form method="post" action="{% url 'reset_user_mfa' u.id %}"
+                                          onsubmit="return confirm('Reset two-factor (MFA) for {{ u.get_full_name|default:u.username|escapejs }}? Only do this after verifying their identity. They will re-enrol MFA at next login.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item" style="border:none;background:none;"
+                                                title="Remove the user's MFA so they can re-enrol (lost authenticator)">
+                                            <i class="fas fa-mobile-alt me-2 text-danger"></i>Reset MFA (Lost Authenticator)
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+
                                 <li><hr class="dropdown-divider"></li>
                                 
                                 <li>

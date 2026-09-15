@@ -82,6 +82,7 @@ TEMPLATES = [
                 'gamification.context_processors.gamification_status',
                 'customers.context_processors.customer_request_notifications',
                 'sales_proposals.context_processors.proposal_approval_notifications',
+                'mass_mailing.context_processors.marketing_updates',
             ],
         },
     },
@@ -193,9 +194,32 @@ SITE_ID = 1
 ACCOUNT_LOGIN_METHODS = {'email', 'username'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+# Account/reset emails come from a dedicated no-reply mailbox (via MiCrmAccountAdapter),
+# WITHOUT changing DEFAULT_FROM_EMAIL used by the rest of the app's emails.
+ACCOUNT_ADAPTER = 'users.adapters.MiCrmAccountAdapter'
+ACCOUNT_DEFAULT_FROM_EMAIL = config('ACCOUNT_DEFAULT_FROM_EMAIL', default='no-reply@microimageph.com')
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_UNIQUE_EMAIL = True
+
+# --- Password reset hardening (internet-facing) ---
+# Never reveal whether an email/username exists (anti-enumeration). allauth shows
+# the same neutral "we've sent an email if the account exists" message either way.
+ACCOUNT_PREVENT_ENUMERATION = True
+
+# Rate limit sensitive actions to resist email-bombing, enumeration probing, and
+# SMTP abuse on the public reset endpoint. Format: "<count>/<period>/<scope>".
+#   reset_password        -> per-IP throttle on the reset REQUEST form
+#   reset_password_from_key -> per-IP throttle on the token-confirm page
+#   login / login_failed  -> defense in depth alongside the LockoutAwareBackend
+ACCOUNT_RATE_LIMITS = {
+    'reset_password': '5/m/ip',
+    'reset_password_email': '3/5m/key',   # per target email address
+    'reset_password_from_key': '10/m/ip',
+    'login': '30/m/ip',
+    'login_failed': '5/5m/ip',
+}
 
 # MFA
 MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes']
@@ -250,11 +274,15 @@ EMAIL_HOST = config('EMAIL_HOST', default='email.microimageph.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='crm_sales@microimageph.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='Rtyu1029@!Brx4*svv')
+# SECURITY: no plaintext default — the SMTP password must come from the environment
+# (.env / server env). If it is unset (e.g. local dev), we fall back to the
+# file-based email backend below instead of shipping a real credential in source.
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='sales@microimageph.com')
 
-# Fall back to file-based backend when SMTP is not configured (local dev)
-if not EMAIL_HOST_USER:
+# Fall back to file-based backend when SMTP is not configured (local dev) —
+# i.e. when either the user or the password is missing.
+if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
     EMAIL_FILE_PATH = BASE_DIR / 'sent_emails'
 

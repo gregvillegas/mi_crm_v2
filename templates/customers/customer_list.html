@@ -241,6 +241,19 @@
                     {% endfor %}
                 </select>
             </div>
+            {% elif show_group_filter %}
+            {# ASM / SM: Group dropdown only, limited to the groups they handle. #}
+            <div class="col-md-2">
+                <label for="group" class="form-label">Group</label>
+                <select class="form-select" id="group" name="group">
+                    <option value="">All My Groups</option>
+                    {% for g in available_groups %}
+                        <option value="{{ g.id }}" {% if current_filters.group|add:'0' == g.id|add:'0' %}selected{% endif %}>
+                            {{ g.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
             {% endif %}
             <div class="col-md-2">
                 <label for="view" class="form-label">View</label>

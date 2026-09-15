@@ -120,3 +120,53 @@ class FailedLoginAttempt(models.Model):
 
     def __str__(self):
         return f"{self.username} from {self.ip_address} at {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
+
+
+class PasswordResetAudit(models.Model):
+    """
+    Audit log for password-reset and MFA-reset activity — supports abuse detection
+    on the internet-facing app and DPA (R.A. 10173) accountability.
+
+    Records both self-service reset events and admin-initiated actions. For admin
+    actions, `performed_by` is the admin; `target_user` is the affected account.
+    """
+    ACTION_CHOICES = [
+        ('self_request', 'Self-service reset requested'),
+        ('self_completed', 'Self-service reset completed'),
+        ('admin_send_link', 'Admin sent reset link'),
+        ('admin_reset_mfa', 'Admin reset MFA'),
+    ]
+
+    action = models.CharField(max_length=32, choices=ACTION_CHOICES)
+    target_user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='password_reset_events',
+        help_text='The account the reset/MFA action applies to.',
+    )
+    target_identifier = models.CharField(
+        max_length=254, blank=True,
+        help_text='Email/username entered (kept even if no account matched, for abuse detection).',
+    )
+    performed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='password_reset_actions_performed',
+        help_text='Admin who performed an admin-initiated action (null for self-service).',
+    )
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Password Reset Audit'
+        verbose_name_plural = 'Password Reset Audit'
+        indexes = [
+            models.Index(fields=['action', '-timestamp']),
+            models.Index(fields=['ip_address', '-timestamp']),
+            models.Index(fields=['-timestamp']),
+        ]
+
+    def __str__(self):
+        who = self.target_user or self.target_identifier or 'unknown'
+        return f"{self.get_action_display()} — {who} at {self.timestamp:%Y-%m-%d %H:%M:%S}"

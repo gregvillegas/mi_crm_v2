@@ -1064,6 +1064,30 @@ def generate_pdf_buffer(proposal):
     styles.add(ParagraphStyle(name='TableHeaderRight', parent=styles['TableHeader'], alignment=TA_RIGHT))
     styles.add(ParagraphStyle(name='NoteHeader', parent=styles['Normal'], fontName=font_bold, fontSize=9, backColor=MIC_YELLOW))
 
+    # Cap how much of a line-item description renders in the PDF. Some items carry
+    # a very long raw spec dump (e.g. 2,000+ chars of manufacturer config codes),
+    # which produces a table cell taller than a whole page — ugly output and, before
+    # splitInRow, a hard LayoutError. This trims the DISPLAY only (stored data is
+    # untouched) so the row stays a sane height and the table renders cleanly.
+    # NOTE: input-side validation is a separate, approved effort (see
+    # docs/PROPOSAL_DESCRIPTION_LENGTH_PLAN.md); this is the render-side safety net.
+    import html as _html_mod
+
+    PDF_DESCRIPTION_MAX_CHARS = 600
+
+    def _pdf_description(text):
+        """Return HTML-safe description text for a PDF cell, trimmed if excessively long."""
+        raw = (text or '').strip()
+        if len(raw) <= PDF_DESCRIPTION_MAX_CHARS:
+            return _html_mod.escape(raw).replace('\n', '<br/>')
+        trimmed = raw[:PDF_DESCRIPTION_MAX_CHARS].rstrip()
+        # Avoid cutting mid-word where possible.
+        cut = trimmed.rfind(' ')
+        if cut > PDF_DESCRIPTION_MAX_CHARS - 80:
+            trimmed = trimmed[:cut]
+        safe = _html_mod.escape(trimmed).replace('\n', '<br/>')
+        return f"{safe} <font size='7'><i>… (specifications truncated)</i></font>"
+
     def draw_header_footer(canvas, doc):
         canvas.saveState()
         page_width = letter[0]
@@ -1210,7 +1234,7 @@ def generate_pdf_buffer(proposal):
                 group_table_data.append([
                     Paragraph(str(idx), styles['TableTextCenter']),
                     Paragraph(item.part_number or '', styles['TableText']),
-                    Paragraph(item.description or '', styles['TableText']),
+                    Paragraph(_pdf_description(item.description), styles['TableText']),
                     Paragraph(str(int(item.quantity)) if item.quantity % 1 == 0 else str(item.quantity), styles['TableTextCenter']),
                     Paragraph(f"{currency_symbol}{item.unit_price:,.2f}", styles['TableTextRight']),
                     Paragraph(f"{currency_symbol}{item.amount:,.2f}", styles['TableTextRight']),
@@ -1220,7 +1244,7 @@ def generate_pdf_buffer(proposal):
                     group_table_data.append([
                         '', 
                         Paragraph(component['part_number'] or '', styles['TableText']),
-                        Paragraph(component['description'] or '', styles['TableText']),
+                        Paragraph(_pdf_description(component['description']), styles['TableText']),
                         Paragraph(
                             str(int(component['quantity'])) if component.get('quantity') is not None and component['quantity'] % 1 == 0
                             else (str(component['quantity']) if component.get('quantity') is not None else ''),
@@ -1240,6 +1264,11 @@ def generate_pdf_buffer(proposal):
             col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
             # repeatRows=2 repeats the OPTION heading (row 0) + column header
             # (row 1) at the top of each continuation page if the table splits.
+            # Rows break WHOLE across pages (no splitInRow): a data row that doesn't
+            # fit moves entirely to the next page, avoiding an orphaned header stripe
+            # + partial row at the bottom. Descriptions are length-capped by
+            # _pdf_description, so no single row can exceed a page (which is what
+            # previously forced splitInRow / caused the LayoutError).
             gt = Table(group_table_data, colWidths=col_widths, repeatRows=2)
             # Anchor the table to the left margin so it lines up with the body text.
             gt.hAlign = 'LEFT'
@@ -1294,9 +1323,9 @@ def generate_pdf_buffer(proposal):
                 Paragraph(item.part_number or '', styles['TableText']),
                 Paragraph(
                     (
-                        f"{item.description}<br/><font size='7'><i>Option {item.optional_option_number}</i></font>"
+                        f"{_pdf_description(item.description)}<br/><font size='7'><i>Option {item.optional_option_number}</i></font>"
                         if item.is_optional and item.description
-                        else (f"<font size='7'><i>Option {item.optional_option_number}</i></font>" if item.is_optional else (item.description or ''))
+                        else (f"<font size='7'><i>Option {item.optional_option_number}</i></font>" if item.is_optional else _pdf_description(item.description))
                     ),
                     styles['TableText'],
                 ),
@@ -1309,7 +1338,7 @@ def generate_pdf_buffer(proposal):
                 table_data.append([
                     '',
                     Paragraph(component['part_number'] or '', styles['TableText']),
-                    Paragraph(component['description'] or '', styles['TableText']),
+                    Paragraph(_pdf_description(component['description']), styles['TableText']),
                     Paragraph(
                         (
                             str(int(component['quantity'])) if component.get('quantity') is not None and component['quantity'] % 1 == 0
@@ -1358,6 +1387,11 @@ def generate_pdf_buffer(proposal):
     
         # Column widths: last column widened to 1.1" so "AVAILABILITY" fits on one line
         col_widths = [0.55*inch, 1.1*inch, 1.9*inch, 0.5*inch, 1.05*inch, 1.3*inch, 1.1*inch]
+        # Rows break WHOLE across pages (no splitInRow): a data row that doesn't fit
+        # moves entirely to the next page, avoiding an orphaned header stripe +
+        # partial row at the bottom of a page. Descriptions are length-capped by
+        # _pdf_description, so no single row can exceed a page (which is what
+        # previously forced splitInRow / caused the LayoutError).
         t = Table(table_data, colWidths=col_widths, repeatRows=1)
         # Anchor the table to the left margin so it lines up with the body text
         # (default is CENTER, which pushes the left edge past the text margin).

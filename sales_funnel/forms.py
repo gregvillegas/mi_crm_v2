@@ -125,7 +125,7 @@ class SalesFunnelForm(forms.ModelForm):
         return cleaned_data
 
 
-from teams.models import Team, Group, TeamMembership
+from teams.models import Team, Group, TeamMembership, asm_scoped_groups
 
 
 class FunnelFilterForm(forms.Form):
@@ -200,8 +200,8 @@ class FunnelFilterForm(forms.Form):
                 salespeople_ids = TeamMembership.objects.filter(group__in=teamlead_groups).values_list('user_id', flat=True)
                 qs = User.objects.filter(id__in=salespeople_ids)
             elif user.role == 'asm':
-                asm_teams = user.asm_teams.all()
-                groups = Group.objects.filter(team__in=asm_teams)
+                # ASM: scope the Group/Salesperson filter to the groups they handle.
+                groups = asm_scoped_groups(user)
                 group_qs = groups
                 salespeople_ids = TeamMembership.objects.filter(group__in=groups).values_list('user_id', flat=True)
                 qs = User.objects.filter(id__in=salespeople_ids)

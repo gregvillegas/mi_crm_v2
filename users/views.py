@@ -238,12 +238,11 @@ def edit_user(request, user_id):
         mobile_number = request.POST.get('mobile_number')
         initials = request.POST.get('initials', '').upper()  # Convert to uppercase
         role = request.POST.get('role')
-        password = request.POST.get('password')
         is_active = request.POST.get('is_active') == 'on'
         
         # Basic validation
         if not all([username, email, first_name, last_name, role]):
-            messages.error(request, 'All fields except password are required.')
+            messages.error(request, 'All fields are required.')
         elif User.objects.filter(username=username).exclude(id=user_id).exists():
             messages.error(request, 'Username already exists.')
         elif User.objects.filter(email=email).exclude(id=user_id).exists():
@@ -259,11 +258,9 @@ def edit_user(request, user_id):
                 user_obj.initials = initials
                 user_obj.role = role
                 user_obj.is_active = is_active
-                
-                # Update password if provided
-                if password:
-                    user_obj.set_password(password)
-                
+                # NOTE: passwords are intentionally NOT set here. Admins reset
+                # passwords via the audited "Send Password Reset Link" action so
+                # no staff member ever knows a user's password. See send_password_reset.
                 user_obj.save()
                 messages.success(request, f'User {username} updated successfully.')
                 return redirect('user_management')
@@ -433,3 +430,113 @@ def export_users_json(request):
     except Exception as e:
         messages.error(request, f'Export failed: {str(e)}')
         return redirect('user_management')
+
+
+def is_admin_only(user):
+    """Stricter gate for security-sensitive actions (password/MFA resets)."""
+    return getattr(user, 'is_authenticated', False) and user.role == 'admin'
+
+
+@login_required
+@user_passes_test(is_admin_only)
+def send_password_reset(request, user_id):
+    """
+    Admin-initiated password reset. Emails the TARGET USER a single-use, time-limited
+    reset link (via allauth's own reset flow). The admin never sees or sets the
+    password. Audited. POST-only.
+    """
+    target = get_object_or_404(User, id=user_id)
+
+    if request.method != 'POST':
+        return redirect('user_management')
+
+    from .signals import record_reset_audit
+
+    if not target.email:
+        messages.error(request, f'{target.username} has no email address on file; cannot send a reset link.')
+        record_reset_audit(
+            'admin_send_link', request=request, target_user=target,
+            target_identifier=target.username, performed_by=request.user,
+            notes='FAILED — no email on file.',
+        )
+        return redirect('user_management')
+
+    sent = False
+    try:
+        # Reuse allauth's reset form so the token/email are identical to self-service.
+        from allauth.account.forms import ResetPasswordForm
+        form = ResetPasswordForm({'email': target.email})
+        if form.is_valid():
+            form.save(request)
+            sent = True
+        else:
+            # Fallback: Django's built-in reset email (still user-only token).
+            from django.contrib.auth.forms import PasswordResetForm
+            dform = PasswordResetForm({'email': target.email})
+            if dform.is_valid():
+                dform.save(request=request)
+                sent = True
+    except Exception as exc:
+        messages.error(request, f'Could not send reset link: {exc}')
+
+    record_reset_audit(
+        'admin_send_link', request=request, target_user=target,
+        target_identifier=target.email, performed_by=request.user,
+        notes='Reset link emailed to user.' if sent else 'Send attempt failed.',
+    )
+
+    if sent:
+        messages.success(
+            request,
+            f'A password reset link was emailed to {target.get_full_name() or target.username} '
+            f'({target.email}). They set their own new password — you never see it.'
+        )
+    else:
+        messages.error(request, 'Failed to send the reset link. Please try again or check email settings.')
+
+    return redirect('user_management')
+
+
+@login_required
+@user_passes_test(is_admin_only)
+def reset_user_mfa(request, user_id):
+    """
+    Admin-initiated MFA reset for the lost-authenticator case. Removes the user's
+    two-factor authenticators so they re-enrol at next login. Separate from password
+    reset (never combined) and audited. POST-only.
+
+    IMPORTANT (process): verify the user's identity out of band before doing this.
+    """
+    target = get_object_or_404(User, id=user_id)
+
+    if request.method != 'POST':
+        return redirect('user_management')
+
+    from .signals import record_reset_audit
+
+    removed = 0
+    try:
+        from allauth.mfa.models import Authenticator
+        qs = Authenticator.objects.filter(user=target)
+        removed = qs.count()
+        qs.delete()
+    except Exception as exc:
+        messages.error(request, f'Could not reset MFA: {exc}')
+        record_reset_audit(
+            'admin_reset_mfa', request=request, target_user=target,
+            target_identifier=target.email or target.username, performed_by=request.user,
+            notes=f'FAILED — {exc}',
+        )
+        return redirect('user_management')
+
+    record_reset_audit(
+        'admin_reset_mfa', request=request, target_user=target,
+        target_identifier=target.email or target.username, performed_by=request.user,
+        notes=f'Removed {removed} authenticator(s); user must re-enrol MFA.',
+    )
+    messages.success(
+        request,
+        f"MFA reset for {target.get_full_name() or target.username}. "
+        f"They will be prompted to set up two-factor again at next login."
+    )
+    return redirect('user_management')

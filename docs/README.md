@@ -47,10 +47,20 @@ The system should now work as expected for both admin access and team management
 
 ## Proposals (for review/approval)
 
+- **[PROPOSAL_DESCRIPTION_LENGTH_PLAN.md](PROPOSAL_DESCRIPTION_LENGTH_PLAN.md)** — Plan to prevent over-long item descriptions (users pasting 2,000+ char raw spec dumps) that produce ugly/oversized PDF cells: a defense-in-depth character cap (model save net + form validation + UI counter/maxlength), keeping the `splitInRow` PDF safety net, and a report of existing over-limit items for cleanup. No code changed yet.
 - **[PROPOSAL_REJECTION_HANDLING.md](PROPOSAL_REJECTION_HANDLING.md)** — What happens to a rejected sales proposal (it can be edited, and editing auto-resets the approval workflow), the edge cases (e.g. trimming under the ₱500K threshold bypasses approval), and proposed options for management sign-off.
 - **[PROPOSAL_OPTIONAL_ITEMS_APPROVAL.md](PROPOSAL_OPTIONAL_ITEMS_APPROVAL.md)** — Why proposals whose value comes from "Optional" line items skip the ₱500K approval threshold (optional items are excluded from the binding total used for approval), with options for management sign-off.
 - **[BIOMETRIC_AUTHENTICATION_PROPOSAL.md](BIOMETRIC_AUTHENTICATION_PROPOSAL.md)** — Feasibility & phased implementation plan for biometric login (WebAuthn/Passkeys via existing django-allauth). For management review and sign-off; no code changed yet.
 - **[BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md](BIOMETRIC_ENROLLMENT_STAFF_GUIDE.md)** — 1-page staff how-to for enrolling a device (Touch ID / Face ID / Windows Hello / Android) and signing in with biometrics. Ready for the Phase 1 pilot once approved.
+
+## Marketing (Mass Mailing)
+
+- **[MARKETING_ANNOUNCEMENTS_VISIBILITY_PLAN.md](MARKETING_ANNOUNCEMENTS_VISIBILITY_PLAN.md)** — Plan (for review/approval) to let salespeople and all roles **view** Marketing's announcements/events and know when a new announcement/event/EDM/promo is posted. Reuses the existing `Announcement` model + the notification-bell pattern; proposes a read-only feed page and a per-user unread "Marketing Updates" bell count. No code changed yet.
+
+## Security
+
+- **[PASSWORD_RESET_AND_MFA.md](PASSWORD_RESET_AND_MFA.md)** — **(As built)** How password reset & MFA recovery work: self-service "Forgot Password?" (branded pages, single-use links), admin "Send Reset Link" and gated "Reset MFA" (admin-only, audited via `PasswordResetAudit`), rate limits + anti-enumeration, reset emails from `no-reply@microimageph.com` showing "MI CRM", and operations notes.
+- **[PASSWORD_RESET_SECURITY_PLAN.md](PASSWORD_RESET_SECURITY_PLAN.md)** — Decision record / rationale behind the reset design (now ✅ implemented; the optional "Set Temporary Password" was intentionally skipped).
 
 ## Maintenance & Operations
 

@@ -207,6 +207,15 @@ def home(request):
             'online_threshold_minutes': threshold_minutes,
         })
 
+    # Latest from Marketing — company-wide announcements/events for the home card.
+    # (Announcement is imported at module top; no local import — that would make
+    # the name a function-local and break the marketing branch above.)
+    context['latest_announcements'] = list(
+        Announcement.objects.filter(is_active=True)
+        .select_related('created_by')
+        .order_by('-created_at')[:4]
+    )
+
     return render(request, 'core/home.html', context)
 
 def logout_view(request):

@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Marketing Announcements &amp; Events{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="mb-0"><i class="fas fa-bullhorn text-primary me-2"></i>Announcements &amp; Events</h2>
+        {% if can_manage_announcements %}
+        <a href="{% url 'mass_mailing:announcement_list' %}" class="btn btn-outline-primary shadow-sm">
+            <i class="fas fa-cog me-1"></i> Manage
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Type filter chips -->
+    <div class="mb-4 d-flex flex-wrap gap-2">
+        <a href="{% url 'mass_mailing:announcement_feed' %}"
+           class="btn btn-sm {% if not type_filter %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+        {% for value, label in type_choices %}
+        <a href="?type={{ value }}"
+           class="btn btn-sm {% if type_filter == value %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ label }}</a>
+        {% endfor %}
+    </div>
+
+    <!-- Upcoming events highlight (only when not filtering to a non-event type) -->
+    {% if upcoming_events and type_filter != 'news' and type_filter != 'promo' and type_filter != 'edm' %}
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-calendar-alt me-2"></i>Upcoming Events
+        </div>
+        <div class="list-group list-group-flush">
+            {% for ann in upcoming_events %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <div class="fw-bold">
+                            <span class="badge {{ ann.badge_class }} me-1">Event</span>{{ ann.title }}
+                        </div>
+                        {% if ann.body %}<div class="text-muted small mt-1">{{ ann.body|linebreaksbr }}</div>{% endif %}
+                        <div class="small mt-1">
+                            <i class="fas fa-clock me-1 text-primary"></i>{{ ann.event_date|date:"M d, Y H:i" }}
+                            {% if ann.location %}<span class="ms-2"><i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ ann.location }}</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        {% if ann.link_url %}
+                        <a href="{{ ann.link_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Details
+                        </a>
+                        {% endif %}
+                        {% if can_manage_announcements %}
+                        <a href="{% url 'mass_mailing:announcement_edit' ann.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- All announcements -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-bold">
+            <i class="fas fa-stream me-2"></i>{% if type_filter %}Filtered{% else %}All{% endif %} Updates
+        </div>
+        {% if announcements %}
+        <div class="list-group list-group-flush">
+            {% for ann in announcements %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <div class="fw-bold">
+                            <span class="badge {{ ann.badge_class }} me-1">{{ ann.get_announcement_type_display }}</span>{{ ann.title }}
+                        </div>
+                        {% if ann.body %}<div class="text-muted small mt-1">{{ ann.body|linebreaksbr }}</div>{% endif %}
+                        {% if ann.is_event and ann.event_date %}
+                        <div class="small mt-1">
+                            <i class="fas fa-clock me-1 text-primary"></i>{{ ann.event_date|date:"M d, Y H:i" }}
+                            {% if ann.location %}<span class="ms-2"><i class="fas fa-map-marker-alt me-1 text-danger"></i>{{ ann.location }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                        <div class="small text-muted mt-1">
+                            Posted {{ ann.created_at|naturaltime }}{% if ann.created_by %} by {{ ann.created_by.get_full_name|default:ann.created_by.username }}{% endif %}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        {% if ann.link_url %}
+                        <a href="{{ ann.link_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>Open
+                        </a>
+                        {% endif %}
+                        {% if can_manage_announcements %}
+                        <a href="{% url 'mass_mailing:announcement_edit' ann.pk %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card-body text-center text-muted py-5">
+            <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+            No announcements to show.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
