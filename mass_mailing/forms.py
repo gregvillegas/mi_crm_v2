@@ -252,8 +252,8 @@ class MediaLibraryAssetForm(forms.ModelForm):
         model = MediaLibraryAsset
         fields = ['title', 'file']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. April Promo Banner'}),
-            'file': ClearableFileInput(attrs={'accept': 'image/*', 'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control library-upload-field', 'placeholder': 'e.g. April Promo Banner'}),
+            'file': ClearableFileInput(attrs={'accept': 'image/*', 'class': 'form-control library-upload-field'}),
         }
 
     def clean_file(self):

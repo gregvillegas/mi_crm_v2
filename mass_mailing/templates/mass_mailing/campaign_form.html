@@ -385,6 +385,24 @@
             width: '100%'
         });
 
+        // --- Media Library upload fields: only required when uploading ---
+        // The "Upload To Library" Title/File inputs live in the SAME <form> as the
+        // campaign. Their model-level `required` would otherwise block the campaign
+        // "Save" via HTML5 validation even when the user is only reusing an existing
+        // library image. So we strip `required` by default, and re-apply it ONLY when
+        // an "Upload To Library" submit button is clicked (server still validates too).
+        var $libraryFields = $('.library-upload-field');
+        $libraryFields.prop('required', false);
+
+        $('button[name="upload_library_media"]').on('click', function() {
+            // Enforce validation for the upload action.
+            $libraryFields.prop('required', true);
+        });
+        // Any OTHER submit button (Save Draft / Send / etc.) must not require them.
+        $('button[type="submit"]').not('[name="upload_library_media"]').on('click', function() {
+            $libraryFields.prop('required', false);
+        });
+
         $('#selectAllCustomersBtn').click(function() {
             $('#id_customers > option').prop("selected", "selected");
             $('#id_customers').trigger("change");
