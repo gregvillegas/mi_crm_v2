@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Search: {{ query|default:'Results' }} - CRM{% endblock %}
+{% block content %}
+
+<div class="mb-4">
+    <h1 class="h3 mb-2">
+        <i class="fas fa-search text-primary me-2"></i>Search Results
+    </h1>
+    {% if query %}
+        <p class="text-muted mb-0">
+            Query: <strong class="text-body">&ldquo;{{ query }}&rdquo;</strong>
+            {% if total_count > 0 %}
+                &middot; {{ total_count }} result{{ total_count|pluralize }} found
+            {% elif total_count == 0 and sections %}
+            {% else %}
+                &middot; No results found
+            {% endif %}
+        </p>
+    {% else %}
+        <p class="text-muted mb-0">Enter a search term in the navbar search box above.</p>
+    {% endif %}
+</div>
+
+{% if query %}
+    <form action="{% url 'global_search' %}" method="get" class="mb-4 d-flex gap-2">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input
+                type="search"
+                name="q"
+                class="form-control"
+                placeholder="Refine your search..."
+                value="{{ query }}"
+                aria-label="Refine search"
+                autofocus
+            >
+        </div>
+        <button type="submit" class="btn btn-primary">Search</button>
+        <a href="{% url 'global_search' %}" class="btn btn-outline-secondary">Clear</a>
+    </form>
+{% endif %}
+
+{% if not query %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-search text-primary" style="font-size: 3rem;"></i>
+            <h3 class="h5 mt-3 mb-2">Start searching</h3>
+            <p class="text-muted mb-4">
+                Use the search box in the navigation bar to find
+                <strong>Proposals</strong>, <strong>Customers</strong>,
+                <strong>Users</strong>, <strong>Leads</strong>, and
+                <strong>Sales Funnel entries</strong>.
+            </p>
+            <div class="row justify-content-center text-start g-3">
+                <div class="col-md-5 col-sm-8">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h4 class="h6 mb-3">
+                                <i class="fas fa-lightbulb text-warning me-1"></i>
+                                Search tips
+                            </h4>
+                            <ul class="mb-0 small">
+                                <li class="mb-2">
+                                    <strong>Proposal No.</strong><br>
+                                    <span class="text-secondary">e.g. <code>LFA-2025-0012</code>, <code>REF-0912</code></span>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Customer name</strong><br>
+                                    <span class="text-secondary">e.g. <code>Acme Corp</code>, <code>Micro Image</code></span>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Contact person</strong><br>
+                                    <span class="text-secondary">e.g. <code>John Smith</code>, <code>Juan Dela Cruz</code></span>
+                                </li>
+                                <li>
+                                    <strong>Email or phone</strong><br>
+                                    <span class="text-secondary">e.g. <code>@example.com</code>, <code>0917</code></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5 col-sm-8">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h4 class="h6 mb-3">
+                                <i class="fas fa-users text-info me-1"></i>
+                                Users & team
+                            </h4>
+                            <ul class="mb-0 small">
+                                <li class="mb-2">
+                                    <strong>Salesperson / user</strong><br>
+                                    <span class="text-secondary">e.g. <code>Maria</code>, <code>lfabriga</code></span>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Lead company / source</strong><br>
+                                    <span class="text-secondary">e.g. <code>XYZ Industries</code></span>
+                                </li>
+                                <li>
+                                    <strong>Funnel brand or requirement</strong><br>
+                                    <span class="text-secondary">e.g. <code>Canon</code>, <code>cctv</code></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% elif total_count == 0 %}
+    <div class="card border-0 shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-search-minus text-muted" style="font-size: 3rem;"></i>
+            <h3 class="h5 mt-3 mb-2">No matches for &ldquo;{{ query }}&rdquo;</h3>
+            <p class="text-muted mb-4">
+                Try different keywords or check the spelling. Results respect your team and role visibility.
+            </p>
+            <div class="row justify-content-center text-start g-3">
+                <div class="col-md-6 col-sm-10">
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <h4 class="h6 mb-3">
+                                <i class="fas fa-lightbulb text-warning me-1"></i>
+                                Try these instead
+                            </h4>
+                            <ul class="mb-0 small">
+                                <li class="mb-1">Partial Proposal No. — e.g. <code>2025</code>, <code>LFA</code></li>
+                                <li class="mb-1">Customer company name — e.g. <code>Acme</code></li>
+                                <li class="mb-1">Contact first or last name — e.g. <code>Smith</code></li>
+                                <li class="mb-1">Email domain — e.g. <code>@gmail.com</code></li>
+                                <li>Salesperson's initials or name — e.g. <code>LFA</code>, <code>Juan</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% else %}
+    {% for section in sections %}
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+            <h2 class="h5 mb-0 flex-grow-1">
+                <i class="text-{{ section.color }} {{ section.icon }} me-2"></i>
+                {{ section.label }}
+                <span class="badge bg-{{ section.color }} ms-2 rounded-pill" style="font-size: 0.75rem;">{{ section.count }}</span>
+            </h2>
+        </div>
+        <div class="list-group list-group-flush card border-0 shadow-sm rounded overflow-hidden">
+            {% for item in section.items %}
+            <a href="{{ item.url }}" class="list-group-item list-group-item-action py-3">
+                <div class="d-flex w-100 align-items-start justify-content-between gap-3">
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                            <h3 class="h6 mb-0 text-body fw-semibold text-truncate">{{ item.title }}</h3>
+                            {% if item.badge %}
+                                <span class="badge {{ item.badge_class }} rounded-pill" style="font-size: 0.7rem;">{{ item.badge }}</span>
+                            {% endif %}
+                        </div>
+                        {% if item.subtitle %}
+                            <p class="mb-1 text-secondary small text-truncate">{{ item.subtitle }}</p>
+                        {% endif %}
+                        {% if item.meta %}
+                            <p class="mb-0 text-muted small text-truncate">{{ item.meta }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex-shrink-0 pt-1">
+                        <i class="fas fa-chevron-right text-muted small"></i>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+{% endif %}
+
+{% endblock %}

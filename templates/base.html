@@ -819,6 +819,79 @@
                         {% endif %}
                     {% endif %}
                 </ul>
+                {% if user.is_authenticated %}
+                <form class="d-none d-lg-flex me-3 mb-0 align-items-center" action="{% url 'global_search' %}" method="get" role="search">
+                    <div class="input-group input-group-sm" style="width: 340px;">
+                        <span class="input-group-text bg-dark border-secondary text-white" style="border-right: none;" title="Global Search">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input
+                            class="form-control form-control-sm bg-dark text-white border-secondary"
+                            style="border-left: none; border-right: none;"
+                            type="search"
+                            name="q"
+                            placeholder="Search: LFA-2025-0012 / Acme Corp / John Smith"
+                            aria-label="Search"
+                            value="{{ query|default:'' }}"
+                            autocomplete="off"
+                            data-bs-toggle="tooltip"
+                            data-bs-html="true"
+                            data-bs-placement="bottom"
+                            title="<div class='text-start small'><strong class='text-primary'>Try searching:</strong><ul class='mb-0 ps-3' style='list-style:disc;'><li>Proposal No. — <em>LFA-2025-0012</em></li><li>Customer Name — <em>Acme Corp</em></li><li>Contact Person — <em>John Smith</em></li><li>Email / Phone — <em>@example.com</em></li><li>User / Salesperson — <em>Juan Dela Cruz</em></li><li>Lead / Funnel Company — <em>Brand Name</em></li></ul></div>"
+                        >
+                        <a
+                            href="javascript:void(0)"
+                            class="input-group-text bg-dark border-secondary text-primary pe-none"
+                            style="border-left: none;"
+                            aria-hidden="true"
+                            data-bs-toggle="tooltip"
+                            data-bs-html="true"
+                            data-bs-placement="bottom"
+                            title="<div class='text-start small'><strong class='text-primary'>Try searching:</strong><ul class='mb-0 ps-3' style='list-style:disc;'><li>Proposal No. — <em>LFA-2025-0012</em></li><li>Customer Name — <em>Acme Corp</em></li><li>Contact Person — <em>John Smith</em></li><li>Email / Phone — <em>@example.com</em></li><li>User / Salesperson — <em>Juan Dela Cruz</em></li><li>Lead / Funnel Company — <em>Brand Name</em></li></ul></div>"
+                            tabindex="-1"
+                        >
+                            <i class="far fa-question-circle"></i>
+                        </a>
+                        <button
+                            class="btn btn-sm btn-default border-gray"
+                            type="submit"
+                            title="Search (Enter)"
+                            aria-label="Search"
+                        >
+                            <!--<i class="fas fa-search me-1"></i> -->
+                        </button>
+                    </div>
+                </form>
+                <ul class="navbar-nav d-lg-none mb-2 mb-lg-0">
+                    <li class="nav-item w-100">
+                        <form class="d-flex me-2" action="{% url 'global_search' %}" method="get" role="search">
+                            <div class="input-group input-group-sm w-100">
+                                <span class="input-group-text bg-dark border-secondary text-white" style="border-right: none;">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input
+                                    class="form-control form-control-sm bg-dark text-white border-secondary"
+                                    style="border-left: none; border-right: none;"
+                                    type="search"
+                                    name="q"
+                                    placeholder="Proposal, Customer, User..."
+                                    aria-label="Search"
+                                    value="{{ query|default:'' }}"
+                                    autocomplete="off"
+                                >
+                                <button
+                                    class="btn btn-sm btn-primary border-primary"
+                                    type="submit"
+                                    title="Search"
+                                    aria-label="Search"
+                                >
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </li>
+                </ul>
+                {% endif %}
                 <ul class="navbar-nav ms-auto align-items-center">
                     {% if user.is_authenticated %}
                         {% if user.role in 'admin,avp,gm,vp,salesperson,supervisor,asm,sm,marketing' or customer_request_notification_count or proposal_approval_notification_count or marketing_updates_count %}
@@ -1100,6 +1173,33 @@
                 });
             }, { passive: true });
         })();
+    })();
+    </script>
+
+    <!-- Bootstrap tooltips (used by navbar search helper and other UI elements) -->
+    <script>
+    (function () {
+        function initTooltips(rootEl) {
+            if (!('bootstrap' in window) || !bootstrap.Tooltip) return;
+            var candidates = rootEl ? rootEl : document;
+            var list = candidates.querySelectorAll('[data-bs-toggle="tooltip"]');
+            list.forEach(function (el) {
+                if (el.dataset.bsTooltipInitialized) return;
+                try {
+                    new bootstrap.Tooltip(el, {
+                        boundary: document.body,
+                        sanitize: false,
+                        delay: { show: 250, hide: 100 }
+                    });
+                    el.dataset.bsTooltipInitialized = '1';
+                } catch (e) { /* noop */ }
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () { initTooltips(); });
+        } else {
+            initTooltips();
+        }
     })();
     </script>
 
