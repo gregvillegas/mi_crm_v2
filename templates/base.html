@@ -1064,8 +1064,11 @@
         {% if user.role in 'salesperson,supervisor,teamlead,asm,avp,admin,president,gm,vp' %}
         <a class="m-tabbar__item" href="{% url 'proposal_list' %}"><i class="fas fa-file-invoice-dollar"></i><span>Proposals</span></a>
         {% endif %}
-        {% if user.role in 'salesperson,avp,supervisor,teamlead,asm,admin,president,gm,vp' %}
+        {% if user.role in 'salesperson,teamlead' %}
         <a class="m-tabbar__item" href="{% url 'sales_monitoring:dashboard' %}"><i class="fas fa-desktop"></i><span>Monitor</span></a>
+        {% endif %}
+        {% if user.role in 'admin,president,gm,vp,avp,asm,sm,supervisor' %}
+        <a class="m-tabbar__item" href="{% url 'approvals_inbox' %}"><i class="fas fa-thumbs-up"></i><span>Approvals</span></a>
         {% endif %}
         <a class="m-tabbar__item" href="{% url 'profile' %}"><i class="fas fa-user-circle"></i><span>Me</span></a>
     </nav>

@@ -45,7 +45,7 @@ db.*
 
 # Android
 mcp-server-puppeteer-py/
-MiCRM_Android/
+#MiCRM_Android/
 micrm_android_mockup/
 
 # OS
