@@ -22,7 +22,7 @@ check("bare domain gets https",
       APIClient.normalizedBaseURL(host: "micrm.microimageph.com")?.absoluteString ?? "nil",
       "https://micrm.microimageph.com/api/v1/")
 check("private ip:port gets http",
-      APIClient.normalizedBaseURL(host: "10.20.20.2:8001")?.absoluteString ?? "nil",
+      APIClient.normalizedBaseURL(host: "10.10.10.2:8000")?.absoluteString ?? "nil",
       "http://10.20.20.2:8001/api/v1/")
 check("localhost gets http",
       APIClient.normalizedBaseURL(host: "localhost:8000")?.absoluteString ?? "nil",
@@ -35,19 +35,19 @@ check("172.32 is not private",
       "https://172.32.0.5/api/v1/")
 check("public domain keeps https even with a port",
       APIClient.normalizedBaseURL(host: "crm.example.com:8443")?.absoluteString ?? "nil",
-      "https://crm.example.com:8443/api/v1/")
+      "https://micrm.microimageph.com:8443/api/v1/")
 check("explicit scheme preserved",
       APIClient.normalizedBaseURL(host: "https://crm.example.com")?.absoluteString ?? "nil",
-      "https://crm.example.com/api/v1/")
+      "https://micrm.microimageph.com/api/v1/")
 check("trailing slashes trimmed",
-      APIClient.normalizedBaseURL(host: "https://crm.example.com///")?.absoluteString ?? "nil",
-      "https://crm.example.com/api/v1/")
+      APIClient.normalizedBaseURL(host: "https://micrm.microimageph.com///")?.absoluteString ?? "nil",
+      "https://micrm.microimageph.com/api/v1/")
 check("api/v1 not doubled",
-      APIClient.normalizedBaseURL(host: "https://crm.example.com/api/v1")?.absoluteString ?? "nil",
-      "https://crm.example.com/api/v1/")
+      APIClient.normalizedBaseURL(host: "https://micrm.microimageph.com/api/v1")?.absoluteString ?? "nil",
+      "https://micrm.microimageph.com/api/v1/")
 check("whitespace tolerated",
-      APIClient.normalizedBaseURL(host: "  crm.example.com  ")?.absoluteString ?? "nil",
-      "https://crm.example.com/api/v1/")
+      APIClient.normalizedBaseURL(host: "  micrm.microimageph.com  ")?.absoluteString ?? "nil",
+      "https://micrm.microimageph.com/api/v1/")
 check("empty host is nil", APIClient.normalizedBaseURL(host: "") == nil)
 
 print("\nCurrency formatting")

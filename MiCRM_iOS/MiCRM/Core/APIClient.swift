@@ -63,7 +63,7 @@ actor APIClient {
         baseURL = Self.normalizedBaseURL(host: host)
     }
 
-    /// Accepts "crm.example.com", "10.20.20.2:8001" or a full URL, and
+    /// Accepts "crm.example.com", "10.10.10.2:8000" or a full URL, and
     /// normalises it to `<scheme>://<host>/api/v1/`.
     ///
     /// Static and pure so the normalisation rules can be tested directly.

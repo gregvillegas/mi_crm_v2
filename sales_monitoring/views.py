@@ -2054,13 +2054,17 @@ def get_executive_dashboard_data():
     
     # 3. Funnel Overview
     funnel_overview = []
-    total_pipeline_value = Decimal('0')
-    
+
+    # Compute the FINAL overall pipeline total FIRST so percentages
+    # consistently refer to the full-pipeline denominator and sum to 100%.
+    overall_pipeline_total = (
+        active_pipeline.aggregate(total=Sum('retail'))['total'] or Decimal('0')
+    )
+
     for stage_code, stage_name in SalesFunnel.FUNNEL_STAGES:
         stage_entries = active_pipeline.filter(stage=stage_code)
         stage_value = stage_entries.aggregate(total=Sum('retail'))['total'] or Decimal('0')
-        total_pipeline_value += stage_value
-        
+
         # Calculate average age in days
         if stage_entries.exists():
             avg_age = stage_entries.aggregate(
@@ -2069,10 +2073,10 @@ def get_executive_dashboard_data():
             avg_age_days = avg_age.days if avg_age else 0
         else:
             avg_age_days = 0
-        
+
         # Aging indicator (red if > 30 days, yellow if > 14 days, green otherwise)
         aging_status = 'danger' if avg_age_days > 30 else 'warning' if avg_age_days > 14 else 'success'
-        
+
         funnel_overview.append({
             'stage_code': stage_code,
             'stage_name': stage_name,
@@ -2080,7 +2084,7 @@ def get_executive_dashboard_data():
             'total_value': float(stage_value),
             'avg_age_days': avg_age_days,
             'aging_status': aging_status,
-            'percentage': float((stage_value / total_pipeline_value) * 100) if total_pipeline_value > 0 else 0,
+            'percentage': float((stage_value / overall_pipeline_total) * 100) if overall_pipeline_total > 0 else 0,
         })
     
     # 4. Individual Performance

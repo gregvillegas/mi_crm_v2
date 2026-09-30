@@ -32,7 +32,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         ITSAppUsesNonExemptEncryption: false
-        # The on-premise server (10.20.20.2:8001) is plain HTTP on the office
+        # The on-premise server (10.10.10.2:8001) is plain HTTP on the office
         # LAN. Public traffic to micrm.microimageph.com stays on TLS.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
